@@ -30,7 +30,7 @@ SUBSCRIPTION = (environ.get('SUBSCRIPTION', 'https://telegra.ph/file/f983d857f3c
 FSUB_IMG = (environ.get('FSUB_IMG', 'https://i.ibb.co/cShkPjcZ/x.jpg')).split() 
 
 ADMINS = [int(admin) if id_pattern.search(admin) else admin for admin in environ.get('ADMINS', '7859995064').split()] 
-CHANNELS = [int(ch) if id_pattern.search(ch) else ch for ch in environ.get('CHANNELS', '-1002533229703').split()]
+CHANNELS = [int(ch) if id_pattern.search(ch) else ch for ch in environ.get('CHANNELS', '-1002533229703 -1002633335930 -1002533695302 -1003239941447').split()]
 LOG_CHANNEL = int(environ.get('LOG_CHANNEL', '-1002900228022'))  
 BIN_CHANNEL = int(environ.get('BIN_CHANNEL', '-1002524198335'))  
 MOVIE_UPDATE_CHANNEL = int(environ.get('MOVIE_UPDATE_CHANNEL', '-100'))  
@@ -60,7 +60,7 @@ AUTH_CHANNEL = environ.get("AUTH_CHANNEL", "-1002612579654 -1002575830474") # ad
 AUTH_REQ_CHANNEL = environ.get('AUTH_REQ_CHANNEL', '-1002743050170') # add multiple channels here, separated by single space
 
 IS_VERIFY = is_enabled('IS_VERIFY', True)
-LOG_VR_CHANNEL = int(environ.get('LOG_VR_CHANNEL', '100'))
+LOG_VR_CHANNEL = int(environ.get('LOG_VR_CHANNEL', '-1002900228022'))
 LOG_API_CHANNEL = int(environ.get('LOG_API_CHANNEL', '-1002900228022'))
 VERIFY_IMG = environ.get("VERIFY_IMG", "https://telegra.ph/file/9ecc5d6e4df5b83424896.jpg")
 
