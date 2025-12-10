@@ -1969,10 +1969,7 @@ async def auto_filter(client, msg, spoll=False):
                 InlineKeyboardButton("ꜱᴇᴀꜱᴏɴ",  callback_data=f"seasons#{key}#0")
             ]
         )
-        btn.insert(1, [
-            InlineKeyboardButton("📥 Sᴇɴᴅ Aʟʟ 📥", callback_data=f"sendfiles#{key}")
-            
-        ])
+        
     else:
         btn = []
         btn.insert(0, 
@@ -1982,10 +1979,7 @@ async def auto_filter(client, msg, spoll=False):
                 InlineKeyboardButton("ꜱᴇᴀꜱᴏɴ",  callback_data=f"seasons#{key}#0")
             ]
         )
-        btn.insert(1, [
-            InlineKeyboardButton("📥 Sᴇɴᴅ Aʟʟ 📥", callback_data=f"sendfiles#{key}")
-            
-        ])
+        
     if offset != "":
         req = message.from_user.id if message.from_user else 0
         try:
