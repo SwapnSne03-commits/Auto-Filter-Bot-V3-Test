@@ -33,7 +33,7 @@ ADMINS = [int(admin) if id_pattern.search(admin) else admin for admin in environ
 CHANNELS = [int(ch) if id_pattern.search(ch) else ch for ch in environ.get('CHANNELS', '-1002533229703 -1002633335930 -1002533695302 -1003239941447').split()]
 LOG_CHANNEL = int(environ.get('LOG_CHANNEL', '-1002900228022'))  
 BIN_CHANNEL = int(environ.get('BIN_CHANNEL', '-1002524198335'))  
-MOVIE_UPDATE_CHANNEL = int(environ.get('MOVIE_UPDATE_CHANNEL', '-100'))  
+MOVIE_UPDATE_CHANNEL = int(environ.get('MOVIE_UPDATE_CHANNEL', '-1002524198335'))  
 PREMIUM_LOGS = int(environ.get('PREMIUM_LOGS', '-1002900228022')) 
 auth_grp = environ.get('AUTH_GROUP', '-1003464461159')
 AUTH_GROUPS = [int(ch) for ch in auth_grp.split()] if auth_grp else None
@@ -115,9 +115,9 @@ IGNORE_WORDS= ["movies", "Movies", ",", "episode", "Episode", "episodes", "Episo
 
 BAD_WORDS = ["Hdhub4u", "cinevood", "skymoviedHD", "4khdhub", "Toonworld4all", "TW4ALL", "ExtraFlix"] #Remove Words From File_Name
 
-LANGUAGES = ["malayalam", "", "tamil", "", "english", "", "hindi", "", "telugu", "", "kannada", "", "gujarati", "", "marathi", "", "punjabi", ""]
+LANGUAGES = ["malayalam", "", "tamil", "", "english", "", "hindi", "", "telugu", "", "kannada", "", "gujarati", "", "marathi", "", "punjabi", "", "bengali', ""]
 QUALITIES = ["360P", "", "480P", "", "720P", "", "1080P", "", "1440P", "", "2160P", ""]
-SEASONS = ["s01" , "s02" , "s03" , "s04", "s05" , "s06" , "s07" , "s08" , "s09" , "s10"]
+SEASONS = ["s01" , "s02" , "s03" , "s04", "s05" , "s06" , "s07" , "s08" , "s09" , "s10" , "s11" , "s12"]
 
 
 NO_PORT = bool(environ.get('NO_PORT', False))
