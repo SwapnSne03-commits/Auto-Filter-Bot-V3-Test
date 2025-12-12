@@ -110,7 +110,21 @@ async def users_broadcast(user_id, message, is_pin):
 
 async def groups_broadcast(chat_id, message, is_pin):
     try:
-        m = await message.copy(chat_id=chat_id)
+        m = await message._client.copy_message(
+    chat_id=user_id,
+    from_chat_id=message.chat.id,
+    message_id=message.id,
+    reply_markup=InlineKeyboardMarkup(
+        [
+            [
+                InlineKeyboardButton(
+                    "🔍 Search Here",
+                    url="https://t.me/Graduate_Request_Pro"
+                )
+            ]
+        ]
+    )
+        )
         if is_pin:
             try:
                 await m.pin()
