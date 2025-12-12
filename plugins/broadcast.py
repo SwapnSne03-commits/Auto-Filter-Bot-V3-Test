@@ -57,24 +57,24 @@ async def broadcast_users(bot, message):
         try:
             chat_id = int(user["id"])
 
-        sent = await bot.copy_message(
-            chat_id=chat_id,
-            from_chat_id=b_msg.chat.id,
-            message_id=b_msg.message_id,
-            reply_markup=user_buttons
-        )
+            sent = await bot.copy_message(
+                chat_id=chat_id,
+                from_chat_id=b_msg.chat.id,
+                message_id=b_msg.message_id,
+                reply_markup=user_buttons
+            )
 
-        if is_pin:
-            try:
-                await bot.pin_chat_message(chat_id, sent.message_id)
-            except:
-                pass
+            if is_pin:
+                try:
+                    await bot.pin_chat_message(chat_id, sent.message_id)
+                except:
+                    pass
 
-        return "Success"
+            return "Success"
 
-    except FloodWait as e:
-        await asyncio.sleep(e.x)
-        return "Error"
+        except FloodWait as e:
+            await asyncio.sleep(e.x)
+            return "Error"
 
     except Exception as e:
         err = str(e).lower()
