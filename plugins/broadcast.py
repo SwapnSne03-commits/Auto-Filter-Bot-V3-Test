@@ -42,6 +42,10 @@ async def broadcast_users(bot, message):
 
     is_pin = silentxbotz_user_response.text == "Yes"
     b_msg = message.reply_to_message
+    search_group_link = "https://t.me/Graduate_Request_Pro"
+    user_buttons = InlineKeyboardMarkup(
+        [[InlineKeyboardButton("❣︎ 𝐒𝐄𝐀𝐑𝐂𝐇 𝐇𝐄𝐑𝐄 ❣︎", url=search_group_link)]]
+    )
     users = [user async for user in await db.get_all_users()]
     total_users = len(users)
     silentxbotz_status_msg = await message.reply_text("📤 <b>Broadcasting your message...</b>")
@@ -50,12 +54,35 @@ async def broadcast_users(bot, message):
     cancelled = False
 
     async def send(user):
-        try:
-            _, result = await users_broadcast(int(user["id"]), b_msg, is_pin)
-            return result
-        except Exception as e:
-            LOGGER.error(f"Error sending broadcast to {user['id']}")
-            return "Error"
+    try:
+        chat_id = int(user["id"])
+
+        sent = await bot.copy_message(
+            chat_id=chat_id,
+            from_chat_id=b_msg.chat.id,
+            message_id=b_msg.message_id,
+            reply_markup=user_buttons
+        )
+
+        if is_pin:
+            try:
+                await bot.pin_chat_message(chat_id, sent.message_id)
+            except:
+                pass
+
+        return "Success"
+
+    except FloodWait as e:
+        await asyncio.sleep(e.x)
+        return "Error"
+
+    except Exception as e:
+        err = str(e).lower()
+        if "blocked" in err:
+            return "Blocked"
+        if "deactivated" in err or "not found" in err:
+            return "Deleted"
+        return "Error"
 
     async with lock:
         for i in range(0, total_users, 100):
