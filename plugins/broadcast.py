@@ -55,7 +55,7 @@ async def broadcast_users(bot, message):
 
     async def send(user):
         try:
-        chat_id = int(user["id"])
+            chat_id = int(user["id"])
 
         sent = await bot.copy_message(
             chat_id=chat_id,
