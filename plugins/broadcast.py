@@ -76,13 +76,13 @@ async def broadcast_users(bot, message):
             await asyncio.sleep(e.x)
             return "Error"
 
-    except Exception as e:
-        err = str(e).lower()
-        if "blocked" in err:
-            return "Blocked"
-        if "deactivated" in err or "not found" in err:
-            return "Deleted"
-        return "Error"
+        except Exception as e:
+            err = str(e).lower()
+            if "blocked" in err:
+                return "Blocked"
+            if "deactivated" in err or "not found" in err:
+                return "Deleted"
+            return "Error"
 
     async with lock:
         for i in range(0, total_users, 100):
