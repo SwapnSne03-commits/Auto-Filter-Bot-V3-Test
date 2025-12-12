@@ -42,6 +42,7 @@ async def broadcast_users(bot, message):
 
     is_pin = silentxbotz_user_response.text == "Yes"
     b_msg = message.reply_to_message
+    cursor = await db.get_all_users()
     search_group_link = "https://t.me/Graduate_Request_Pro"
     user_buttons = InlineKeyboardMarkup(
         [[InlineKeyboardButton("❣︎ 𝐒𝐄𝐀𝐑𝐂𝐇 𝐇𝐄𝐑𝐄 ❣︎", url=search_group_link)]]
