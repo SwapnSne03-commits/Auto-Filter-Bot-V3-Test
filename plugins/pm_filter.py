@@ -39,6 +39,10 @@ SPELL_CHECK = {}
 @Client.on_message(filters.group & filters.text & filters.incoming)
 async def give_filter(client, message):
     bot_id = client.me.id
+
+	if message.text and message.text.lower().startwith(("#request", "/request")):
+		return
+		
     if EMOJI_MODE:
         try:
             await message.react(emoji=random.choice(REACTIONS))
