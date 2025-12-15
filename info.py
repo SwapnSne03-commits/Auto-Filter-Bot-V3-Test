@@ -55,6 +55,7 @@ GRP_LNK = environ.get('GRP_LNK', 'https://t.me/Graduate_Request_Pro')
 CHNL_LNK = environ.get('CHNL_LNK', 'https://t.me/Graduate_Movies')
 OWNER_LNK = environ.get('OWNER_LNK', 'https://t.me/yours_swapno')
 UPDATE_CHANNEL_LNK = environ.get('UPDATE_CHANNEL_LNK', 'https://t.me/Graduate_Movies')
+SUPPORT_GRP = environ.get('SUPPORT_GRP', 'https://t.me/Gm_Support_chat')
 
 AUTH_CHANNEL = environ.get("AUTH_CHANNEL", "-1002612579654 -1002575830474") # add multiple channels here, separated by single space
 AUTH_REQ_CHANNEL = environ.get('AUTH_REQ_CHANNEL', '-1002743050170') # add multiple channels here, separated by single space
