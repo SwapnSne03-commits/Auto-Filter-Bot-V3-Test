@@ -40,7 +40,7 @@ SPELL_CHECK = {}
 async def give_filter(client, message):
     bot_id = client.me.id
 
-	if message.text and message.text.lower().startswith(("#request", "/request")):
+    if message.text and message.text.lower().startswith(("#request", "/request")):
         return
 		
     if EMOJI_MODE:
