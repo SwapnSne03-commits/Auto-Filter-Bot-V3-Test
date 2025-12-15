@@ -563,7 +563,7 @@ async def connect_group(client, message):
 
 @Client.on_message((filters.command(["request", "Request"]) | filters.regex("#request") | filters.regex("#Request")) & filters.group)
 async def requests(bot, message):
-    bot_id = client.me.id
+    bot_id = bot.me.id
     maintenance_mode = await db.get_maintenance_status(bot_id)
     if maintenance_mode and message.from_user.id not in ADMINS:
         await message.reply_text(f"ɪ ᴀᴍ ᴄᴜʀʀᴇɴᴛʟʏ ᴜɴᴅᴇʀ ᴍᴀɪɴᴛᴇɴᴀɴᴄᴇ 🛠️. ɪ ᴡɪʟʟ ʙᴇ ʙᴀᴄᴋ ꜱᴏᴏɴ 🔜", disable_web_page_preview=True)
@@ -605,7 +605,7 @@ async def requests(bot, message):
         reporter = str(message.from_user.id)
         mention = message.from_user.mention
         success = True
-        content = message.text
+        content = message.text.strip()
         keywords = ["#request", "/request", "#Request", "/Request"]
         for keyword in keywords:
             if keyword in content:
