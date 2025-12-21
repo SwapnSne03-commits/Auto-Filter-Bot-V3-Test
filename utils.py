@@ -52,6 +52,27 @@ class temp(object):
     IMDB_CAP = {}
     VERIFICATIONS = {}
 
+def get_main_buttons():
+    return [
+        [
+            InlineKeyboardButton(
+                "➕ Aᴅᴅ Mᴇ Tᴏ Yᴏᴜʀ Gʀᴏᴜᴘ ➕",
+                url=f"https://t.me/{temp.U_NAME}?startgroup=true"
+            )
+        ],
+        [
+            InlineKeyboardButton("🎭 Mᴏᴠɪᴇ Rᴇǫᴜᴇsᴛ Gʀᴏᴜᴘ", url=GRP_LNK)
+        ],
+        [
+            InlineKeyboardButton("⚡ Hᴇʟᴘ", callback_data="help_menu"),
+            InlineKeyboardButton("🕵️‍♂️ Aʙᴏᴜᴛ", callback_data="about_menu")
+        ],
+        [   InlineKeyboardButton("🎋 Pʀᴇᴍɪᴜᴍ", callback_data="premium"), 
+            InlineKeyboardButton("🔒 Cʟᴏsᴇ Mᴇɴᴜ", callback_data="close")
+        ]
+    ]
+
+
 async def is_req_subscribed(bot, query, chnl):
     if await db.find_join_req(query.from_user.id, chnl):
         return True
