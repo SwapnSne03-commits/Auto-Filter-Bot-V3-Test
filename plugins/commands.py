@@ -1205,6 +1205,7 @@ async def menu_callback_handler(client, query):
                 InlineKeyboardButton("Hᴏᴍᴇ", callback_data="home")
             ]
         ]
+        text = script.ABOUT_TXT.format(temp.B_NAME, OWNER_LNK)
         try:
             await query.edit_message_caption(
                 caption=text,
