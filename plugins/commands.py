@@ -20,7 +20,6 @@ from database.ia_filterdb import *
 from database.users_chats_db import db
 from info import *
 from utils import *
-from .fsub_helper import check_force_subscription, is_req_subscribed, is_subscribed
 
 TIMEZONE = "Asia/Kolkata"
 BATCH_FILES = {}
