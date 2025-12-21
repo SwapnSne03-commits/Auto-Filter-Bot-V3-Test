@@ -1207,13 +1207,15 @@ async def menu_callback_handler(client, query):
         ]
         try:
             await query.edit_message_caption(
-                caption=script.ABOUT_TXT.format(temp.B_NAME, temp.B_NAME, OWNER_LNK),
-                reply_markup=InlineKeyboardMarkup(buttons)
+                caption=text,
+                reply_markup=InlineKeyboardMarkup(buttons),
+                parse_mode=enums.ParseMode.HTML
             )
-        except:
+        except Exception:
             await query.edit_message_text(
-                text=script.ABOUT_TXT.format(temp.B_NAME, temp.B_NAME, OWNER_LNK),
-                reply_markup=InlineKeyboardMarkup(buttons)
+                text=text,
+                reply_markup=InlineKeyboardMarkup(buttons),
+                parse_mode=enums.ParseMode.HTML
             )
 
     # -------- OWNER INFO --------
