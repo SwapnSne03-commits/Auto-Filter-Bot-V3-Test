@@ -1475,7 +1475,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 parse_mode=enums.ParseMode.HTML
             ),
             reply_markup=InlineKeyboardMarkup(buttons)
-		)
+        )
 
     elif query.data == "silver":
         await query.answer()
@@ -1501,7 +1501,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 parse_mode=enums.ParseMode.HTML
             ),
             reply_markup=InlineKeyboardMarkup(buttons)
-	    )
+        )
 
     elif query.data == "gold":
         await query.answer()
@@ -1527,7 +1527,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 parse_mode=enums.ParseMode.HTML
             ),
             reply_markup=InlineKeyboardMarkup(buttons)
-		)
+        )
 
     elif query.data == "platinum":
         await query.answer()
@@ -1622,7 +1622,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 parse_mode=enums.ParseMode.HTML
             ),
             reply_markup=InlineKeyboardMarkup(buttons)
-		)
+        )
     elif query.data == "buy":
         try:
             btn = [[InlineKeyboardButton('🌟 ᴘᴀʏ ᴠɪᴀ ᴛᴇʟᴇɢʀᴀᴍ sᴛᴀʀ 🌟', callback_data='star')],[InlineKeyboardButton('💸 ᴘᴀʏ ᴠɪᴀ ᴜᴘɪ/ǫʀ ᴄᴏᴅᴇ 💸', callback_data='upi')],[InlineKeyboardButton('⋞ ʙᴀᴄᴋ', callback_data='premium')]]
