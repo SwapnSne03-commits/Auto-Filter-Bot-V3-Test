@@ -1413,7 +1413,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
             text=script.FREE_TXT.format(query.from_user.mention),
             reply_markup=reply_markup,
             parse_mode=enums.ParseMode.HTML
-		)
+        )
 
     elif query.data == "premium":
         await query.answer()
@@ -1449,9 +1449,9 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 parse_mode=enums.ParseMode.HTML
             ),
             reply_markup=InlineKeyboardMarkup(buttons)
-		)
+        )
 
-	elif query.data == "bronze":
+    elif query.data == "bronze":
         await query.answer()
 
         buttons = [
