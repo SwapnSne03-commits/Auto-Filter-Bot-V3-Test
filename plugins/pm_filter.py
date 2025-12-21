@@ -1339,27 +1339,45 @@ async def cb_handler(client: Client, query: CallbackQuery):
         await query.answer(text=script.PAGE_TXT, show_alert=True)
 
     elif query.data == "start":
-        buttons = [[
-                    InlineKeyboardButton('⚢︎ Aᴅᴅ Mᴇ Tᴏ Yᴏᴜʀ Gʀᴏᴜᴘ ⚢︎', url=f'http://telegram.me/{temp.U_NAME}?startgroup=true')
-                ],[
-                    InlineKeyboardButton('♔︎ Tʀᴇɴᴅɪɴɢ ♔︎', callback_data="topsearch"),
-                    InlineKeyboardButton('✫ Uᴘɢʀᴀᴅᴇ ☆', callback_data="premium"),
-                ],[
-                    InlineKeyboardButton('☠︎︎ Rᴇᴀᴅ ☠︎︎', callback_data='disclaimer'),
-                    InlineKeyboardButton('ꨄ︎ Aʙᴏᴜᴛ Mᴇ ꨄ︎', callback_data='me')
-                ]]
-                    
-        reply_markup = InlineKeyboardMarkup(buttons)
-        await client.edit_message_media(
-            query.message.chat.id, 
-            query.message.id, 
-            InputMediaPhoto(random.choice(PICS))
-        )
-        await query.message.edit_text(
-            text=script.START_TXT.format(query.from_user.mention, temp.U_NAME, temp.B_NAME),
-            reply_markup=reply_markup,
-            parse_mode=enums.ParseMode.HTML
-        )
+        await query.answer()
+        buttons = get_main_buttons()
+
+        current_time = datetime.now(pytz.timezone(TIMEZONE))
+        hour = current_time.hour
+
+        if hour < 12:
+            gtxt = "ɢᴏᴏᴅ ᴍᴏʀɴɪɴɢ"
+        elif hour < 17:
+            gtxt = "ɢᴏᴏᴅ ᴀғᴛᴇʀɴᴏᴏɴ"
+        elif hour < 21:
+            gtxt = "ɢᴏᴏᴅ ᴇᴠᴇɴɪɴɢ"
+        else:
+            gtxt = "ɢᴏᴏᴅ ɴɪɢʜᴛ"
+
+        try:
+            await query.edit_message_media(
+                InputMediaPhoto(
+                    media=random.choice(PICS),
+                    caption=script.START_TXT.format(
+                        user=query.from_user.mention,
+                        greet=gtxt
+                    ),
+                    parse_mode=enums.ParseMode.HTML
+                )
+            )
+            await query.edit_message_reply_markup(
+                reply_markup=InlineKeyboardMarkup(buttons)
+            )
+
+        except:
+            await query.edit_message_text(
+                text=script.START_TXT.format(
+                    user=query.from_user.mention,
+                    greet=gtxt
+                ),
+                reply_markup=InlineKeyboardMarkup(buttons),
+                parse_mode=enums.ParseMode.HTML
+			)
   
     elif query.data == "give_trial":
         try:
@@ -1379,38 +1397,235 @@ async def cb_handler(client: Client, query: CallbackQuery):
         except Exception as e:
             LOGGER.error(e)
 
-    elif query.data == "premium":
-        try:
-            btn = [[
-                InlineKeyboardButton('☞︎︎︎ Bᴜʏ Pʀᴇᴍɪᴜᴍ ☜︎︎︎', callback_data='buy'),
-            ],[
-                InlineKeyboardButton('༒︎ Rᴇꜰᴇʀ Fʀɪᴇɴᴅꜱ ༒︎', callback_data='reffff'),
-                InlineKeyboardButton('✔︎ Fʀᴇᴇ ᴛʀɪᴀʟ', callback_data='give_trial')
-            ],[            
-                InlineKeyboardButton('⇋ Bᴀᴄᴋ Tᴏ Hᴏᴍᴇ ⇋', callback_data='start')
-            ]]
-            reply_markup = InlineKeyboardMarkup(btn)                        
-            await client.edit_message_media(                
-                query.message.chat.id, 
-                query.message.id, 
-                InputMediaPhoto(random.choice(PICS))                       
-            )
-            await query.message.edit_text(
-                text=script.BPREMIUM_TXT,
-                reply_markup=reply_markup,
-                parse_mode=enums.ParseMode.HTML
-            )
-        except Exception as e:
-            LOGGER.error(e)
+    elif query.data == "free":
+        await query.answer()
+        buttons = [[
+            InlineKeyboardButton('⚜️ ᴄʟɪᴄᴋ ʜᴇʀᴇ ᴛᴏ ɢᴇᴛ ꜰʀᴇᴇ ᴛʀɪᴀʟ', callback_data="give_trial")
+        ],[
+            InlineKeyboardButton('⋞ ʙᴀᴄᴋ', callback_data='other'),
+            InlineKeyboardButton('7 / 7', callback_data='pagesn1'),
+            InlineKeyboardButton('ɴᴇxᴛ ⋟', callback_data='bronze')
+        ],[
+            InlineKeyboardButton('⇋ ʙᴀᴄᴋ ⇋', callback_data='premium')
+        ]]
+        reply_markup = InlineKeyboardMarkup(buttons)
+        await query.message.edit_text(
+            text=script.FREE_TXT.format(query.from_user.mention),
+            reply_markup=reply_markup,
+            parse_mode=enums.ParseMode.HTML
+		)
 
+    elif query.data == "premium":
+        await query.answer()
+
+        buttons = [
+            [
+                InlineKeyboardButton("Rᴇғғᴇʀ Tᴏ Gᴇᴛ Pʀᴇᴍɪᴜᴍ", callback_data="reffff")
+            ],
+            [
+                InlineKeyboardButton("Bʀᴏɴᴢᴇ", callback_data="bronze"),
+                InlineKeyboardButton("Sɪʟᴠᴇʀ", callback_data="silver")
+            ],
+            [
+                InlineKeyboardButton("Gᴏʟᴅ", callback_data="gold"),
+                InlineKeyboardButton("Pʟᴀᴛɪɴᴜᴍ", callback_data="platinum")
+            ],
+            [
+                InlineKeyboardButton("Dɪᴀᴍᴏɴᴅ", callback_data="diamond"),
+                InlineKeyboardButton("Oᴛʜᴇʀ", callback_data="other")
+            ],
+            [
+                InlineKeyboardButton("Gᴇᴛ A Free Tʀɪᴀʟ Fᴏʀ 5 Mɪɴᴜᴛᴇs 🫣", callback_data="free")
+            ],
+            [
+                InlineKeyboardButton("⇋ ʙᴀᴄᴋ ᴛᴏ ʜᴏᴍᴇ ⇋", callback_data="home")
+            ]
+        ]
+
+        await query.message.edit_media(
+            InputMediaPhoto(
+                media=random.choice(PICS),
+                caption=script.BPREMIUM_TXT,
+                parse_mode=enums.ParseMode.HTML
+            ),
+            reply_markup=InlineKeyboardMarkup(buttons)
+		)
+
+	elif query.data == "bronze":
+        await query.answer()
+
+        buttons = [
+            [
+                InlineKeyboardButton("🔐 Click here to buy premium", callback_data="buy")
+            ],
+            [
+                InlineKeyboardButton("⋞ Back", callback_data="free"),
+                InlineKeyboardButton("1 / 7", callback_data="pagesn1"),
+                InlineKeyboardButton("Next ⋟", callback_data="silver")
+            ],
+            [
+                InlineKeyboardButton("⇋ Back ⇋", callback_data="premium")
+            ]
+        ]
+
+        await query.message.edit_media(
+            InputMediaPhoto(
+                media="https://graph.org/file/670f6df9f755dc2c9a00a.jpg",
+                caption=script.BRONZE_TXT.format(query.from_user.mention),
+                parse_mode=enums.ParseMode.HTML
+            ),
+            reply_markup=InlineKeyboardMarkup(buttons)
+		)
+
+    elif query.data == "silver":
+        await query.answer()
+
+        buttons = [
+            [
+                InlineKeyboardButton("🔐 Click here to buy premium", callback_data="buy")
+            ],
+            [
+                InlineKeyboardButton("⋞ Back", callback_data="bronze"),
+                InlineKeyboardButton("2 / 7", callback_data="pagesn1"),
+                InlineKeyboardButton("Next ⋟", callback_data="gold")
+            ],
+            [
+                InlineKeyboardButton("⇋ Back ⇋", callback_data="premium")
+            ]
+        ]
+
+        await query.message.edit_media(
+            InputMediaPhoto(
+                media="https://graph.org/file/670f6df9f755dc2c9a00a.jpg",
+                caption=script.SILVER_TXT.format(query.from_user.mention),
+                parse_mode=enums.ParseMode.HTML
+            ),
+            reply_markup=InlineKeyboardMarkup(buttons)
+	    )
+
+    elif query.data == "gold":
+        await query.answer()
+
+        buttons = [
+            [
+                InlineKeyboardButton("🔐 Click here to buy premium", callback_data="buy")
+            ],
+            [
+                InlineKeyboardButton("⋞ Back", callback_data="silver"),
+                InlineKeyboardButton("3 / 7", callback_data="pagesn1"),
+                InlineKeyboardButton("Next ⋟", callback_data="platinum")
+            ],
+            [
+                InlineKeyboardButton("⇋ Back ⇋", callback_data="premium")
+            ]
+        ]
+
+        await query.message.edit_media(
+            InputMediaPhoto(
+                media="https://graph.org/file/670f6df9f755dc2c9a00a.jpg",
+                caption=script.GOLD_TXT.format(query.from_user.mention),
+                parse_mode=enums.ParseMode.HTML
+            ),
+            reply_markup=InlineKeyboardMarkup(buttons)
+		)
+
+    elif query.data == "platinum":
+        await query.answer()
+
+        buttons = [
+            [
+                InlineKeyboardButton(
+                    "🔐 Click here to buy premium",
+                    callback_data="buy"
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    "⋞ Back",
+                    callback_data="gold"
+                ),
+                InlineKeyboardButton(
+                    "4 / 7",
+                    callback_data="pagesn1"
+                ),
+                InlineKeyboardButton(
+                    "Next ⋟",
+                    callback_data="diamond"
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    "⇋ Back ⇋",
+                    callback_data="premium"
+                )
+            ]
+        ]
+
+        await query.message.edit_media(
+            InputMediaPhoto(
+                media="https://graph.org/file/670f6df9f755dc2c9a00a.jpg",
+                caption=script.PLATINUM_TXT.format(
+                    query.from_user.mention
+                ),
+                parse_mode=enums.ParseMode.HTML
+            ),
+            reply_markup=InlineKeyboardMarkup(buttons)
+        )
+
+    elif query.data == "diamond":
+        await query.answer()
+
+        buttons = [
+            [
+                InlineKeyboardButton("🔐 Click here to buy premium", callback_data="buy")
+            ],
+            [
+                InlineKeyboardButton("⋞ Back", callback_data="platinum"),
+                InlineKeyboardButton("5 / 7", callback_data="pagesn1"),
+                InlineKeyboardButton("Next ⋟", callback_data="other")
+            ],
+            [
+                InlineKeyboardButton("⇋ Back ⇋", callback_data="premium")
+            ]
+        ]
+
+        await query.message.edit_media(
+            InputMediaPhoto(
+                media="https://graph.org/file/670f6df9f755dc2c9a00a.jpg",
+                caption=script.DIAMOND_TXT.format(query.from_user.mention),
+                parse_mode=enums.ParseMode.HTML
+            ),
+            reply_markup=InlineKeyboardMarkup(buttons)
+	    )
+
+    elif query.data == "other":
+        await query.answer()
+
+        buttons = [
+            [
+                InlineKeyboardButton("☎️ Contact Owner", url=OWNER_LNK)
+            ],
+            [
+                InlineKeyboardButton("⋞ Back", callback_data="diamond"),
+                InlineKeyboardButton("6 / 7", callback_data="pagesn1"),
+                InlineKeyboardButton("Next ⋟", callback_data="free")
+            ],
+            [
+                InlineKeyboardButton("⇋ Back ⇋", callback_data="premium")
+            ]
+        ]
+
+        await query.message.edit_media(
+            InputMediaPhoto(
+                media="https://graph.org/file/670f6df9f755dc2c9a00a.jpg",
+                caption=script.OTHER_TXT.format(query.from_user.mention),
+                parse_mode=enums.ParseMode.HTML
+            ),
+            reply_markup=InlineKeyboardMarkup(buttons)
+		)
     elif query.data == "buy":
         try:
-            btn = [[ 
-                InlineKeyboardButton('ꜱᴛᴀʀ', callback_data='star'),
-                InlineKeyboardButton('ᴜᴘɪ', callback_data='upi')
-            ],[
-                InlineKeyboardButton('⋞ ʙᴀᴄᴋ', callback_data='premium')
-            ]]
+            btn = [[InlineKeyboardButton('🌟 ᴘᴀʏ ᴠɪᴀ ᴛᴇʟᴇɢʀᴀᴍ sᴛᴀʀ 🌟', callback_data='star')],[InlineKeyboardButton('💸 ᴘᴀʏ ᴠɪᴀ ᴜᴘɪ/ǫʀ ᴄᴏᴅᴇ 💸', callback_data='upi')],[InlineKeyboardButton('⋞ ʙᴀᴄᴋ', callback_data='premium')]]
             reply_markup = InlineKeyboardMarkup(btn)
             await client.edit_message_media(
                 query.message.chat.id, 
