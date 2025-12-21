@@ -1,11 +1,11 @@
 class script(object):
     START_TXT = """<b>​​​ʜɪɪ {user}, {greet} 👋,\n 
-ɪ ᴀᴍ ᴛʜᴇ ᴍᴏꜱᴛ ᴘᴏᴡᴇʀꜰᴜʟʟ & Aᴅᴠᴀɴᴄᴇᴅ ᴍᴇᴅɪᴀ ᴘʀᴏᴠɪᴅᴇʀ ʙᴏᴛ. ɪ ᴄᴀɴ ᴘʀᴏᴠɪᴅᴇᴅ ᴀʟʟ ʟᴀᴛᴇꜱᴛ ᴍᴏᴠɪᴇꜱ ᴏʀ ꜱᴇʀɪᴇꜱ. ᴊᴜꜱᴛ ꜱᴇɴᴅ ᴍᴇ ᴛʜᴇ ᴄᴏʀʀᴇᴄᴛ ɴᴀᴍᴇ.</b>\n\<blockquote>❤️‍🔥<b>Mᴀᴅᴇ Bʏ «@Yours_Swap»</b></blockquote>"""
+ɪ ᴀᴍ ᴛʜᴇ ᴍᴏꜱᴛ ᴘᴏᴡᴇʀꜰᴜʟʟ & Aᴅᴠᴀɴᴄᴇᴅ ᴍᴇᴅɪᴀ ᴘʀᴏᴠɪᴅᴇʀ ʙᴏᴛ. ɪ ᴄᴀɴ ᴘʀᴏᴠɪᴅᴇᴅ ᴀʟʟ ʟᴀᴛᴇꜱᴛ ᴍᴏᴠɪᴇꜱ ᴏʀ ꜱᴇʀɪᴇꜱ. ᴊᴜꜱᴛ ꜱᴇɴᴅ ᴍᴇ ᴛʜᴇ ᴄᴏʀʀᴇᴄᴛ ɴᴀᴍᴇ.</b>\n\n<blockquote>❤️‍🔥<b>Mᴀᴅᴇ Bʏ «@Yours_Swap»</b></blockquote>"""
 
     FEATURES_TXT = """<b>ʜᴇʀᴇ ɪꜱ ᴀʟʟ ᴍʏ ꜰᴜɴᴛɪᴏɴꜱ.</b>"""
 
     ABOUT_TXT = """<b>╭────[ ᴍʏ ᴅᴇᴛᴀɪʟs ]────⍟
-├⍟ 🎭 Mʏ Nᴀᴍᴇ : <a href="https://t.me/{}">{}</a>
+├⍟ 🎭 Mʏ Nᴀᴍᴇ : {}
 ├⍟ 🤖 Cʀᴇᴀᴛᴏʀ : <a href="{}">𝑆𝑤𝑎𝑝𝑛𝑜𝑛𝑖𝑙 ☺︎︎</a> 
 ├⍟ ⚙️ Lɪʙʀᴀʀʏ : <a href='https://docs.pyrogram.org/'>ᴘʏʀᴏɢʀᴀᴍ</a>
 ├⍟ 🍿 Lᴀɴɢᴜᴀɢᴇ : <a href='https://www.python.org/download/releases/3.0/'>ᴘʏᴛʜᴏɴ 𝟹</a> 
