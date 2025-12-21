@@ -9,7 +9,7 @@ import pytz
 from logging_helper import LOGGER
 from .pm_filter import auto_filter 
 from Script import script
-from datetime import datetime
+from datetime import datetime, timedelta
 from database.refer import referdb
 from database.topdb import silentdb
 from pyrogram.enums import ParseMode, ChatType
@@ -20,6 +20,7 @@ from database.ia_filterdb import *
 from database.users_chats_db import db
 from info import *
 from utils import *
+from .fsub_helper import check_force_subscription, is_req_subscribed, is_subscribed
 
 TIMEZONE = "Asia/Kolkata"
 BATCH_FILES = {}
@@ -92,27 +93,29 @@ async def start(client, message):
     if not await db.is_user_exist(message.from_user.id):
         await db.add_user(message.from_user.id, message.from_user.first_name)
         await client.send_message(LOG_CHANNEL, script.LOG_TEXT_P.format(message.from_user.id, message.from_user.mention))
-    if len(message.command) != 2:
-        buttons = [[
-                    InlineKeyboardButton('⚢︎ Aᴅᴅ Mᴇ Tᴏ Yᴏᴜʀ Gʀᴏᴜᴘ ⚢︎', url=f'http://telegram.me/{temp.U_NAME}?startgroup=true')
-                ],[
-                    InlineKeyboardButton('♔︎ Tʀᴇɴᴅɪɴɢ ♔︎', callback_data="topsearch"),
-                    InlineKeyboardButton('✫ Uᴘɢʀᴀᴅᴇ ☆', callback_data="premium"),
-                ],[
-                    InlineKeyboardButton('☠︎︎ Dᴍᴄᴀ ☠︎︎', callback_data='disclaimer'),
-                    InlineKeyboardButton('ꨄ︎ Aʙᴏᴜᴛ ꨄ︎', callback_data='me')
-                ]]
-                    
-        reply_markup = InlineKeyboardMarkup(buttons)
+    if len(message.command) == 1:
+        buttons = get_main_buttons()
+        current_time = datetime.now(pytz.timezone(TIMEZONE))
+        curr_time = current_time.hour        
+        if curr_time < 12:
+            gtxt = "ɢᴏᴏᴅ ᴍᴏʀɴɪɴɢ 🌞" 
+        elif curr_time < 17:
+            gtxt = "ɢᴏᴏᴅ ᴀғᴛᴇʀɴᴏᴏɴ 🌓" 
+        elif curr_time < 21:
+            gtxt = "ɢᴏᴏᴅ ᴇᴠᴇɴɪɴɢ 🌘"
+        else:
+            gtxt = "ɢᴏᴏᴅ ɴɪɢʜᴛ 🌑"
+
         await message.reply_photo(
             photo=random.choice(PICS),
-            caption=script.START_TXT.format(message.from_user.mention, temp.U_NAME, temp.B_NAME),
-            reply_markup=reply_markup,
-            parse_mode=enums.ParseMode.HTML,
+            caption=script.START_TXT.format(user=message.from_user.mention, greet=gtxt),
+                
+            reply_markup=InlineKeyboardMarkup(buttons),
+            parse_mode=enums.ParseMode.HTML
         )
         return
         
-    if message.command[1].startswith("reff_"):
+    if len(message.command) == 2 and message.command[1].startswith("reff_"):
         try:
             user_id = int(message.command[1].split("_")[1])
         except ValueError:
@@ -136,24 +139,23 @@ async def start(client, message):
         if fromuse == 100:
             referdb.add_refer_points(user_id, 0) 
             await message.reply_text(f"🎉 𝗖𝗼𝗻𝗴𝗿𝗮𝘁𝘂𝗹𝗮𝘁𝗶𝗼𝗻𝘀! 𝗬𝗼𝘂 𝘄𝗼𝗻 𝟭𝟬 𝗥𝗲𝗳𝗲𝗿𝗿𝗮𝗹 𝗽𝗼𝗶𝗻𝘁 𝗯𝗲𝗰𝗮𝘂𝘀𝗲 𝗬𝗼𝘂 𝗵𝗮𝘃𝗲 𝗯𝗲𝗲𝗻 𝗦𝘂𝗰𝗰𝗲𝘀𝘀𝗳𝘂𝗹𝗹𝘆 𝗜𝗻𝘃𝗶𝘁𝗲𝗱 ☞ {uss.mention}!")		    
-            await message.reply_text(user_id, f"You have been successfully invited by {message.from_user.mention}!") 	
+            await client.send_message(chat_id=user_id, text=f"You have been successfully invited by {message.from_user.mention}!") 	
             seconds = 2592000
             if seconds > 0:
-                expiry_time = datetime.datetime.now() + datetime.timedelta(seconds=seconds)
+                expiry_time = datetime.now() + timedelta(seconds=seconds)
                 user_data = {"id": user_id, "expiry_time": expiry_time}
                 await db.update_user(user_data)		    
                 await client.send_message(
-                chat_id=user_id,
-                text=f"<b>Hᴇʏ {uss.mention}\n\nYᴏᴜ ɢᴏᴛ 1 ᴍᴏɴᴛʜ ᴘʀᴇᴍɪᴜᴍ sᴜʙsᴄʀɪᴘᴛɪᴏɴ ʙʏ ɪɴᴠɪᴛɪɴɢ 10 ᴜsᴇʀs ❗", disable_web_page_preview=True              
+                    chat_id=user_id,
+                    text=f"<b>Hᴇʏ {uss.mention}\n\nYᴏᴜ ɢᴏᴛ 1 ᴍᴏɴᴛʜ ᴘʀᴇᴍɪᴜᴍ sᴜʙsᴄʀɪᴘᴛɪᴏɴ ʙʏ ɪɴᴠɪᴛɪɴɢ 10 ᴜsᴇʀs ❗", disable_web_page_preview=True              
                 )
             for admin in ADMINS:
                 await client.send_message(chat_id=admin, text=f"Sᴜᴄᴄᴇss ғᴜʟʟʏ ᴛᴀsᴋ ᴄᴏᴍᴘʟᴇᴛᴇᴅ ʙʏ ᴛʜɪs ᴜsᴇʀ:\n\nuser Nᴀᴍᴇ: {uss.mention}\n\nUsᴇʀ ɪᴅ: {uss.id}!")	
         else:
             referdb.add_refer_points(user_id, fromuse)
             await message.reply_text(f"You have been successfully invited by {uss.mention}!")
-            await client.send_message(user_id, f"𝗖𝗼𝗻𝗴𝗿𝗮𝘁𝘂𝗹𝗮𝘁𝗶𝗼𝗻𝘀! 𝗬𝗼𝘂 𝘄𝗼𝗻 𝟭𝟬 𝗥𝗲𝗳𝗲𝗿𝗿𝗮𝗹 𝗽𝗼𝗶𝗻𝘁 𝗯𝗲𝗰𝗮𝘂𝘀𝗲 𝗬𝗼𝘂 𝗵𝗮𝘃𝗲 𝗯𝗲𝗲𝗻 𝗦𝘂𝗰𝗰𝗲𝘀𝘀𝗳𝘂𝗹𝗹𝘆 𝗜𝗻𝘃𝗶𝘁𝗲𝗱 ☞{message.from_user.mention}!")
+            await client.send_message(chat_id=user_id, text=f"𝗖𝗼𝗻𝗴𝗿𝗮𝘁𝘂𝗹𝗮𝘁𝗶𝗼𝗻𝘀! 𝗬𝗼𝘂 𝘄𝗼𝗻 𝟭𝟬 𝗥𝗲𝗳𝗲𝗿𝗿𝗮𝗹 𝗽𝗼𝗶𝗻𝘁 𝗯𝗲𝗰𝗮𝘂𝘀𝗲 𝗬𝗼𝘂 𝗵𝗮𝘃𝗲 𝗯𝗲𝗲𝗻 𝗦𝘂𝗰𝗰𝗲𝘀𝘀𝗳𝘂𝗹𝗹𝘆 𝗜𝗻𝘃𝗶𝘁𝗲𝗱 ☞{message.from_user.mention}!")
         return
-        
         
     if len(message.command) == 2 and message.command[1].startswith('getfile'):
         movies = message.command[1].split("-", 1)[1] 
@@ -1128,4 +1130,160 @@ async def drop_groups_command(client, message):
         await message.reply("The 'groups' Collection Has Been Deleted.")
     except Exception as e:
         await message.reply(f"Failed to delete collection: {e}")
-        
+
+@Client.on_callback_query(
+    filters.regex("^(help_menu|help_rules|help_readme|about_menu|owner_info|home|close)$")
+)
+async def menu_callback_handler(client, query):
+    data = query.data
+
+    # -------- HELP MENU --------
+    if data == "help_menu":
+        buttons = [
+            [
+                InlineKeyboardButton("✞︎ Sᴇᴀʀᴄʜ Rᴜʟᴇs ✞︎", callback_data="help_rules"),
+                InlineKeyboardButton("❗ Dɪsᴄʟᴀɪᴍᴇʀ", callback_data="help_readme")
+            ],
+            [InlineKeyboardButton("Bᴀᴄᴋ", callback_data="home")]
+        ]
+        try:
+            await query.edit_message_caption(
+                caption="Hᴇʀᴇ Is Aʟʟ Aʙᴏᴜᴛ Mʏ Usɪɴɢ Tɪᴘs..",
+                reply_markup=InlineKeyboardMarkup(buttons)
+            )
+        except:
+            await query.edit_message_text(
+                text="Hᴇʀᴇ Is Aʟʟ Aʙᴏᴜᴛ Mʏ Usɪɴɢ Tɪᴘs..",
+                reply_markup=InlineKeyboardMarkup(buttons)
+            )
+
+    elif data == "help_rules":
+        await query.answer()
+        buttons = [
+            [InlineKeyboardButton("Bᴀᴄᴋ", callback_data="help_menu")]
+        ]
+        try:
+            await query.edit_message_caption(
+                caption=script.HELP_TXT,
+                reply_markup=InlineKeyboardMarkup(buttons),
+                parse_mode=enums.ParseMode.HTML
+            )
+        except:
+            await query.edit_message_text(
+                text=script.HELP_TXT,
+                reply_markup=InlineKeyboardMarkup(buttons),
+                parse_mode=enums.ParseMode.HTML
+            )
+
+    elif data == "help_readme":
+        await query.answer()
+        buttons = [
+            [InlineKeyboardButton("Bᴀᴄᴋ", callback_data="help_menu")]
+        ]
+        try:
+            await query.edit_message_caption(
+                    caption=script.DISCLAIMER_TXT,
+                    reply_markup=InlineKeyboardMarkup(buttons),
+                    parse_mode=enums.ParseMode.HTML
+            )
+        except:
+            await query.edit_message_text(
+                text=script.DISCLAIMER_TXT,
+                reply_markup=InlineKeyboardMarkup(buttons),
+                parse_mode=enums.ParseMode.HTML
+            )
+
+    # -------- ABOUT MENU --------
+    elif data == "about_menu":
+        await query.answer()
+        buttons = [
+            [InlineKeyboardButton("Rᴇᴘᴏʀᴛ Bᴜɢs & Fᴇᴇᴅʙᴀᴄᴋ", url=SUPPORT_GRP)],
+            [InlineKeyboardButton("Uᴘᴅᴀᴛᴇ Cʜᴀɴɴᴇʟ", url=UPDATE_CHANNEL_LNK)],
+            [
+                InlineKeyboardButton("Oᴡɴᴇʀ Iɴғᴏ", callback_data="owner_info"),
+                InlineKeyboardButton("Cʟᴏsᴇ ", callback_data="close")
+            ],[
+                InlineKeyboardButton("Hᴏᴍᴇ", callback_data="home")
+            ]
+        ]
+        try:
+            await query.edit_message_caption(
+                caption=script.ABOUT_TXT.format(temp.B_NAME, temp.B_NAME, OWNER_LNK),
+                reply_markup=InlineKeyboardMarkup(buttons)
+            )
+        except:
+            await query.edit_message_text(
+                text=script.ABOUT_TXT.format(temp.B_NAME, temp.B_NAME, OWNER_LNK),
+                reply_markup=InlineKeyboardMarkup(buttons)
+            )
+
+    # -------- OWNER INFO --------
+    elif data == "owner_info":
+        await query.answer()
+        owner_text = """<b>
+┏━•❃𓊈𒆜 Oᴡɴᴇʀ Dᴇᴛᴀɪʟꜱ 𒆜𓊉❃•━┓
+◈ ɴᴀᴍᴇ : Ꮪᴡᴀᴘɴᴏɴɪʟ
+◈ ʜᴏʙʙʏ : ᴡᴇʙ ʟᴇᴀʀɴɪɴɢ
+◈ ғʀᴏᴍ : ᴋᴏʟᴋᴀᴛᴀ
+◈ ᴘᴇʀᴍᴀɴᴇɴᴛ ᴅᴍ ʟɪɴᴋ : <a href="https://t.me/Yours_Swap_bot">ʜᴇʀᴇ ɪ ᴀᴍ</a>
+‿︵‿︵‿︵‿୨❤୧‿︵‿︵‿︵‿
+</b>
+"""
+        await query.message.edit_media(
+            InputMediaPhoto(
+                media=random.choice(PICS),
+                caption=owner_text,
+                parse_mode=enums.ParseMode.HTML
+            ),
+            reply_markup=InlineKeyboardMarkup(
+                [[InlineKeyboardButton("🔙 Back", callback_data="about_menu")]]
+            )
+        )
+
+    # -------- HOME --------
+    
+# -------- HOME --------
+    elif data == "home":
+        await query.answer()
+        buttons = get_main_buttons()
+
+        current_time = datetime.now(pytz.timezone(TIMEZONE))
+        hour = current_time.hour
+
+        if hour < 12:
+            gtxt = "ɢᴏᴏᴅ ᴍᴏʀɴɪɴɢ"
+        elif hour < 17:
+            gtxt = "ɢᴏᴏᴅ ᴀғᴛᴇʀɴᴏᴏɴ"
+        elif hour < 21:
+            gtxt = "ɢᴏᴏᴅ ᴇᴠᴇɴɪɴɢ"
+        else:
+            gtxt = "ɢᴏᴏᴅ ɴɪɢʜᴛ"
+
+        try:
+            await query.edit_message_media(
+                InputMediaPhoto(
+                    media=random.choice(PICS),
+                    caption=script.START_TXT.format(
+                        user=query.from_user.mention,
+                        greet=gtxt
+                    ),
+                    parse_mode=enums.ParseMode.HTML
+                )
+            )
+            await query.edit_message_reply_markup(
+                reply_markup=InlineKeyboardMarkup(buttons)
+            )
+        except Exception:
+            await query.edit_message_text(
+                text=script.START_TXT.format(
+                    user=query.from_user.mention,
+                    greet=gtxt
+                ),
+                reply_markup=InlineKeyboardMarkup(buttons),
+                parse_mode=enums.ParseMode.HTML
+            )
+
+    # -------- CLOSE --------
+    elif data == "close":
+        await query.answer()
+        await query.message.delete()
