@@ -135,7 +135,7 @@ async def plan(client, message):
     users = message.from_user.mention
     log_message = f"<b><u>🚫 ᴛʜɪs ᴜsᴇʀs ᴛʀʏ ᴛᴏ ᴄʜᴇᴄᴋ /plan</u> {temp.B_LINK}\n\n- ɪᴅ - `{user_id}`\n- ɴᴀᴍᴇ - {users}</b>" 
 
-    await message.reply_text(
+    await message.reply_photo(photo=random.choice(PICS),caption=
         "✨ ᴘʀᴇᴍɪᴜᴍ ᴘʟᴀɴs ᴀʀᴇ ʀᴇᴀᴅʏ ғᴏʀ ʏᴏᴜ ✨",
         reply_markup=InlineKeyboardMarkup([
             [
@@ -148,7 +148,6 @@ async def plan(client, message):
         )
     await client.send_message(PREMIUM_LOGS, log_message)
     
-
 # Telegram Star Payment Method 
 # Credit - https://github.com/NBBotz 
 # Credit - https://telegram.me/SilentXBotz
