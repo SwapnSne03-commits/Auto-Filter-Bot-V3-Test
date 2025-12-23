@@ -330,6 +330,24 @@ async def fetch_tmdb_data(title: str, year: str = None) -> Optional[Dict[str, An
         LOGGER.error(f"API Fetch Error: {str(e)}")
         return None
 
+async def fetch_tmdb_data_by_imdb(imdb_id: str) -> Optional[Dict[str, Any]]:
+    base_url = "https://image.silentxbotz.tech/api/v2/poster"
+    params = {"imdb_id": imdb_id}
+
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(
+                base_url,
+                params=params,
+                timeout=aiohttp.ClientTimeout(total=25)
+            ) as response:
+                if response.status != 200:
+                    return None
+                return await response.json()
+    except Exception as e:
+        LOGGER.error(f"TMDB IMDb fetch error: {e}")
+        return None
+
 async def get_director_from_crew(crew: list) -> str:
     directors = [person["name"] for person in crew if person.get("job") == "Director"]
     return directors[0] if directors else None
