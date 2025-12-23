@@ -2277,10 +2277,12 @@ async def auto_filter(client, msg, spoll=False):
             for file_num, file in enumerate(files, start=1):
                 cap += f"<b>{file_num}. <a href='https://telegram.me/{temp.U_NAME}?start=file_{message.chat.id}_{file.file_id}'>{get_size(file.file_size)} | {clean_filename(file.file_name)}\n\n</a></b>"                
     try:
-        if imdb and poster_url:
+        if imdb and (poster_url or imdb.get("poster")):
             try:
+                imdb_poster = imdb.get("poster") if imdb else None
+                final_poster = imdb_poster or poster_url
                 hehe = await message.reply_photo(
-                    photo=poster_url,
+                    photo=final_poster,
                     caption=cap, 
                     reply_markup=InlineKeyboardMarkup(btn), 
                     parse_mode=enums.ParseMode.HTML
