@@ -213,9 +213,32 @@ async def get_poster(query, bulk=False, id=False, file=None):
                 filtered = movieid
         else:
             filtered = movieid
-        movieid=list(filter(lambda k: k.get('kind') in ['movie', 'tv series'], filtered))
+        # ---- SMART IMDb FILTER (Option A) ----
+
+        # Step 1: only movie / tv series
+        movieid = [
+            k for k in filtered
+            if k.get('kind') in ('movie', 'tv series')
+        ]
+
         if not movieid:
             movieid = filtered
+
+        # Step 2: exact title match priority
+        exact_match = [
+            k for k in movieid
+            if k.get('title', '').lower() == title.lower()
+        ]
+
+        if exact_match:
+            movieid = exact_match
+
+        # Step 3: if multiple results, prefer tv series
+        if len(movieid) > 1:
+            tv_series = [k for k in movieid if k.get('kind') == 'tv series']
+            if tv_series:
+                movieid = tv_series
+# ---- END SMART IMDb FILTER ----
         if bulk:
             return movieid
         movieid = movieid[0].movieID
