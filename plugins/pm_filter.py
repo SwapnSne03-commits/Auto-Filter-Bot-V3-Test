@@ -2223,7 +2223,16 @@ async def auto_filter(client, msg, spoll=False):
     time_difference = timedelta(hours=cur_time.hour, minutes=cur_time.minute, seconds=(cur_time.second+(cur_time.microsecond/1000000))) - timedelta(hours=curr_time.hour, minutes=curr_time.minute, seconds=(curr_time.second+(curr_time.microsecond/1000000)))
     remaining_seconds = "{:.2f}".format(time_difference.total_seconds())
     DELETE_TIME = settings.get("auto_del_time", AUTO_DELETE_TIME)
-    TEMPLATE = script.IMDB_TEMPLATE_TXT
+    TEMPLATE = script.IMDB_TEMPLATE_TXT    
+    poster_url = None
+    if imdb:
+        tmdb_data = await fetch_tmdb_data(search, imdb.get('year'))
+        if tmdb_data:
+            backdrop_url = await get_best_visual(tmdb_data)
+            if backdrop_url:
+                poster_url = backdrop_url        
+        if not poster_url:
+            poster_url = imdb.get('poster')
     if imdb:
         cap = TEMPLATE.format(
             qurey=search,
@@ -2262,64 +2271,76 @@ async def auto_filter(client, msg, spoll=False):
                 cap += f"\n\n<b>{file_num}. <a href='https://telegram.me/{temp.U_NAME}?start=file_{message.chat.id}_{file.file_id}'>{get_size(file.file_size)} | {clean_filename(file.file_name)}</a></b>"
     else:
         if settings.get('button'):
-            cap =f"<b><blockquote>Hᴇʏ,{message.from_user.mention}</blockquote>\n\n📂 Hᴇʀᴇ I Fᴏᴜɴᴅ Fᴏʀ Yᴏᴜʀ Sᴇᴀʀᴄʜ <code>{search}</code></b>\n\n"
+            cap = f"<b><blockquote>Hᴇʏ,{message.from_user.mention}</blockquote>\n\n📂 Hᴇʀᴇ I Fᴏᴜɴᴅ Fᴏʀ Yᴏᴜʀ Sᴇᴀʀᴄʜ <code>{search}</code></b>\n\n"
         else:
-            cap =f"<b><blockquote>Hᴇʏ,{message.from_user.mention}</blockquote>\n\n📂 Hᴇʀᴇ I Fᴏᴜɴᴅ Fᴏʀ Yᴏᴜʀ Sᴇᴀʀᴄʜ <code>{search}</code></b>\n\n"            
+            cap = f"<b><blockquote>Hᴇʏ,{message.from_user.mention}</blockquote>\n\n📂 Hᴇʀᴇ I Fᴏᴜɴᴅ Fᴏʀ Yᴏᴜʀ Sᴇᴀʀᴄʜ <code>{search}</code></b>\n\n"            
             for file_num, file in enumerate(files, start=1):
                 cap += f"<b>{file_num}. <a href='https://telegram.me/{temp.U_NAME}?start=file_{message.chat.id}_{file.file_id}'>{get_size(file.file_size)} | {clean_filename(file.file_name)}\n\n</a></b>"                
-    if imdb and imdb.get('poster'):
-        try:
-            hehe = await m.edit_photo(photo=imdb.get('poster'), caption=cap, reply_markup=InlineKeyboardMarkup(btn), parse_mode=enums.ParseMode.HTML)
+    try:
+        if imdb and poster_url:
             try:
+                hehe = await message.reply_photo(
+                    photo=poster_url,
+                    caption=cap, 
+                    reply_markup=InlineKeyboardMarkup(btn), 
+                    parse_mode=enums.ParseMode.HTML
+                )
+                await m.delete()
                 if settings['auto_delete']:
                     await asyncio.sleep(DELETE_TIME)
                     await hehe.delete()
                     await message.delete()
-            except KeyError:
-                await save_group_settings(message.chat.id, 'auto_delete', True)
-                await asyncio.sleep(DELETE_TIME)
-                await hehe.delete()
-                await message.delete()
-        except (MediaEmpty, PhotoInvalidDimensions, WebpageMediaEmpty):
-            pic = imdb.get('poster')
-            poster = pic.replace('.jpg', "._V1_UX360.jpg") 
-            hmm = await m.edit_photo(photo=poster, caption=cap, reply_markup=InlineKeyboardMarkup(btn), parse_mode=enums.ParseMode.HTML)
-            try:
-               if settings['auto_delete']:
-                    await asyncio.sleep(DELETE_TIME)
-                    await hmm.delete()
-                    await message.delete()
-            except KeyError:
-                await save_group_settings(message.chat.id, 'auto_delete', True)
-                await asyncio.sleep(DELETE_TIME)
-                await hmm.delete()
-                await message.delete()
-        except Exception as e:
-            LOGGER.error(e)
-            fek = await m.edit_text(text=cap, reply_markup=InlineKeyboardMarkup(btn), parse_mode=enums.ParseMode.HTML)
-            try:
+            except (MediaEmpty, PhotoInvalidDimensions, WebpageMediaEmpty):
+                pic = imdb.get('poster')
+                if pic:
+                    poster = pic.replace('.jpg', "._V1_UX360.jpg")
+                    hmm = await message.reply_photo(
+                        photo=poster, 
+                        caption=cap, 
+                        reply_markup=InlineKeyboardMarkup(btn), 
+                        parse_mode=enums.ParseMode.HTML
+                    )
+                    await m.delete()
+                    if settings['auto_delete']:
+                        await asyncio.sleep(DELETE_TIME)
+                        await hmm.delete()
+                        await message.delete()
+                else:
+                    fek = await m.edit_text(
+                        text=cap, 
+                        reply_markup=InlineKeyboardMarkup(btn), 
+                        parse_mode=enums.ParseMode.HTML
+                    )
+                    if settings['auto_delete']:
+                        await asyncio.sleep(DELETE_TIME)
+                        await fek.delete()
+                        await message.delete()
+            except Exception as e:
+                LOGGER.error(e)
+                fek = await m.edit_text(
+                    text=cap, 
+                    reply_markup=InlineKeyboardMarkup(btn), 
+                    parse_mode=enums.ParseMode.HTML
+                )
                 if settings['auto_delete']:
                     await asyncio.sleep(DELETE_TIME)
                     await fek.delete()
                     await message.delete()
-            except KeyError:
-                await save_group_settings(message.chat.id, 'auto_delete', True)
-                await asyncio.sleep(DELETE_TIME)
-                await fek.delete()
-                await message.delete()
-    else:
-        fuk = await m.edit_text(text=cap, reply_markup=InlineKeyboardMarkup(btn), disable_web_page_preview=True, parse_mode=enums.ParseMode.HTML)
-        try:
+        else:
+            fuk = await m.edit_text(
+                text=cap, 
+                reply_markup=InlineKeyboardMarkup(btn), 
+                disable_web_page_preview=True, 
+                parse_mode=enums.ParseMode.HTML
+            )
             if settings['auto_delete']:
                 await asyncio.sleep(DELETE_TIME)
                 await fuk.delete()
                 await message.delete()
-        except KeyError:
-            await save_group_settings(message.chat.id, 'auto_delete', True)
-            await asyncio.sleep(DELETE_TIME)
-            await fuk.delete()
-            await message.delete()
-
+    except KeyError:
+        await save_group_settings(message.chat.id, 'auto_delete', True)
+        pass
+		
 async def ai_spell_check(chat_id, wrong_name):
     async def search_movie(wrong_name):
         search_results = imdb.search_movie(wrong_name)
