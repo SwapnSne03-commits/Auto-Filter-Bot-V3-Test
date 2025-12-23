@@ -21,6 +21,7 @@ from shortzy import Shortzy
 import http.client
 import json
 from logging_helper import LOGGER
+from info import LANDSCAPE_POSTER
 
 BTN_URL_REGEX = re.compile(
     r"(\[([^\[]+?)\]\((buttonurl|buttonalert):(?:/{0,2})(.+?)(:same)?\))"
@@ -309,8 +310,30 @@ async def fetch_tmdb_data(title: str, year: str = None) -> Optional[Dict[str, An
 async def get_director_from_crew(crew: list) -> str:
     directors = [person["name"] for person in crew if person.get("job") == "Director"]
     return directors[0] if directors else None
+    
+async def get_best_poster(tmdb_data: dict):
+    posters = tmdb_data.get("posters", {})
+    by_language = posters.get("by_language", {})
+    original_lang = tmdb_data.get("original_language")
 
+    if original_lang and by_language.get(original_lang):
+        return by_language[original_lang][0]["url"]
+
+    if by_language.get("en"):
+        return by_language["en"][0]["url"]
+
+    if by_language.get("unknown"):
+        return by_language["unknown"][0]["url"]
+
+    if posters.get("all") and posters["all"]:
+        return posters["all"][0]["url"]
+
+    return tmdb_data.get("poster_url")
+    
 async def get_best_visual(tmdb_data: Dict) -> Optional[str]:
+    if not LANDSCAPE_POSTER:
+        return await get_best_poster(tmdb_data)
+        
     backdrops = tmdb_data.get("backdrops", {})
     by_language = backdrops.get("by_language", {})    
     original_lang = tmdb_data.get("original_language")
@@ -329,7 +352,7 @@ async def get_best_visual(tmdb_data: Dict) -> Optional[str]:
         return by_language["unknown"][0]["url"]    
     if backdrops.get("all") and backdrops["all"]:
         return backdrops["all"][0]["url"]
-    return None
+    return await get_best_poster(tmdb_data)
     
 async def search_gagala(text):
     usr_agent = {
