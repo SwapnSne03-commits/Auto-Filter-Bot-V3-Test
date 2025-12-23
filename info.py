@@ -4,6 +4,7 @@ from os import environ, getenv
 from Script import script
 
 id_pattern = re.compile(r'^.\d+$')
+LANDSCAPE_POSTER = environ.get("LANDSCAPE_POSTER", "True").lower() == "true"
 
 def is_enabled(value, default):
     if value.lower() in ["true", "yes", "1", "enable", "y"]:
