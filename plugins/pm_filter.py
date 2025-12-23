@@ -2226,13 +2226,13 @@ async def auto_filter(client, msg, spoll=False):
     TEMPLATE = script.IMDB_TEMPLATE_TXT    
     poster_url = None
     if imdb:
-        tmdb_data = await fetch_tmdb_data(search, imdb.get('year'))
-
-        if tmdb_data:
-            poster_url = await get_best_visual(tmdb_data)
+        poster_url = imdb.get('poster')
 
         if not poster_url:
-            poster_url = imdb.get('poster')
+            tmdb_data = await fetch_tmdb_data(search, imdb.get('year'))
+
+            if tmdb_data:
+                poster_url = await get_best_visual(tmdb_data)
     if imdb:
         cap = TEMPLATE.format(
             qurey=search,
