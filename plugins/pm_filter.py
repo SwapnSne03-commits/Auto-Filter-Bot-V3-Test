@@ -2226,23 +2226,13 @@ async def auto_filter(client, msg, spoll=False):
     TEMPLATE = script.IMDB_TEMPLATE_TXT    
     poster_url = None
     if imdb:
-        tmdb_data = None
-        imdb_id = imdb.get("imdb_id")
-
-        if imdb_id:
-            tmdb_data = await fetch_tmdb_data_by_imdb(imdb_id)
-
-        if not tmdb_data:
-            tmdb_data = await fetch_tmdb_data(search, imdb.get('year'))
+        tmdb_data = await fetch_tmdb_data(search, imdb.get('year'))
 
         if tmdb_data:
-            backdrop_url = await get_best_visual(tmdb_data)
-            if backdrop_url:
-                poster_url = backdrop_url
+            poster_url = await get_best_visual(tmdb_data)
 
         if not poster_url:
             poster_url = imdb.get('poster')
-    
     if imdb:
         cap = TEMPLATE.format(
             qurey=search,
@@ -2273,8 +2263,7 @@ async def auto_filter(client, msg, spoll=False):
             plot=imdb['plot'],
             rating=imdb['rating'],
             url=imdb['url'],
-            remaining_seconds=remaining_seconds,
-            requested_by=message.from_user.mention
+            **locals()
         )
         temp.IMDB_CAP[message.from_user.id] = cap
         if not settings.get('button'):
