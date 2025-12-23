@@ -2273,7 +2273,8 @@ async def auto_filter(client, msg, spoll=False):
             plot=imdb['plot'],
             rating=imdb['rating'],
             url=imdb['url'],
-            remaining_seconds=remaining_seconds
+            remaining_seconds=remaining_seconds,
+            requested_by=message.from_user.mention
         )
         temp.IMDB_CAP[message.from_user.id] = cap
         if not settings.get('button'):
