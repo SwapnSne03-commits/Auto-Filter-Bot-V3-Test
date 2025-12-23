@@ -213,32 +213,6 @@ async def get_poster(query, bulk=False, id=False, file=None):
                 filtered = movieid
         else:
             filtered = movieid
-        # ---- SMART IMDb FILTER (Option A) ----
-
-        # Step 1: only movie / tv series
-        movieid = [
-            k for k in filtered
-            if k.get('kind') in ('movie', 'tv series')
-        ]
-
-        if not movieid:
-            movieid = filtered
-
-        # Step 2: exact title match priority
-        exact_match = [
-            k for k in movieid
-            if k.get('title', '').lower() == title.lower()
-        ]
-
-        if exact_match:
-            movieid = exact_match
-
-        # Step 3: if multiple results, prefer tv series
-        if len(movieid) > 1:
-            tv_series = [k for k in movieid if k.get('kind') == 'tv series']
-            if tv_series:
-                movieid = tv_series
-# ---- END SMART IMDb FILTER ----
         if bulk:
             return movieid
         movieid = movieid[0].movieID
@@ -328,24 +302,6 @@ async def fetch_tmdb_data(title: str, year: str = None) -> Optional[Dict[str, An
                 
     except Exception as e:
         LOGGER.error(f"API Fetch Error: {str(e)}")
-        return None
-
-async def fetch_tmdb_data_by_imdb(imdb_id: str) -> Optional[Dict[str, Any]]:
-    base_url = "https://image.silentxbotz.tech/api/v2/poster"
-    params = {"imdb_id": imdb_id}
-
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(
-                base_url,
-                params=params,
-                timeout=aiohttp.ClientTimeout(total=25)
-            ) as response:
-                if response.status != 200:
-                    return None
-                return await response.json()
-    except Exception as e:
-        LOGGER.error(f"TMDB IMDb fetch error: {e}")
         return None
 
 async def get_director_from_crew(crew: list) -> str:
