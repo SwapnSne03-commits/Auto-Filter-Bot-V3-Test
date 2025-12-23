@@ -310,6 +310,14 @@ async def fetch_tmdb_data(title: str, year: str = None) -> Optional[Dict[str, An
 async def get_director_from_crew(crew: list) -> str:
     directors = [person["name"] for person in crew if person.get("job") == "Director"]
     return directors[0] if directors else None
+
+def get_imdb_first_poster(imdb_poster: str, tmdb_data: dict):
+    # IMDb poster থাকলে সেটাই final
+    if imdb_poster:
+        return imdb_poster
+
+    # না থাকলে TMDB fallback
+    return None
     
 async def get_best_poster(tmdb_data: dict):
     posters = tmdb_data.get("posters", {})
@@ -330,7 +338,9 @@ async def get_best_poster(tmdb_data: dict):
 
     return tmdb_data.get("poster_url")
     
-async def get_best_visual(tmdb_data: Dict) -> Optional[str]:
+async def get_best_visual(tmdb_data: Dict, imdb_poster: str = None) -> Optional[str]:
+    if imdb_poster:
+        return imdb_poster
     if not LANDSCAPE_POSTER:
         return await get_best_poster(tmdb_data)
         
