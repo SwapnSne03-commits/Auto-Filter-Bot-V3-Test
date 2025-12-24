@@ -228,20 +228,15 @@ async def get_poster(query, bulk=False, id=False, file=None):
 
         # ⑤ exact match থাকলে সেটাই নাও
         if exact_match:
-            filtered = exact_match
-        if len(filtered) > 1:
-            movies = [m for m in filtered if m.get('kind') == 'movie']
-            series = [m for m in filtered if m.get('kind') == 'tv series']
-            if movies:# movie থাকলে movie নাও, না থাকলে series
-                filtered = movies
-            elif series:
-                filtered = series
+            chosen = exact_match[0]
+        else:
+            chosen = filtered[0]
         # ⑥ bulk হলে list ফেরত দাও
         if bulk:
             return filtered
 
         # ⑦ final IMDb movieID
-        movieid = filtered[0].movieID
+        movieid = chosen.movieID
 
         # --- END SMART IMDb RESULT SELECTION ---
     else:
