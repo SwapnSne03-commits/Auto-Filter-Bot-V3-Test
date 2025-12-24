@@ -223,26 +223,31 @@ async def get_poster(query, bulk=False, id=False, file=None):
         # ④ exact title match priority
         exact_match = [
             m for m in filtered
-            if m.get('title', '').lower() == title.lower()
+            if m.get('title', '').lower().strip() == title.lower().strip()
         ]
 
         # ⑤ exact match থাকলে সেটাই নাও
         if exact_match:
-            chosen = exact_match[0]
-        else:
-            chosen = filtered[0]
-
+            filtered = exact_match
+        if len(filtered) > 1:
+            movies = [m for m in filtered if m.get('kind') == 'movie']
+            series = [m for m in filtered if m.get('kind') == 'tv series']
+            if movies:# movie থাকলে movie নাও, না থাকলে series
+                filtered = movies
+            elif series:
+                filtered = series
         # ⑥ bulk হলে list ফেরত দাও
         if bulk:
             return filtered
 
         # ⑦ final IMDb movieID
-        movieid = chosen.movieID
+        movieid = filtered[0].movieID
 
         # --- END SMART IMDb RESULT SELECTION ---
     else:
         movieid = query
     movie = imdb.get_movie(movieid)
+    imdb.update(movie, info=['main', 'vote details'])
     if movie.get("original air date"):
         date = movie["original air date"]
     elif movie.get("year"):
@@ -261,7 +266,7 @@ async def get_poster(query, bulk=False, id=False, file=None):
 
     return {
         'title': movie.get('title'),
-        'votes': movie.get('votes'),
+        'votes': movie.get('votes') or "N/A",
         "aka": list_to_str(movie.get("akas")),
         "seasons": movie.get("number of seasons"),
         "box_office": movie.get('box office'),
