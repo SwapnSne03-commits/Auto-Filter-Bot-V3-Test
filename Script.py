@@ -181,11 +181,11 @@ Nᴀᴍᴇ - {}
 
     PREMIUM_TEXT = """<blockquote>🎖️ <b>ᴀᴠᴀɪʟᴀʙʟᴇ ᴘʟᴀɴs</b></blockquote>
 
-◉ 07 ᴅᴀʏꜱ - 15 ₹ / 15 ꜱᴛᴀʀ 
-◉ 15 ᴅᴀʏꜱ - 30 ₹ / 30 ꜱᴛᴀʀ 
-◉ 01 ᴍᴏɴᴛʜꜱ - 60 ₹ / 60 ꜱᴛᴀʀ 
-◉ 02 ᴍᴏɴᴛʜꜱ - 120 ₹ / 120 ꜱᴛᴀʀ 
-◉ 03 ᴍᴏɴᴛʜꜱ - 220 ₹ / 220 ꜱᴛᴀʀ
+◉ 07 ᴅᴀʏꜱ - 10 ₹ / 15 ꜱᴛᴀʀ 
+◉ 15 ᴅᴀʏꜱ - 20 ₹ / 30 ꜱᴛᴀʀ 
+◉ 01 ᴍᴏɴᴛʜꜱ - 40 ₹ / 60 ꜱᴛᴀʀ
+◉ 45 ᴅᴀʏꜱ - 55 ₹ / 30 ꜱᴛᴀʀ
+◉ 02 ᴍᴏɴᴛʜꜱ - 75 ₹ / 120 ꜱᴛᴀʀ 
 
 •─────•─────────•─────•
 🏷️ <a href='https://t.me/Graduate_Movies'>ꜱᴜʙꜱᴄʀɪᴘᴛɪᴏɴ ᴘʀᴏᴏꜰ</a>
@@ -244,13 +244,13 @@ Mᴇꜱꜱᴀɢᴇ : <code>{}</code>"""
     CAPTION = """<b>{file_name}\n\nUploaded By: <a href="https://t.me/graduate_request">[@Graduate_Movies]</a></b>"""
 
     IMDB_TEMPLATE_TXT = """
-<b>🏷 Title</b>: <a href={url}>{title}</a>
-🎭 <b>Genres</b>: {genres}
-� <b>Year</b>: <a href={url}/releaseinfo>{year}</a>
-🌟 <b>Rating</b>: <a href={url}/ratings>{rating}</a> / 10 (based on {votes} user ratings.)
-📀 <b>RunTime</b>: {runtime} Minutes
+<b>🏷 Title: <a href={url}>{title}</a></b>
+🎭 <b>Genres: {genres}</b>
+� <b>Year: <a href={url}/releaseinfo>{year}</a></b>
+🌟 <b>Rating: <a href={url}/ratings>{rating}</a> / 10 (based on {votes} user ratings.)</b>
+📀 <b>RunTime: {runtime} Minutes</b>
 
-⏰<b>Result Shown in</b>: {remaining_seconds} <i>seconds</i> 🔥
+⏰<b>Result Shown in: {remaining_seconds} <i>seconds</i></b> 🔥
 🤦<b>Requested by : {message.from_user.mention}</b>"""    
 
     RESTART_TXT = """
