@@ -207,15 +207,39 @@ async def get_poster(query, bulk=False, id=False, file=None):
         movieid = imdb.search_movie(title.lower(), results=10)
         if not movieid:
             return None
+        # ① --- SMART IMDb RESULT SELECTION ---
+
+        # ② imdb.search_movie() থেকে যেটা এসেছে সেটাই results
+        results = movieid
+
+        # ③ year থাকলে year অনুযায়ী filter
         if year:
-            filtered=list(filter(lambda k: str(k.get('year')) == str(year), movieid))
+            filtered = [m for m in results if str(m.get('year')) == str(year)]
             if not filtered:
-                filtered = movieid
+                filtered = results
         else:
-            filtered = movieid
+            filtered = results
+
+        # ④ exact title match priority
+        exact_match = [
+            m for m in filtered
+            if m.get('title', '').lower() == title.lower()
+        ]
+
+        # ⑤ exact match থাকলে সেটাই নাও
+        if exact_match:
+            chosen = exact_match[0]
+        else:
+            chosen = filtered[0]
+
+        # ⑥ bulk হলে list ফেরত দাও
         if bulk:
-            return movieid
-        movieid = movieid[0].movieID
+            return filtered
+
+        # ⑦ final IMDb movieID
+        movieid = chosen.movieID
+
+        # --- END SMART IMDb RESULT SELECTION ---
     else:
         movieid = query
     movie = imdb.get_movie(movieid)
