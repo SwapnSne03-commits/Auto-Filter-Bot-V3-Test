@@ -1,6 +1,6 @@
 from pyrogram.errors import InputUserDeactivated, UserNotParticipant, FloodWait, UserIsBlocked, PeerIdInvalid, MessageNotModified
 from info import  *
-from imdb import Cinemagoer 
+from imdbkit import IMDBKit 
 import asyncio
 from pyrogram.types import Message, InlineKeyboardButton, InlineKeyboardMarkup
 from pyrogram import enums
@@ -27,7 +27,7 @@ BTN_URL_REGEX = re.compile(
     r"(\[([^\[]+?)\]\((buttonurl|buttonalert):(?:/{0,2})(.+?)(:same)?\))"
 )
 
-imdb = Cinemagoer() 
+imdb = IMDBKit() 
 BANNED = {}
 SMART_OPEN = '“'
 SMART_CLOSE = '”'
@@ -190,103 +190,114 @@ async def get_status(bot_id):
         LOGGER.error(f"Error in get_movie_update_status: {e}")
         return False  
 
+def listx_to_str(k):
+    if k is None or k == "":
+        return "N/A"
+    
+    # Handle non-iterable types first
+    if not hasattr(k, '__iter__') or isinstance(k, (str, int, float)):
+        return str(k)
+    
+    result = []
+    for elem in k:
+        if elem and str(elem).strip():
+            result.append(str(elem).strip())
+    
+    if MAX_LIST_ELM and len(result) > MAX_LIST_ELM:
+        result = result[:int(MAX_LIST_ELM)]
+    
+    return ', '.join(result) if result else "N/A"
+
 async def get_poster(query, bulk=False, id=False, file=None):
     if not id:
         query = (query.strip()).lower()
         title = query
-        year = re.findall(r'[1-2]\d{3}$', query, re.IGNORECASE)
-        if year:
-            year = list_to_str(year[:1])
-            title = (query.replace(year, "")).strip()
+        year_val = None
+        
+        year_list = re.findall(r'[1-2]\d{3}$', query, re.IGNORECASE)
+        if year_list:
+            year_val = year_list[0]
+            title = (query.replace(year_val, "")).strip()
         elif file is not None:
-            year = re.findall(r'[1-2]\d{3}', file, re.IGNORECASE)
-            if year:
-                year = list_to_str(year[:1]) 
-        else:
-            year = None
-        movieid = imdb.search_movie(title.lower(), results=10)
-        if not movieid:
+            year_list = re.findall(r'[1-2]\d{3}', file, re.IGNORECASE)
+            if year_list:
+                year_val = year_list[0]
+        
+        search_result = await asyncio.to_thread(imdb.search_movie, title.lower())
+        if not search_result or not search_result.titles:
             return None
-        # ① --- SMART IMDb RESULT SELECTION ---
-
-        # ② imdb.search_movie() থেকে যেটা এসেছে সেটাই results
-        results = movieid
-
-        # ③ year থাকলে year অনুযায়ী filter
-        if year:
-            filtered = [m for m in results if str(m.get('year')) == str(year)]
+        
+        movie_list = search_result.titles
+        
+        if year_val:
+            filtered = [m for m in movie_list if m.year and str(m.year) == str(year_val)]
             if not filtered:
-                filtered = results
+                filtered = movie_list
         else:
-            filtered = results
-
-        # ④ exact title match priority
-        exact_match = [
-            m for m in filtered
-            if m.get('title', '').lower().strip() == title.lower().strip()
-        ]
-
-        # ⑤ exact match থাকলে সেটাই নাও
-        if exact_match:
-            chosen = exact_match[0]
-        else:
-            chosen = filtered[0]
-        # ⑥ bulk হলে list ফেরত দাও
+            filtered = movie_list
+            
+        kind_filter = ['movie', 'tv series', 'tvSeries', 'tvMiniSeries', 'tvMovie']
+        filtered_kind = [m for m in filtered if m.kind and m.kind in kind_filter]
+        
+        if not filtered_kind:
+            filtered_kind = filtered
+        
         if bulk:
-            return filtered
-
-        # ⑦ final IMDb movieID
-        movieid = chosen.movieID
-
-        # --- END SMART IMDb RESULT SELECTION ---
+            return filtered_kind
+            
+        movie_brief = filtered_kind[0]
+        movieid_str = movie_brief.imdb_id 
     else:
-        movieid = query
-    movie = imdb.get_movie(movieid)
-    imdb.update(movie, info=['main', 'vote details'])
-    if movie.get("original air date"):
-        date = movie["original air date"]
-    elif movie.get("year"):
-        date = movie.get("year")
+        movieid_str = query
+
+    movie = await asyncio.to_thread(imdb.get_movie, movieid_str)
+    if not movie:
+        return None
+
+    if movie.release_date:
+        date = movie.release_date
+    elif movie.year:
+        date = str(movie.year)
     else:
         date = "N/A"
-    plot = ""
-    if not LONG_IMDB_DESCRIPTION:
-        plot = movie.get('plot')
-        if plot and len(plot) > 0:
-            plot = plot[0]
-    else:
-        plot = movie.get('plot outline')
+        
+    plot = movie.plot or ""
     if plot and len(plot) > 800:
         plot = plot[0:800] + "..."
-
+        
     return {
-        'title': movie.get('title'),
-        'votes': movie.get('votes') or "N/A",
-        "aka": list_to_str(movie.get("akas")),
-        "seasons": movie.get("number of seasons"),
-        "box_office": movie.get('box office'),
-        'localized_title': movie.get('localized title'),
-        'kind': movie.get("kind"),
-        "imdb_id": f"tt{movie.get('imdbID')}",
-        "cast": list_to_str(movie.get("cast")),
-        "runtime": list_to_str(movie.get("runtimes")),
-        "countries": list_to_str(movie.get("countries")),
-        "certificates": list_to_str(movie.get("certificates")),
-        "languages": list_to_str(movie.get("languages")),
-        "director": list_to_str(movie.get("director")),
-        "writer":list_to_str(movie.get("writer")),
-        "producer":list_to_str(movie.get("producer")),
-        "composer":list_to_str(movie.get("composer")) ,
-        "cinematographer":list_to_str(movie.get("cinematographer")),
-        "music_team": list_to_str(movie.get("music department")),
-        "distributors": list_to_str(movie.get("distributors")),
+        'title': movie.title,
+        'votes': movie.votes,
+        "aka": listx_to_str(movie.title_akas),
+        "seasons": (
+            len(movie.info_series.display_seasons)
+            if getattr(movie, "info_series", None)
+            and getattr(movie.info_series, "display_seasons", None)
+            else "N/A"
+        ),
+        "box_office": movie.worldwide_gross,
+        'localized_title': movie.title_localized,
+        'kind': movie.kind,
+        "imdb_id": f"tt{movie.imdb_id}",
+        "cast": listx_to_str(movie.stars),
+        "runtime": listx_to_str(movie.duration),
+        "countries": listx_to_str(movie.countries),
+        "certificates": listx_to_str(movie.certificates),
+        "languages": listx_to_str(movie.languages),
+        "director": listx_to_str(movie.directors),
+        "writer": listx_to_str([p.name for p in movie.writers]),
+        "producer": listx_to_str([p.name for p in movie.producers]),
+        "composer": listx_to_str([p.name for p in movie.composers]),
+        "cinematographer": listx_to_str([p.name for p in movie.cinematographers]),
+        "music_team": listx_to_str([p.name for p in movie.music_team]),
+        "distributors": listx_to_str([c.name for c in movie.distributors]),        
         'release_date': date,
-        'year': movie.get('year'),
-        'genres': list_to_str(movie.get("genres")),
-        'poster': movie.get('full-size cover url'),
+        'year': movie.year,
+        'genres': listx_to_str(movie.genres),
+        'poster': movie.cover_url,
         'plot': plot,
-        'rating': str(movie.get("rating")),
-        'url':f'https://www.imdb.com/title/tt{movieid}'
+        'rating': str(movie.rating),
+        'url': movie.url or f'https://www.imdb.com/title/tt{movie.imdb_id}'
     }
 
 async def fetch_tmdb_data(title: str, year: str = None) -> Optional[Dict[str, Any]]:
@@ -426,7 +437,12 @@ async def save_group_settings(group_id, key, value):
     current.update({key: value})
     temp.SETTINGS.update({group_id: current})
     await db.update_settings(group_id, current)
-    
+
+async def delete_group_setting(group_id, key):
+    await db.delete_setting(group_id, key)
+    if group_id in temp.SETTINGS:
+        temp.SETTINGS.pop(group_id, None)
+        
 def get_size(size):
     units = ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB"]
     size = float(size)
@@ -827,33 +843,3 @@ async def get_cap(settings, remaining_seconds, files, query, total_results, sear
         for file_num, file in enumerate(files, start=offset+1):
             cap += f"<b>{file_num}. <a href='https://telegram.me/{temp.U_NAME}?start=file_{query.message.chat.id}_{file.file_id}'>{get_size(file.file_size)}| {clean_filename(file.file_name)}\n\n</a></b>"
     return cap
-
-async def group_setting_buttons(grp_id):
-    settings = await get_settings(grp_id)
-    buttons = [[
-                InlineKeyboardButton('ʀᴇꜱᴜʟᴛ ᴘᴀɢᴇ', callback_data=f'setgs#button#{settings.get("button")}#{grp_id}',),
-                InlineKeyboardButton('ʙᴜᴛᴛᴏɴ' if settings.get("button") else 'ᴛᴇxᴛ', callback_data=f'setgs#button#{settings.get("button")}#{grp_id}',),
-            ],[
-                InlineKeyboardButton('ꜰɪʟᴇ ꜱᴇᴄᴜʀᴇ', callback_data=f'setgs#file_secure#{settings["file_secure"]}#{grp_id}',),
-                InlineKeyboardButton('ᴇɴᴀʙʟᴇ' if settings["file_secure"] else 'ᴅɪꜱᴀʙʟᴇ', callback_data=f'setgs#file_secure#{settings["file_secure"]}#{grp_id}',),
-            ],[
-                InlineKeyboardButton('ɪᴍᴅʙ ᴘᴏꜱᴛᴇʀ', callback_data=f'setgs#imdb#{settings["imdb"]}#{grp_id}',),
-                InlineKeyboardButton('ᴇɴᴀʙʟᴇ' if settings["imdb"] else 'ᴅɪꜱᴀʙʟᴇ', callback_data=f'setgs#imdb#{settings["imdb"]}#{grp_id}',),
-            ],[
-                InlineKeyboardButton('ᴡᴇʟᴄᴏᴍᴇ ᴍꜱɢ', callback_data=f'setgs#welcome#{settings["welcome"]}#{grp_id}',),
-                InlineKeyboardButton('ᴇɴᴀʙʟᴇ' if settings["welcome"] else 'ᴅɪꜱᴀʙʟᴇ', callback_data=f'setgs#welcome#{settings["welcome"]}#{grp_id}',),
-            ],[
-                InlineKeyboardButton('ᴀᴜᴛᴏ ᴅᴇʟᴇᴛᴇ', callback_data=f'setgs#auto_delete#{settings["auto_delete"]}#{grp_id}',),
-                InlineKeyboardButton('ᴇɴᴀʙʟᴇ' if settings["auto_delete"] else 'ᴅɪꜱᴀʙʟᴇ', callback_data=f'setgs#auto_delete#{settings["auto_delete"]}#{grp_id}',),
-            ],[
-                InlineKeyboardButton('ᴍᴀx ʙᴜᴛᴛᴏɴꜱ', callback_data=f'setgs#max_btn#{settings["max_btn"]}#{grp_id}',),
-                InlineKeyboardButton('10' if settings["max_btn"] else f'{MAX_B_TN}', callback_data=f'setgs#max_btn#{settings["max_btn"]}#{grp_id}',),
-            ],[
-                InlineKeyboardButton('ᴠᴇʀɪꜰɪᴄᴀᴛɪᴏɴ ᴍᴏᴅᴇ', callback_data=f'verification_setgs#{grp_id}',),
-            ],[
-                InlineKeyboardButton('ʟᴏɢ ᴄʜᴀɴɴᴇʟ', callback_data=f'log_setgs#{grp_id}',),
-                InlineKeyboardButton('ꜱᴇᴛ ᴄᴀᴘᴛɪᴏɴ', callback_data=f'caption_setgs#{grp_id}',),   
-            ],[
-                InlineKeyboardButton('⇋ ᴄʟᴏꜱᴇ ꜱᴇᴛᴛɪɴɢꜱ ᴍᴇɴᴜ ⇋', callback_data='close_data')
-    ]]
-    return buttons
