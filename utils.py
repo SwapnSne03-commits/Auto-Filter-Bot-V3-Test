@@ -96,11 +96,12 @@ async def users_broadcast(user_id, message, is_pin):
         ]
     )
         )
+        await asyncio.sleep(0.4) 
         if is_pin:
             await m.pin(both_sides=True)
         return True, "Success"
     except FloodWait as e:
-        await asyncio.sleep(e.x)
+        await asyncio.sleep(e.value + 1)
         return await users_broadcast(user_id, message)
     except InputUserDeactivated:
         await db.delete_user(int(user_id))
@@ -235,14 +236,14 @@ async def get_poster(query, bulk=False, id=False, file=None):
         ALLOWED_KINDS = (
             "movie",
             "tv series",
-            "tvSeries",
-            "tvMiniSeries",
-            "tvMovie",
+            "tvseries",
+            "tvminiseries",
+            "tvmovie",
                 ) # 🔥 ALLOWED MAIN CONTENT ONLY (NO DOCUMENTARY / SPECIAL)
         # 🔥 documentary / special বাদ
         movie_list = [
             m for m in movie_list
-            if getattr(m, "kind", None) in ALLOWED_KINDS
+            if getattr(m, "kind", "").lower() in ALLOWED_KINDS
         ]
 
         # 🛟 যদি শুধু documentary থাকে
