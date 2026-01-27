@@ -284,7 +284,7 @@ async def start(client, message):
                 try:
                     f_caption=SILENTX_CAPTION.format(file_name= '' if title is None else title, file_size='' if size is None else size, file_caption='' if f_caption is None else f_caption)
                 except Exception as e:
-                    logger.exception(e)
+                    LOGGER.exception("Caption format failed")
                     f_caption = f_caption
             if f_caption is None:
                 f_caption = clean_filename(files1.file_name) 
@@ -348,7 +348,7 @@ async def start(client, message):
                 except:
                     return
             await msg.edit_caption(f_caption)
-            k = await msg.reply(f"<b>⚠️ Fᴏʀᴡᴀʀᴅ Tʜɪꜱ Fɪʟᴇs To Sᴏᴍᴇᴡʜᴇʀᴇ Eʟsᴇ Aɴᴅ Sᴛᴀʀᴛ Dᴏᴡɴʟᴏᴀᴅ Tʜᴇʀᴇ. Iᴛ Wɪʟʟ ᴀᴜᴛᴏ ᴅᴇʟᴇᴛᴇ Fʀᴏᴍ Hᴇʀᴇ Aꜰᴛᴇʀ {get_time(DELETE_TIME)}</b>", quote=True)
+            k = await msg.reply(f"<b><u>❗️❗️❗️IMPORTANT❗️️❗️❗️</u>\n\n ᴛʜɪꜱ ᴍᴏᴠɪᴇ ꜰɪʟᴇ/ᴠɪᴅᴇᴏ ᴡɪʟʟ ʙᴇ ᴅᴇʟᴇᴛᴇᴅ ɪɴ {get_time(DELETE_TIME)} 🫥 (ᴅᴜᴇ ᴛᴏ ᴄᴏᴘʏʀɪɢʜᴛ ɪꜱꜱᴜᴇꜱ).\n\n ғᴏʀᴡᴀʀᴅ ᴛʜɪꜱ ғɪʟᴇs ᴛo sᴏᴍᴇᴡʜᴇʀᴇ ᴇʟsᴇ ᴀɴᴅ sᴛᴀʀᴛ ᴅᴏᴡɴʟᴏᴀᴅ ᴛʜᴇʀᴇ.</b>", quote=True)
             await asyncio.sleep(DELETE_TIME)
             await msg.delete()
             await k.edit_text("<b>ʏᴏᴜʀ ᴠɪᴅᴇᴏ / ꜰɪʟᴇ ɪꜱ ꜱᴜᴄᴄᴇꜱꜱꜰᴜʟʟʏ ᴅᴇʟᴇᴛᴇᴅ !!</b>")
@@ -389,7 +389,7 @@ async def start(client, message):
         protect_content=settings.get('file_secure', PROTECT_CONTENT),
         reply_markup=InlineKeyboardMarkup(btn)
     )
-    k = await msg.reply(f"<b>⚠️ Fᴏʀᴡᴀʀᴅ Tʜɪꜱ Fɪʟᴇs To Sᴏᴍᴇᴡʜᴇʀᴇ Eʟsᴇ Aɴᴅ Sᴛᴀʀᴛ Dᴏᴡɴʟᴏᴀᴅ Tʜᴇʀᴇ. Iᴛ Wɪʟʟ ᴀᴜᴛᴏ ᴅᴇʟᴇᴛᴇ Fʀᴏᴍ Hᴇʀᴇ Aꜰᴛᴇʀ {get_time(DELETE_TIME)}</b>", quote=True)     
+    k = await msg.reply(f"<b><u>❗️❗️❗️IMPORTANT❗️️❗️❗️</u>\n\n ᴛʜɪꜱ ᴍᴏᴠɪᴇ ꜰɪʟᴇ/ᴠɪᴅᴇᴏ ᴡɪʟʟ ʙᴇ ᴅᴇʟᴇᴛᴇᴅ ɪɴ {get_time(DELETE_TIME)} 🫥 (ᴅᴜᴇ ᴛᴏ ᴄᴏᴘʏʀɪɢʜᴛ ɪꜱꜱᴜᴇꜱ).\n\n ғᴏʀᴡᴀʀᴅ ᴛʜɪꜱ ғɪʟᴇs ᴛo sᴏᴍᴇᴡʜᴇʀᴇ ᴇʟsᴇ ᴀɴᴅ sᴛᴀʀᴛ ᴅᴏᴡɴʟᴏᴀᴅ ᴛʜᴇʀᴇ.</b>", quote=True)     
     await asyncio.sleep(DELETE_TIME)
     await msg.delete()
     await k.edit_text("<b>ʏᴏᴜʀ ᴠɪᴅᴇᴏ / ꜰɪʟᴇ ɪꜱ ꜱᴜᴄᴄᴇꜱꜱꜰᴜʟʟʏ ᴅᴇʟᴇᴛᴇᴅ !!</b>")
