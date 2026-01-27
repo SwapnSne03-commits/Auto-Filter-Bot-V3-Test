@@ -89,7 +89,7 @@ async def users_broadcast(user_id, message, is_pin):
         [
             [
                 InlineKeyboardButton(
-                    "🔍 Search Here",
+                    "🔍 ᴄʟɪᴄᴋ ʜᴇʀᴇ ᴛᴏ sᴇᴀʀᴄʜ",
                     url="https://t.me/Graduate_Request_Pro"
                 )
             ]
@@ -127,7 +127,7 @@ async def groups_broadcast(chat_id, message, is_pin):
         [
             [
                 InlineKeyboardButton(
-                    "🔍 Search Here",
+                    "🔍 ᴄʟɪᴄᴋ ʜᴇʀᴇ ᴛᴏ sᴇᴀʀᴄʜ",
                     url="https://t.me/Graduate_Request_Pro"
                 )
             ]
@@ -232,7 +232,24 @@ async def get_poster(query, bulk=False, id=False, file=None):
             return data if isinstance(data, dict) else None
         
         movie_list = search_result.titles
-        
+        ALLOWED_KINDS = (
+            "movie",
+            "tv series",
+            "tvSeries",
+            "tvMiniSeries",
+            "tvMovie",
+                ) # 🔥 ALLOWED MAIN CONTENT ONLY (NO DOCUMENTARY / SPECIAL)
+        # 🔥 documentary / special বাদ
+        movie_list = [
+            m for m in movie_list
+            if getattr(m, "kind", None) in ALLOWED_KINDS
+        ]
+
+        # 🛟 যদি শুধু documentary থাকে
+        if not movie_list:
+            LOGGER.info(f"Only documentary/special found, fallback to TMDB: {title}")
+            data = await fetch_tmdb_data(title, year_val)
+            return data if isinstance(data, dict) else None
         if year_val:
             filtered = [m for m in movie_list if m.year and str(m.year) == str(year_val)]
             if not filtered:
