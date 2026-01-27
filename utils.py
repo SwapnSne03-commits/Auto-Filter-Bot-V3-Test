@@ -223,9 +223,13 @@ async def get_poster(query, bulk=False, id=False, file=None):
             if year_list:
                 year_val = year_list[0]
         
-        search_result = await asyncio.to_thread(imdb.search_movie, title.lower())
+        search_result = await asyncio.wait_for(
+            asyncio.to_thread(imdb.search_movie, title.lower()),
+            timeout=8
+                )
         if not search_result or not search_result.titles:
-            return None
+            data = await fetch_tmdb_data(title, year_val)
+            return data if isinstance(data, dict) else None
         
         movie_list = search_result.titles
         
@@ -250,9 +254,13 @@ async def get_poster(query, bulk=False, id=False, file=None):
     else:
         movieid_str = query
 
-    movie = await asyncio.to_thread(imdb.get_movie, movieid_str)
+    movie = await asyncio.wait_for(
+        asyncio.to_thread(imdb.get_movie, movieid_str),
+        timeout=8
+            )
     if not movie:
-        return None
+        data = await fetch_tmdb_data(title, year_val)
+        return data if isinstance(data, dict) else None
 
     if movie.release_date:
         date = movie.release_date
@@ -267,7 +275,7 @@ async def get_poster(query, bulk=False, id=False, file=None):
         
     return {
         'title': movie.title,
-        'votes': movie.votes,
+        'votes': movie.votes if hasattr(movie, "votes") and movie.votes else "N/A",
         "aka": listx_to_str(movie.title_akas),
         "seasons": (
             len(movie.info_series.display_seasons)
@@ -296,7 +304,7 @@ async def get_poster(query, bulk=False, id=False, file=None):
         'genres': listx_to_str(movie.genres),
         'poster': movie.cover_url,
         'plot': plot,
-        'rating': str(movie.rating),
+        'rating': str(movie.rating) if movie.rating else "N/A",
         'url': movie.url or f'https://www.imdb.com/title/tt{movie.imdb_id}'
     }
 
@@ -312,22 +320,31 @@ async def fetch_tmdb_data(title: str, year: str = None) -> Optional[Dict[str, An
                 if response.status != 200:
                     return None
                 data = await response.json()
+                # ✅ poster_url safe extract + fallback
+                poster_url = data.get("poster_url")
+                if not poster_url:
+                    posters = data.get("posters", {})
+                    poster_url = (
+                        posters.get("original")
+                        or posters.get("w500")
+                        or ""
+                    )
                 
                 return {
                     "id": data.get("id"),
                     "title": data.get("title", title),
                     "original_title": data.get("original_title", ""),
                     "original_language": data.get("original_language", "en"),
-                    "kind": data.get("type", "Movie").upper(),
+                    "kind": data.get("type", "movie").lower(),
                     "director": await get_director_from_crew(data.get("crew", [])),
                     "release_date": data.get("release_date", ""),
+                    "poster": poster_url,
                     "vote_average": f"{data['vote_average']:.1f}" if data.get("vote_average") else "N/A",
-                    "vote_count": f"{data['vote_count']:,}" if data.get("vote_count") else "0",
+                    "vote_count": f"{int(data.get('vote_count', 0)):,}",
                     "genres": data.get("genres", []),
                     "imdb_id": data.get("imdb_id", ""),
                     "imdb_url": f"https://www.imdb.com/title/{data.get('imdb_id')}/" if data.get("imdb_id") else "",
                     "overview": data.get("overview", ""),
-                    "poster_url": data.get("poster_url", ""),
                     "backdrop_url": data.get("backdrop_url", ""),
                     "backdrops": data.get("backdrops", {}),
                     "posters": data.get("posters", {}),
