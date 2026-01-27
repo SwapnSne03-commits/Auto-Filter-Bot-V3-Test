@@ -279,14 +279,14 @@ Mᴇꜱꜱᴀɢᴇ : <code>{}</code>"""
     CAPTION = """<b>{file_name}\n\nUploaded By: <a href="https://t.me/graduate_request">[@Graduate_Movies]</a></b>"""
 
     IMDB_TEMPLATE_TXT = """
-<b>🏷 Title: <a href={url}>{title}</a></b>
-🎭 <b>Genres: {genres}</b>
-� <b>Year: <a href={url}/releaseinfo>{year}</a></b>
-🌟 <b>Rating: <a href={url}/ratings>{rating}</a> / 10 (based on {votes} user ratings.)</b>
-📀 <b>RunTime: {runtime} Minutes</b>
+🏷 <b>ᴛɪᴛʟᴇ: <a href={url}>{title}</a></b>
+🎭 <b>ɢᴇɴʀᴇs: {genres}</b>
+📆 <b>ʏᴇᴀᴇ: <a href={url}/releaseinfo>{year}</a></b
+🎖 <b>ʀᴀᴛɪɴɢ: <a href={url}/ratings>{rating}</a> / 10 (ʙᴀsᴇᴅ ᴏɴ {votes} ᴜsᴇʀs ʀᴀᴛɪɴɢs.)</b>
+📀 <b>ʀᴜɴᴛɪᴍᴇ: {runtime} ᴍɪɴᴜᴛᴇs</b>
 
-⏰<b>Result Shown in: {remaining_seconds} <i>seconds</i></b> 🔥
-🤦<b>Requested by : {message.from_user.mention}</b>"""    
+⏰<b>ʀᴇsᴜʟᴛ sʜᴏᴡɴ ɪɴ: {remaining_seconds} <i>sᴇᴄᴏɴᴅs</i></b>
+🕵️‍♂️<b>ʀᴇǫᴜᴇsᴛᴇᴅ ʙʏ: {message.from_user.mention}</b>"""    
 
     RESTART_TXT = """
 <b>✅ {} ʙᴏᴛ ʀᴇꜱᴛᴀʀᴛᴇᴅ ꜱᴜᴄᴄᴇꜱꜱꜰᴜʟʟʏ !
