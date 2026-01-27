@@ -281,7 +281,7 @@ Mᴇꜱꜱᴀɢᴇ : <code>{}</code>"""
     IMDB_TEMPLATE_TXT = """
 🏷 <b>ᴛɪᴛʟᴇ: <a href={url}>{title}</a></b>
 🎭 <b>ɢᴇɴʀᴇs: {genres}</b>
-📆 <b>ʏᴇᴀᴇ: <a href={url}/releaseinfo>{year}</a></b
+📆 <b>ʏᴇᴀᴇ: <a href={url}/releaseinfo>{year}</a></b>
 🎖 <b>ʀᴀᴛɪɴɢ: <a href={url}/ratings>{rating}</a> / 10 (ʙᴀsᴇᴅ ᴏɴ {votes} ᴜsᴇʀs ʀᴀᴛɪɴɢs.)</b>
 📀 <b>ʀᴜɴᴛɪᴍᴇ: {runtime} ᴍɪɴᴜᴛᴇs</b>
 
