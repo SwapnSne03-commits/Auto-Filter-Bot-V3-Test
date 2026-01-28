@@ -54,6 +54,7 @@ async def broadcast_users(bot, message):
     async def send(user):
         try:
             _, result = await users_broadcast(int(user["id"]), b_msg, is_pin)
+            await asyncio.sleep(0)
             return result
         except Exception as e:
             LOGGER.error(f"Error sending broadcast to {user['id']}")
