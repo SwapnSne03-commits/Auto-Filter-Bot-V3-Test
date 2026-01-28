@@ -96,27 +96,38 @@ async def users_broadcast(user_id, message, is_pin):
         ]
     )
         )
-        await asyncio.sleep(0.4) 
+        #await asyncio.sleep(0.4) 
         if is_pin:
             await m.pin(both_sides=True)
         return True, "Success"
     except FloodWait as e:
+         # 🔥 FIX 1: FloodWait safe handling
         await asyncio.sleep(e.value + 1)
-        return await users_broadcast(user_id, message)
+        return await users_broadcast(user_id, message, is_pin)
+
     except InputUserDeactivated:
         await db.delete_user(int(user_id))
-        LOGGER.info(f"{user_id}-Removed from Database, since deleted account.")
+        LOGGER.info(f"{user_id} - Removed (Deleted account)")
         return False, "Deleted"
+
     except UserIsBlocked:
-        LOGGER.info(f"{user_id} -Blocked the bot.")
         await db.delete_user(user_id)
+        LOGGER.info(f"{user_id} - Blocked the bot")
         return False, "Blocked"
+
     except PeerIdInvalid:
         await db.delete_user(int(user_id))
         LOGGER.info(f"{user_id} - PeerIdInvalid")
         return False, "Error"
+
     except Exception as e:
+        LOGGER.error(f"Broadcast error for {user_id}: {e}")
         return False, "Error"
+
+    finally:
+        # 🔥 FIX 2 (MOST IMPORTANT)
+        # 🔑 Event loop release → bot responsive থাকবে
+        await asyncio.sleep(0.3)
 
 async def groups_broadcast(chat_id, message, is_pin):
     try:
