@@ -59,7 +59,7 @@ UPDATE_CHANNEL_LNK = environ.get('UPDATE_CHANNEL_LNK', 'https://t.me/Graduate_Mo
 SUPPORT_GRP = environ.get('SUPPORT_GRP', 'https://t.me/Gm_Support_chat')
 
 AUTH_CHANNEL = environ.get("AUTH_CHANNEL", "-1002612579654 -1002575830474") # add multiple channels here, separated by single space
-AUTH_REQ_CHANNEL = environ.get('AUTH_REQ_CHANNEL', '-1002743050170') # add multiple channels here, separated by single space
+AUTH_REQ_CHANNEL = environ.get('AUTH_REQ_CHANNEL', '-1002738200399') # add multiple channels here, separated by single space
 
 IS_VERIFY = is_enabled('IS_VERIFY', False)
 LOG_VR_CHANNEL = int(environ.get('LOG_VR_CHANNEL', '-1002900228022'))
