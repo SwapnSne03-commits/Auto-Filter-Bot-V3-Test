@@ -757,7 +757,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
         except PeerIdInvalid:
             await query.answer(url=f"https://telegram.me/{temp.U_NAME}?start=sendfiles3_{key}")
         except Exception as e:
-            logger.exception(e)
+            LOGGER.exception("Error in delete callback")
             await query.answer(url=f"https://telegram.me/{temp.U_NAME}?start=sendfiles4_{key}")
             
     elif query.data.startswith("del"):
@@ -786,34 +786,63 @@ async def cb_handler(client: Client, query: CallbackQuery):
         await query.answer()    
     
     elif query.data.startswith("killfilesdq"):
-        ident, keyword = query.data.split("#")
-        await query.message.edit_text(f"<b>Fetching Files for your query {keyword} on DB... Please wait...</b>")
+        _, keyword = query.data.split("#")
+
+        if query.from_user.id not in ADMINS:
+            return await query.answer("❌ Not allowed", show_alert=True)
+
+        await query.answer("⏳ Processing...", show_alert=False)
+        try:
+            await query.message.edit_text(
+                f"<b>Fetching files for: <code>{keyword}</code></b>"
+            )
+        except MessageNotModified:
+            pass
+
         files, total = await get_bad_files(keyword)
-        await query.message.edit_text("<b>ꜰɪʟᴇ ᴅᴇʟᴇᴛɪᴏɴ ᴘʀᴏᴄᴇꜱꜱ ᴡɪʟʟ ꜱᴛᴀʀᴛ ɪɴ 5 ꜱᴇᴄᴏɴᴅꜱ !</b>")
-        await asyncio.sleep(5)
-        deleted = 0
-        async with lock:
+
+        if not files:
             try:
-                for file in files:
-                    file_ids = file.file_id
-                    file_name = file.file_name
-                    result = await Media.collection.delete_one({
-                        '_id': file_ids,
-                    })
-                    if not result.deleted_count and MULTIPLE_DB:
-                        result = await Media2.collection.delete_one({
-                            '_id': file_ids,
-                        })
-                    if result.deleted_count:
-                        logger.info(f'ꜰɪʟᴇ ꜰᴏᴜɴᴅ ꜰᴏʀ ʏᴏᴜʀ ǫᴜᴇʀʏ {keyword}! ꜱᴜᴄᴄᴇꜱꜱꜰᴜʟʟʏ ᴅᴇʟᴇᴛᴇᴅ {file_name} ꜰʀᴏᴍ ᴅᴀᴛᴀʙᴀꜱᴇ.')
-                    deleted += 1
-                    if deleted % 20 == 0:
-                        await query.message.edit_text(f"<b>ᴘʀᴏᴄᴇꜱꜱ ꜱᴛᴀʀᴛᴇᴅ ꜰᴏʀ ᴅᴇʟᴇᴛɪɴɢ ꜰɪʟᴇꜱ ꜰʀᴏᴍ ᴅʙ. ꜱᴜᴄᴄᴇꜱꜱꜰᴜʟʟʏ ᴅᴇʟᴇᴛᴇᴅ {str(deleted)} ꜰɪʟᴇꜱ ꜰʀᴏᴍ ᴅʙ ꜰᴏʀ ʏᴏᴜʀ ǫᴜᴇʀʏ {keyword} !\n\nᴘʟᴇᴀꜱᴇ ᴡᴀɪᴛ...</b>")
-            except Exception as e:
-                LOGGER.error(f"Error In killfiledq -{e}")
-                await query.message.edit_text(f'Error: {e}')
-            else:
-                await query.message.edit_text(f"<b>ᴘʀᴏᴄᴇꜱꜱ ᴄᴏᴍᴘʟᴇᴛᴇᴅ ꜰᴏʀ ꜰɪʟᴇ ᴅᴇʟᴇᴛᴀᴛɪᴏɴ !\n\nꜱᴜᴄᴄᴇꜱꜱꜰᴜʟʟʏ ᴅᴇʟᴇᴛᴇᴅ {str(deleted)} ꜰɪʟᴇꜱ ꜰʀᴏᴍ ᴅʙ ꜰᴏʀ ʏᴏᴜʀ ǫᴜᴇʀʏ {keyword}.</b>") 
+                return await query.message.edit_text("<b>No files found.</b>")
+            except MessageNotModified:
+                return
+
+        try:
+            await query.message.edit_text(
+                f"<b>Found {len(files)} files.\nDeleting in 3 seconds...</b>"
+            )
+        except MessageNotModified:
+            pass
+
+        await asyncio.sleep(3)
+
+        try:
+            file_ids = [file.file_id for file in files]
+
+            result1 = await Media.collection.delete_many({"_id": {"$in": file_ids}})
+            deleted = result1.deleted_count if result1 else 0
+
+            if MULTIPLE_DB:
+                result2 = await Media2.collection.delete_many({"_id": {"$in": file_ids}})
+                deleted += result2.deleted_count if result2 else 0
+
+            LOGGER.info(f"Deleted {deleted} files for keyword: {keyword}")
+
+            try:
+                await query.message.edit_text(
+                    f"<b>✅ Successfully deleted {deleted} files\nfor query: <code>{keyword}</code></b>"
+                )
+            except MessageNotModified:
+                pass
+
+        except Exception as e:
+            LOGGER.exception("Error in killfilesdq")
+            try:
+                await query.message.edit_text(
+                    "<b>❌ Error occurred while deleting files.</b>"
+                )
+            except MessageNotModified:
+                pass 
 
     elif query.data.startswith("show_option"):
         ident, from_user = query.data.split("#")
@@ -1694,33 +1723,34 @@ async def auto_filter(client, msg, spoll=False):
     if imdb:
         cap = TEMPLATE.format(
             qurey=search,
-            title=imdb['title'],
-            votes=imdb['votes'],
-            aka=imdb["aka"],
-            seasons=imdb["seasons"],
-            box_office=imdb['box_office'],
-            localized_title=imdb['localized_title'],
-            kind=imdb['kind'],
-            imdb_id=imdb["imdb_id"],
-            cast=imdb["cast"],
-            runtime=imdb["runtime"],
-            countries=imdb["countries"],
-            certificates=imdb["certificates"],
-            languages=imdb["languages"],
-            director=imdb["director"],
-            writer=imdb["writer"],
-            producer=imdb["producer"],
-            composer=imdb["composer"],
-            cinematographer=imdb["cinematographer"],
-            music_team=imdb["music_team"],
-            distributors=imdb["distributors"],
-            release_date=imdb['release_date'],
-            year=imdb['year'],
-            genres=imdb['genres'],
-            poster=imdb['poster'],
-            plot=imdb['plot'],
-            rating=imdb['rating'],
-            url=imdb['url'],
+            #qurey=search,
+            title=imdb.get("title", "N/A"),
+            votes=imdb.get("votes") or imdb.get("vote_count") or "N/A",
+            aka=imdb.get("aka", "N/A"),
+            seasons=imdb.get("seasons", "N/A"),
+            box_office=imdb.get("box_office", "N/A"),
+            localized_title=imdb.get("localized_title", "N/A"),
+            kind=imdb.get("kind", "N/A"),
+            imdb_id=imdb.get("imdb_id", "N/A"),
+            cast=imdb.get("cast", "N/A"),
+            runtime=imdb.get("runtime", "N/A"),
+            countries=imdb.get("countries", "N/A"),
+            certificates=imdb.get("certificates", "N/A"),
+            languages=imdb.get("languages", "N/A"),
+            director=imdb.get("director", "N/A"),
+            writer=imdb.get("writer", "N/A"),
+            producer=imdb.get("producer", "N/A"),
+            composer=imdb.get("composer", "N/A"),
+            cinematographer=imdb.get("cinematographer", "N/A"),
+            music_team=imdb.get("music_team", "N/A"),
+            distributors=imdb.get("distributors", "N/A"),
+            release_date=imdb.get("release_date", "N/A"),
+            year=imdb.get("year", "N/A"),
+            genres=imdb.get("genres", "N/A"),
+            poster=poster_url,
+            plot=imdb.get("plot", "N/A"),
+            rating=imdb.get("rating", "N/A"),
+            url=imdb.get("url", "N/A"),
             **locals()
         )
         temp.IMDB_CAP[message.from_user.id] = cap

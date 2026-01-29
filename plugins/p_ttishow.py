@@ -51,32 +51,45 @@ async def save_group(bot, message):
             text=f"<b>Thankyou For Adding Me In {message.chat.title} ❣️\n\nIf you have any questions & doubts about using me contact support.</b>",
             reply_markup=reply_markup)
         try:
-            await db.connect_group(message.chat.id, message.from_user)
+            if message.from_user:
+                await db.connect_group(message.chat.id, message.from_user)
         except Exception as e:
             LOGGER.error(f"DB error connecting group: {e}")
     else:
         settings = await get_settings(message.chat.id)
         if settings["welcome"]:
             for u in message.new_chat_members:
-                if (temp.MELCOW).get('welcome') is not None:
-                    try:
-                        await (temp.MELCOW['welcome']).delete()
-                    except:
-                        pass
-                temp.MELCOW['welcome'] = await message.reply_video(
-                                                 video=(MELCOW_VID),
-                                                 caption=(script.MELCOW_ENG.format(u.mention, message.chat.title)),
-                                                 reply_markup=InlineKeyboardMarkup(
-                                                                         [[
-                                                                           InlineKeyboardButton("📌 ᴄᴏɴᴛᴀᴄᴛ ꜱᴜᴘᴘᴏʀᴛ 📌", url=OWNER_LNK)
-                                                                         ]]
-                                                 ),
-                                                 parse_mode=enums.ParseMode.HTML
-                )
+                        msg = temp.MELCOW.get("welcome")
+                        if msg:
+                            try:
+                                await msg.delete()
+                            except:
+                                pass
+                            temp.MELCOW.pop("welcome", None)
+                    
+                        temp.MELCOW['welcome'] = await message.reply_video(
+                                                         video=(MELCOW_VID),
+                                                         caption=(script.MELCOW_ENG.format(u.mention, message.chat.title)),
+                                                         reply_markup=InlineKeyboardMarkup(
+                                                                                 [[
+                                                                                   InlineKeyboardButton("📌 ᴄᴏɴᴛᴀᴄᴛ ꜱᴜᴘᴘᴏʀᴛ 📌", url=OWNER_LNK)
+                                                                                 ]]
+                                                         ),
+                                                         parse_mode=enums.ParseMode.HTML
+                        )
                 
+        #if settings["auto_delete"]:
+            #await asyncio.sleep(600)
+            #await (temp.MELCOW['welcome']).delete()
         if settings["auto_delete"]:
             await asyncio.sleep(600)
-            await (temp.MELCOW['welcome']).delete()
+            msg = temp.MELCOW.get("welcome")
+            if msg:
+                try:
+                   await msg.delete()
+                except:
+                    pass
+                temp.MELCOW.pop("welcome", None)
                 
 
 @Client.on_message(filters.command('leave') & filters.user(ADMINS))

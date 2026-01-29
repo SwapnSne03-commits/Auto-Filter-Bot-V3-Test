@@ -23,7 +23,7 @@ BOT_TOKEN = environ.get('BOT_TOKEN', "")
 CACHE_TIME = int(environ.get('CACHE_TIME', 300))
 USE_CAPTION_FILTER = bool(environ.get('USE_CAPTION_FILTER', True))
 
-PICS = (environ.get('PICS', 'https://i.ibb.co/G62BfhM/photo-2025-12-12-02-06-06-7582787047673298968.jpg https://i.ibb.co/69DZpdH/photo-2025-12-22-05-03-15-7586543743897960488.jpg https://i.ibb.co/DHjPQKDT/photo-2025-12-22-05-05-09-7586552209278500880.jpg https://i.ibb.co/ymWWLd2D/photo-2025-12-22-05-05-09-7586543967236259856.jpg https://i.ibb.co/VYmt4TDS/photo-2025-12-22-05-04-30-7586543829797306372.jpg https://i.ibb.co/9mHqK8Sn/photo-2025-12-22-05-05-00-7586552114789220396.jpg https://i.ibb.co/HfRbmQZy/photo-2025-12-22-05-05-08-7586552076134514732.jpg https://i.ibb.co/TMMZdB5S/photo-2025-12-22-05-05-00-7586552050364710916.jpg https://i.ibb.co/MD6wT06K/photo-2025-12-22-05-05-09-7586552011710005264.jpg https://i.ibb.co/MyyTgQMn/photo-2025-12-22-05-04-59-7586551981645234216.jpg https://i.ibb.co/jkNrTM7h/photo-2025-12-22-05-05-07-7586551947285495828.jpg https://i.ibb.co/wNm9v1fM/photo-2025-12-22-05-05-07-7586544010185932804.jpg https://i.ibb.co/ymWWLd2D/photo-2025-12-22-05-05-09-7586543967236259856.jpg')).split() 
+PICS = (environ.get('PICS', 'https://i.ibb.co/G62BfhM/photo-2025-12-12-02-06-06-7582787047673298968.jpg https://i.ibb.co/DHjPQKDT/photo-2025-12-22-05-05-09-7586552209278500880.jpg https://i.ibb.co/ymWWLd2D/photo-2025-12-22-05-05-09-7586543967236259856.jpg https://i.ibb.co/VYmt4TDS/photo-2025-12-22-05-04-30-7586543829797306372.jpg https://i.ibb.co/9mHqK8Sn/photo-2025-12-22-05-05-00-7586552114789220396.jpg https://i.ibb.co/HfRbmQZy/photo-2025-12-22-05-05-08-7586552076134514732.jpg https://i.ibb.co/TMMZdB5S/photo-2025-12-22-05-05-00-7586552050364710916.jpg https://i.ibb.co/MD6wT06K/photo-2025-12-22-05-05-09-7586552011710005264.jpg https://i.ibb.co/MyyTgQMn/photo-2025-12-22-05-04-59-7586551981645234216.jpg https://i.ibb.co/jkNrTM7h/photo-2025-12-22-05-05-07-7586551947285495828.jpg https://i.ibb.co/wNm9v1fM/photo-2025-12-22-05-05-07-7586544010185932804.jpg https://i.ibb.co/ymWWLd2D/photo-2025-12-22-05-05-09-7586543967236259856.jpg')).split() 
 NOR_IMG = environ.get("NOR_IMG", "https://graph.org/file/62efbcc4e7580b76530ba.jpg")
 MELCOW_VID = environ.get("MELCOW_VID", "https://graph.org/file/e215d12bfd4fa2155e90e.mp4")
 SPELL_IMG = environ.get("SPELL_IMG", "https://graph.org/file/13702ae26fb05df52667c.jpg")
@@ -33,7 +33,7 @@ FSUB_IMG = (environ.get('FSUB_IMG', 'https://i.ibb.co/cShkPjcZ/x.jpg')).split()
 ADMINS = [int(admin) if id_pattern.search(admin) else admin for admin in environ.get('ADMINS', '7859995064').split()] 
 CHANNELS = [int(ch) if id_pattern.search(ch) else ch for ch in environ.get('CHANNELS', '-1002533229703 -1002633335930 -1002533695302 -1003239941447').split()]
 LOG_CHANNEL = int(environ.get('LOG_CHANNEL', '-1002900228022'))  
-BIN_CHANNEL = int(environ.get('BIN_CHANNEL', '-1002524198335'))  
+BIN_CHANNEL = int(environ.get('BIN_CHANNEL', '-1002900228022'))  
 MOVIE_UPDATE_CHANNEL = int(environ.get('MOVIE_UPDATE_CHANNEL', '-1002524198335'))  
 PREMIUM_LOGS = int(environ.get('PREMIUM_LOGS', '-1002900228022')) 
 auth_grp = environ.get('AUTH_GROUP', '-1003464461159')
@@ -54,7 +54,7 @@ DB_CHANGE_LIMIT = int(environ.get('DB_CHANGE_LIMIT', "432"))
 
 GRP_LNK = environ.get('GRP_LNK', 'https://t.me/Graduate_Request_Pro')
 CHNL_LNK = environ.get('CHNL_LNK', 'https://t.me/Graduate_Movies')
-OWNER_LNK = environ.get('OWNER_LNK', 'https://t.me/yours_swapno')
+OWNER_LNK = environ.get('OWNER_LNK', 'https://t.me/yours_swap_bot')
 UPDATE_CHANNEL_LNK = environ.get('UPDATE_CHANNEL_LNK', 'https://t.me/Graduate_Movies')
 SUPPORT_GRP = environ.get('SUPPORT_GRP', 'https://t.me/Gm_Support_chat')
 
@@ -113,10 +113,9 @@ MAINTENANCE_MODE = bool(environ.get('MAINTENANCE_MODE', False))
 
 
 IGNORE_WORDS = (list(os.environ.get("IGNORE_WORDS").split(",")) if os.environ.get("IGNORE_WORDS") else []) #Remove Words While Searching Files
-IGNORE_WORDS= ["movies", "Movies", ",", "episode", "Episode", "episodes", "Episodes", "south indian", "south indian movie", "South Indian Movie", "south movie", "South Movie", "South Indian", "web-series", "hindi me bhejo", "gujrati", "combined", "!", "kro", "jaldi", "Audio", "audio", "movi", "language", "Language", "Hollywood", "All", "all", "bollywood", "Bollywood", "South", "south", "HD", "hd", "karo", "Karo", "fullepisode", "please", "plz", "Please", "Plz", "send", "link", "Link", "full", "Full", "dabbed", "dubbed", "season", "Season", "web", "series", "Web", "Series", "webseries", "WebSeries", "upload", "HD", "Hd", "bhejo", "ful", "Send", "Bhejo", "request", "Request", "#"]
+IGNORE_WORDS= ["movies", "Movies", ",", "episode", "Episode", "episodes", "Episodes", "south indian", "south indian movie", "South Indian Movie", "south movie", "South Movie", "South Indian", "web-series", "hindi me bhejo", "gujrati", "combined", "!", "kro", "jaldi", "Audio", "audio", "movi", "language", "Language", "Hollywood", "All", "all", "bollywood", "Bollywood", "South", "south", "HD", "hd", "karo", "Karo", "fullepisode", "please", "plz", "Please", "Plz", "send", "link", "Link", "full", "Full", "dabbed", "dubbed", "season", "Season", "web", "series", "Web", "Series", "webseries", "WebSeries", "upload", "HD", "Hd", "bhejo", "ful", "Send", "Bhejo", "request", "Request", "#", "hindi", "Hindi", "Bengali", "bengali"]
 
-BAD_WORDS = ["Hdhub4u", "cinevood", "skymoviedHD", "4khdhub", "Toonworld4all", "TW4ALL", "ExtraFlix", "Hdhub", "Movies", "Movies4u", "movies4u", "Vegamovies", "extraflix", "Filmy4wap", "Filmu4cab", "Tamilmv", "CineVood", "Hub4u", "Hub4", "SkyoviesHD", "Skymovieshd", "telegram", "tg", "TG", "Telegram", "HdWebMovies", "mkvcinemas", "mkvCinemas", "mkvking", "5moviez", "hdm2"] #Remove Words From File_Name
-
+BAD_WORDS = ["Hdhub4u", "cinevood", "skymoviedHD", "4khdhub", "Toonworld4all", "TW4ALL", "ExtraFlix", "Hdhub", "Movies", "Movies4u", "movies4u", "Vegamovies", "extraflix", "Filmy4wap", "Filmu4cab", "Tamilmv", "CineVood", "Hub4u", "Hub4", "SkymoviesHD", "Skymovieshd", "telegram", "tg", "TG", "Telegram", "HdWebMovies", "mkvcinemas", "mkvCinemas", "mkvking", "5moviez", "hdm2", "mkvcinema", "1tamil", "1tamilmv", "1Tamil", "1tamilblaster", "1TamilBlaster", "Moviez", "moviez", "yts mx", "YTS", "YTS MX", "mkvCinem", "filmyzilla", "filmzilla", "CineVood", "BT MOVIES HD", "FILMSCLUB04", "XDMovies", "mp4movies", "mp4moviez", "MLWBD", "MLSBD", "mlsbd", "mlwbd", "FibWatch", "fibwatch", "Joya9tv", "joya9tv", "Cinedoze", "CineDoze", "cinedoze", "world4u", "SSRMovies", "SSRmovies", "5MovieRulz", "FilmyCab"] #remove words form file name 
 LANGUAGES = ["malayalam", "", "tamil", "", "english", "", "hindi", "", "telugu", "", "kannada", "", "gujarati", "", "marathi", "", "punjabi", "", "bengali", ""]
 QUALITIES = ["360P", "", "480P", "", "720P", "", "1080P", "", "1440P", "", "2160P", "", "4k", ""]
 SEASONS = ["s01" , "s02" , "s03" , "s04", "s05" , "s06" , "s07" , "s08" , "s09" , "s10" , "s11" , "s12"]

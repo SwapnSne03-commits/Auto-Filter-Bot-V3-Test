@@ -89,33 +89,45 @@ async def users_broadcast(user_id, message, is_pin):
         [
             [
                 InlineKeyboardButton(
-                    "🔍 Search Here",
+                    "🔍 ᴄʟɪᴄᴋ ʜᴇʀᴇ ᴛᴏ sᴇᴀʀᴄʜ",
                     url="https://t.me/Graduate_Request_Pro"
                 )
             ]
         ]
     )
         )
+        #await asyncio.sleep(0.4) 
         if is_pin:
             await m.pin(both_sides=True)
         return True, "Success"
     except FloodWait as e:
-        await asyncio.sleep(e.x)
-        return await users_broadcast(user_id, message)
+         # 🔥 FIX 1: FloodWait safe handling
+        await asyncio.sleep(e.value + 1)
+        return await users_broadcast(user_id, message, is_pin)
+
     except InputUserDeactivated:
         await db.delete_user(int(user_id))
-        LOGGER.info(f"{user_id}-Removed from Database, since deleted account.")
+        LOGGER.info(f"{user_id} - Removed (Deleted account)")
         return False, "Deleted"
+
     except UserIsBlocked:
-        LOGGER.info(f"{user_id} -Blocked the bot.")
         await db.delete_user(user_id)
+        LOGGER.info(f"{user_id} - Blocked the bot")
         return False, "Blocked"
+
     except PeerIdInvalid:
         await db.delete_user(int(user_id))
         LOGGER.info(f"{user_id} - PeerIdInvalid")
         return False, "Error"
+
     except Exception as e:
+        LOGGER.error(f"Broadcast error for {user_id}: {e}")
         return False, "Error"
+
+    finally:
+        # 🔥 FIX 2 (MOST IMPORTANT)
+        # 🔑 Event loop release → bot responsive থাকবে
+        await asyncio.sleep(0.3)
 
 async def groups_broadcast(chat_id, message, is_pin):
     try:
@@ -127,7 +139,7 @@ async def groups_broadcast(chat_id, message, is_pin):
         [
             [
                 InlineKeyboardButton(
-                    "🔍 Search Here",
+                    "🔍 ᴄʟɪᴄᴋ ʜᴇʀᴇ ᴛᴏ sᴇᴀʀᴄʜ",
                     url="https://t.me/Graduate_Request_Pro"
                 )
             ]
@@ -223,12 +235,33 @@ async def get_poster(query, bulk=False, id=False, file=None):
             if year_list:
                 year_val = year_list[0]
         
-        search_result = await asyncio.to_thread(imdb.search_movie, title.lower())
+        search_result = await asyncio.wait_for(
+            asyncio.to_thread(imdb.search_movie, title.lower()),
+            timeout=8
+                )
         if not search_result or not search_result.titles:
-            return None
+            data = await fetch_tmdb_data(title, year_val)
+            return data if isinstance(data, dict) else None
         
         movie_list = search_result.titles
-        
+        ALLOWED_KINDS = (
+            "movie",
+            "tv series",
+            "tvseries",
+            "tvminiseries",
+            "tvmovie",
+                ) # 🔥 ALLOWED MAIN CONTENT ONLY (NO DOCUMENTARY / SPECIAL)
+        # 🔥 documentary / special বাদ
+        movie_list = [
+            m for m in movie_list
+            if getattr(m, "kind", "").lower() in ALLOWED_KINDS
+        ]
+
+        # 🛟 যদি শুধু documentary থাকে
+        if not movie_list:
+            LOGGER.info(f"Only documentary/special found, fallback to TMDB: {title}")
+            data = await fetch_tmdb_data(title, year_val)
+            return data if isinstance(data, dict) else None
         if year_val:
             filtered = [m for m in movie_list if m.year and str(m.year) == str(year_val)]
             if not filtered:
@@ -250,9 +283,13 @@ async def get_poster(query, bulk=False, id=False, file=None):
     else:
         movieid_str = query
 
-    movie = await asyncio.to_thread(imdb.get_movie, movieid_str)
+    movie = await asyncio.wait_for(
+        asyncio.to_thread(imdb.get_movie, movieid_str),
+        timeout=8
+            )
     if not movie:
-        return None
+        data = await fetch_tmdb_data(title, year_val)
+        return data if isinstance(data, dict) else None
 
     if movie.release_date:
         date = movie.release_date
@@ -267,7 +304,7 @@ async def get_poster(query, bulk=False, id=False, file=None):
         
     return {
         'title': movie.title,
-        'votes': movie.votes,
+        'votes': movie.votes if hasattr(movie, "votes") and movie.votes else "N/A",
         "aka": listx_to_str(movie.title_akas),
         "seasons": (
             len(movie.info_series.display_seasons)
@@ -296,7 +333,7 @@ async def get_poster(query, bulk=False, id=False, file=None):
         'genres': listx_to_str(movie.genres),
         'poster': movie.cover_url,
         'plot': plot,
-        'rating': str(movie.rating),
+        'rating': str(movie.rating) if movie.rating else "N/A",
         'url': movie.url or f'https://www.imdb.com/title/tt{movie.imdb_id}'
     }
 
@@ -312,22 +349,31 @@ async def fetch_tmdb_data(title: str, year: str = None) -> Optional[Dict[str, An
                 if response.status != 200:
                     return None
                 data = await response.json()
+                # ✅ poster_url safe extract + fallback
+                poster_url = data.get("poster_url")
+                if not poster_url:
+                    posters = data.get("posters", {})
+                    poster_url = (
+                        posters.get("original")
+                        or posters.get("w500")
+                        or ""
+                    )
                 
                 return {
                     "id": data.get("id"),
                     "title": data.get("title", title),
                     "original_title": data.get("original_title", ""),
                     "original_language": data.get("original_language", "en"),
-                    "kind": data.get("type", "Movie").upper(),
+                    "kind": data.get("type", "movie").lower(),
                     "director": await get_director_from_crew(data.get("crew", [])),
                     "release_date": data.get("release_date", ""),
+                    "poster": poster_url,
                     "vote_average": f"{data['vote_average']:.1f}" if data.get("vote_average") else "N/A",
-                    "vote_count": f"{data['vote_count']:,}" if data.get("vote_count") else "0",
+                    "vote_count": f"{int(data.get('vote_count', 0)):,}",
                     "genres": data.get("genres", []),
                     "imdb_id": data.get("imdb_id", ""),
                     "imdb_url": f"https://www.imdb.com/title/{data.get('imdb_id')}/" if data.get("imdb_id") else "",
                     "overview": data.get("overview", ""),
-                    "poster_url": data.get("poster_url", ""),
                     "backdrop_url": data.get("backdrop_url", ""),
                     "backdrops": data.get("backdrops", {}),
                     "posters": data.get("posters", {}),

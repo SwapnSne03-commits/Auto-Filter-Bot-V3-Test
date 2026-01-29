@@ -25,6 +25,29 @@ from .fsub_helper import check_force_subscription, is_req_subscribed, is_subscri
 TIMEZONE = "Asia/Kolkata"
 BATCH_FILES = {}
 
+# 🔥 Words that should be removed from filename/caption
+REMOVED_SPC_WORD = ["[SANKET]", "HDWebMovies", "Telegram", "TG", "www.", "ExtraFlix.pw", "hdhub4u", "skymovieshd", "@Eliteflix", "t.me", "4kdbhub", "movies4u", "tw4all", "Hdhub4u", "cinevood", "skymoviedHD", "4khdhub", "Toonworld4all", "TW4ALL", "ExtraFlix", "Hdhub", "Movies", "Movies4u", "movies4u", "Vegamovies", "extraflix", "Filmy4wap", "Filmu4cab", "Tamilmv", "CineVood", "Hub4u", "Hub4", "SkymoviesHD", "Skymovieshd", "telegram", "tg", "TG", "Telegram", "HdWebMovies", "mkvcinemas", "mkvCinemas", "mkvking", "5moviez", "hdm2", "mkvcinema", "1tamil", "1tamilmv", "1Tamil", "1tamilblaster", "1TamilBlaster", "Moviez", "moviez", "yts mx", "YTS", "YTS MX", "mkvCinem", "filmyzilla", "filmzilla", "CineVood", "BT MOVIES HD", "FILMSCLUB04", "XDMovies", "mp4movies", "mp4moviez", "MLWBD", "MLSBD", "mlsbd", "mlwbd", "FibWatch", "fibwatch", "Joya9tv", "joya9tv", "Cinedoze", "CineDoze", "cinedoze", "world4u", "SSRMovies", "SSRmovies", "5MovieRulz", "FilmyCab"] #[remove words form file name]
+
+def clean_special_words(text: str) -> str:
+    """
+    Remove unwanted special words from filename or caption
+    """
+    if not text:
+        return text
+
+    cleaned = text
+    for word in REMOVED_SPC_WORD:
+        # 🔥 case-insensitive replace
+        cleaned = re.sub(
+            re.escape(word),
+            "",
+            cleaned,
+            flags=re.IGNORECASE
+        )
+
+    # 🔧 extra space cleanup
+    cleaned = re.sub(r"[\t]", " ", cleaned).strip()
+    return cleaned
 @Client.on_message(filters.command("start") & filters.incoming)
 async def start(client, message):
     bot_id = client.me.id
@@ -274,7 +297,7 @@ async def start(client, message):
             file_id = file.file_id
             files_ = await get_file_details(file_id)
             files1 = files_[0]
-            title = clean_filename(files1.file_name) 
+            title = clean_special_words(clean_filename(files1.file_name)) 
             size = get_size(files1.file_size)
             f_caption = files1.caption
             settings = await get_settings(int(grp_id))
@@ -283,11 +306,13 @@ async def start(client, message):
             if SILENTX_CAPTION:
                 try:
                     f_caption=SILENTX_CAPTION.format(file_name= '' if title is None else title, file_size='' if size is None else size, file_caption='' if f_caption is None else f_caption)
+                    # 🔥 FINAL caption user দেখবে → clean here
+                    f_caption = clean_special_words(f_caption)
                 except Exception as e:
-                    logger.exception(e)
+                    LOGGER.exception("Caption format failed")
                     f_caption = f_caption
             if f_caption is None:
-                f_caption = clean_filename(files1.file_name) 
+                f_caption = clean_special_words(clean_filename(files1.file_name)) 
             if STREAM_MODE:
                 btn = [
                     [InlineKeyboardButton('𝖦𝖾𝗇𝖾𝗋𝖺𝗍𝖾 𝖲𝗍𝗋𝖾𝗆𝗂𝗇𝗀 𝖫𝗂𝗇𝗄', callback_data=f'streamfile:{file_id}')],
@@ -316,7 +341,16 @@ async def start(client, message):
     files_ = await get_file_details(file_id)  
     settings = await get_settings(int(grp_id))
     if not files_:
-        pre, file_id = ((base64.urlsafe_b64decode(data + "=" * (-len(data) % 4))).decode("ascii")).split("_", 1)
+        try:
+            decoded = base64.urlsafe_b64decode(
+                data + "=" * (-len(data) % 4)
+            ).decode("utf-8", errors="ignore")
+
+            pre, file_id = decoded.split("_", 1)
+
+        except Exception as e:
+            LOGGER.error(f"Start param decode failed: {e}")
+            return
         try:
             if STREAM_MODE:
                 btn = [
@@ -336,7 +370,7 @@ async def start(client, message):
 
             filetype = msg.media
             file = getattr(msg, filetype.value)
-            title = clean_filename(file.file_name)              
+            title = clean_special_words(clean_filename(file.file_name))              
             size=get_size(file.file_size)
             f_caption = f"<code>{title}</code>"
             settings = await get_settings(int(grp_id))
@@ -345,10 +379,11 @@ async def start(client, message):
             if SILENTX_CAPTION:
                 try:
                     f_caption=SILENTX_CAPTION.format(file_name= '' if title is None else title, file_size='' if size is None else size, file_caption='')
+                    f_caption = clean_special_words(f_caption)
                 except:
                     return
             await msg.edit_caption(f_caption)
-            k = await msg.reply(f"<b>⚠️ Fᴏʀᴡᴀʀᴅ Tʜɪꜱ Fɪʟᴇs To Sᴏᴍᴇᴡʜᴇʀᴇ Eʟsᴇ Aɴᴅ Sᴛᴀʀᴛ Dᴏᴡɴʟᴏᴀᴅ Tʜᴇʀᴇ. Iᴛ Wɪʟʟ ᴀᴜᴛᴏ ᴅᴇʟᴇᴛᴇ Fʀᴏᴍ Hᴇʀᴇ Aꜰᴛᴇʀ {get_time(DELETE_TIME)}</b>", quote=True)
+            k = await msg.reply(f"<b><u>❗️❗️❗️IMPORTANT❗️️❗️❗️</u>\n\n ᴛʜɪꜱ ᴍᴏᴠɪᴇ ꜰɪʟᴇ/ᴠɪᴅᴇᴏ ᴡɪʟʟ ʙᴇ ᴅᴇʟᴇᴛᴇᴅ ɪɴ {get_time(DELETE_TIME)} 🫥 (ᴅᴜᴇ ᴛᴏ ᴄᴏᴘʏʀɪɢʜᴛ ɪꜱꜱᴜᴇꜱ).\n\n ғᴏʀᴡᴀʀᴅ ᴛʜɪꜱ ғɪʟᴇs ᴛo sᴏᴍᴇᴡʜᴇʀᴇ ᴇʟsᴇ ᴀɴᴅ sᴛᴀʀᴛ ᴅᴏᴡɴʟᴏᴀᴅ ᴛʜᴇʀᴇ.</b>", quote=True)
             await asyncio.sleep(DELETE_TIME)
             await msg.delete()
             await k.edit_text("<b>ʏᴏᴜʀ ᴠɪᴅᴇᴏ / ꜰɪʟᴇ ɪꜱ ꜱᴜᴄᴄᴇꜱꜱꜰᴜʟʟʏ ᴅᴇʟᴇᴛᴇᴅ !!</b>")
@@ -358,7 +393,7 @@ async def start(client, message):
         return await message.reply('ɴᴏ ꜱᴜᴄʜ ꜰɪʟᴇ ᴇxɪꜱᴛꜱ !')
     
     files = files_[0]
-    title = clean_filename(files.file_name)
+    title = clean_special_words(clean_filename(files.file_name))
     size = get_size(files.file_size)
     f_caption = files.caption
     settings = await get_settings(int(grp_id))         
@@ -367,12 +402,14 @@ async def start(client, message):
     if SILENTX_CAPTION:
         try:
             f_caption=SILENTX_CAPTION.format(file_name= '' if title is None else title, file_size='' if size is None else size, file_caption='' if f_caption is None else f_caption)
+            # 🔥 REMOVE SPECIAL WORDS FROM FINAL CAPTION
+            f_caption = clean_special_words(f_caption)
         except Exception as e:
             LOGGER.error(e)
             f_caption = f_caption
 
     if f_caption is None:
-        f_caption = clean_filename(files.file_name)
+        f_caption = clean_special_words(clean_filename(files.file_name))
     if STREAM_MODE:
         btn = [
             [InlineKeyboardButton('𝖦𝖾𝗇𝖾𝗋𝖺𝗍𝖾 𝖲𝗍𝗋𝖾𝗆𝗂𝗇𝗀 𝖫𝗂𝗇𝗄', callback_data=f'streamfile:{file_id}')],
@@ -389,7 +426,7 @@ async def start(client, message):
         protect_content=settings.get('file_secure', PROTECT_CONTENT),
         reply_markup=InlineKeyboardMarkup(btn)
     )
-    k = await msg.reply(f"<b>⚠️ Fᴏʀᴡᴀʀᴅ Tʜɪꜱ Fɪʟᴇs To Sᴏᴍᴇᴡʜᴇʀᴇ Eʟsᴇ Aɴᴅ Sᴛᴀʀᴛ Dᴏᴡɴʟᴏᴀᴅ Tʜᴇʀᴇ. Iᴛ Wɪʟʟ ᴀᴜᴛᴏ ᴅᴇʟᴇᴛᴇ Fʀᴏᴍ Hᴇʀᴇ Aꜰᴛᴇʀ {get_time(DELETE_TIME)}</b>", quote=True)     
+    k = await msg.reply(f"<b><u>❗️❗️❗️IMPORTANT❗️️❗️❗️</u>\n\n ᴛʜɪꜱ ᴍᴏᴠɪᴇ ꜰɪʟᴇ/ᴠɪᴅᴇᴏ ᴡɪʟʟ ʙᴇ ᴅᴇʟᴇᴛᴇᴅ ɪɴ {get_time(DELETE_TIME)} 🫥 (ᴅᴜᴇ ᴛᴏ ᴄᴏᴘʏʀɪɢʜᴛ ɪꜱꜱᴜᴇꜱ).\n\n ғᴏʀᴡᴀʀᴅ ᴛʜɪꜱ ғɪʟᴇs ᴛo sᴏᴍᴇᴡʜᴇʀᴇ ᴇʟsᴇ ᴀɴᴅ sᴛᴀʀᴛ ᴅᴏᴡɴʟᴏᴀᴅ ᴛʜᴇʀᴇ.</b>", quote=True)     
     await asyncio.sleep(DELETE_TIME)
     await msg.delete()
     await k.edit_text("<b>ʏᴏᴜʀ ᴠɪᴅᴇᴏ / ꜰɪʟᴇ ɪꜱ ꜱᴜᴄᴄᴇꜱꜱꜰᴜʟʟʏ ᴅᴇʟᴇᴛᴇᴅ !!</b>")
