@@ -1832,6 +1832,8 @@ async def auto_filter(client, msg, spoll=False):
         pass
 		
 async def ai_spell_check(chat_id, wrong_name):
+    if re.search(r'\bS\d{1,2}\b|\bSeason\s*\d+', wrong_name, re.I):
+        return None
     async def search_movie(wrong_name):
         search_results = imdb.search_movie(wrong_name)
         movie_list = [movie.title for movie in search_results.titles]
@@ -1844,11 +1846,21 @@ async def ai_spell_check(chat_id, wrong_name):
         if not closest_match or closest_match[1] <= 80:
             return 
         movie = closest_match[0]
-        files, offset, total_results = await get_search_results(chat_id=chat_id, query=movie)
+        result = await get_search_results(chat_id=chat_id, query=movie)
+
+        # 🔒 SAFETY GUARD (MOST IMPORTANT)
+        if not result or len(result) != 3:
+            movie_list.remove(movie)
+            continue
+
+        files, offset, total_results = result
+
         if files:
             return movie
+
         movie_list.remove(movie)
 
+    return None
 async def advantage_spell_chok(client, message):
     mv_id = message.id
     search = message.text
