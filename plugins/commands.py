@@ -97,7 +97,13 @@ def build_del_files_buttons(session):
         mark = "✅" if fid in selected else "⬜"
 
         name = f.get("file_name", "Unknown")
-        size = human_size(f.get("file_size", 0))
+        raw_size = (
+            f.get("file_size")
+            or f.get("size")
+            or f.get("fileSize")
+            or 0
+                )
+        size = human_size(raw_size)
         info = extract_file_info(name)
 
         if info:
@@ -645,10 +651,19 @@ async def del_files_callback(client, callback):
 
     # ☑️ SELECT ALL
     elif data == "df_select_all":
+        if len(session["selected"]) == len(session["files"]):
+            return await callback.answer(
+                "ℹ️ All files already selected",
+                show_alert=True
+            )
         session["selected"] = set(str(f["_id"]) for f in session["files"])
-
     # ⬜ UNSELECT ALL
     elif data == "df_unselect_all":
+        if not session["selected"]:
+            return await callback.answer(
+                "⚠️ Nothing selected",
+                show_alert=True
+            )
         session["selected"].clear()
 
     # ❌ CANCEL DELETE
