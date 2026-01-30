@@ -25,6 +25,9 @@ from .fsub_helper import check_force_subscription, is_req_subscribed, is_subscri
 TIMEZONE = "Asia/Kolkata"
 BATCH_FILES = {}
 
+# 🔐 Temporary store for del_files selection
+DEL_FILES_SESSION = {}
+
 # 🔥 Words that should be removed from filename/caption
 REMOVED_SPC_WORD = ["[SANKET]", "HDWebMovies", "Telegram", "TG", "www.", "ExtraFlix.pw", "hdhub4u", "skymovieshd", "@Eliteflix", "t.me", "4kdbhub", "movies4u", "tw4all", "Hdhub4u", "cinevood", "skymoviedHD", "4khdhub", "Toonworld4all", "TW4ALL", "ExtraFlix", "Hdhub", "Movies4u", "movies4u", "Vegamovies", "extraflix", "Filmy4wap", "Filmu4cab", "Tamilmv", "CineVood", "Hub4u", "Hub4", "SkymoviesHD", "Skymovieshd", "telegram", "tg", "TG", "Telegram", "HdWebMovies", "mkvcinemas", "mkvCinemas", "mkvking", "5moviez", "hdm2", "mkvcinema", "1tamil", "1tamilmv", "1Tamil", "1tamilblaster", "1TamilBlaster", "Moviez", "moviez", "yts mx", "YTS", "YTS MX", "mkvCinem", "filmyzilla", "filmzilla", "CineVood", "BT MOVIES HD", "FILMSCLUB04", "XDMovies", "mp4movies", "mp4moviez", "MLWBD", "MLSBD", "mlsbd", "mlwbd", "FibWatch", "fibwatch", "Joya9tv", "joya9tv", "Cinedoze", "CineDoze", "cinedoze", "world4u", "SSRMovies", "SSRmovies", "5MovieRulz", "FilmyCab", "hdweb", "RymOfficial", "(Mᴏᴏɴ Kɴɪɢʜᴛ)"] #[remove words form file name]
 
@@ -495,6 +498,148 @@ async def delete(bot, message):
     else:
         await msg.edit('Fɪʟᴇ ɴᴏᴛ ғᴏᴜɴᴅ ɪɴ ᴅᴀᴛᴀʙᴀsᴇ ❌')
 
+@Client.on_message(filters.command("del_files") & filters.user(ADMINS))
+async def del_files_handler(client, message):
+    if len(message.command) < 2:
+        return await message.reply(
+            "❌ Usage:\n/del_files movie_name",
+            quote=True
+        )
+
+    query = " ".join(message.command[1:]).strip()
+
+    # 🔎 search files by name
+    files = await Media.collection.find(
+        {"file_name": {"$regex": query, "$options": "i"}}
+    ).to_list(length=50)
+
+    if not files:
+        return await message.reply(
+            "❌ No matching files found",
+            quote=True
+        )
+
+    # 🧠 session init
+    DEL_FILES_SESSION[message.from_user.id] = {
+        "files": {str(f["_id"]): f for f in files},
+        "selected": set()
+    }
+
+    buttons = []
+    for f in files:
+        buttons.append([
+            InlineKeyboardButton(
+                f"⬜ {f['file_name']}",
+                callback_data=f"df_toggle:{f['_id']}"
+            )
+        ])
+
+    buttons.append([
+        InlineKeyboardButton("sᴇʟᴇᴄᴛ ᴀʟʟ", callback_data="df_select_all"),
+        InlineKeyboardButton("ᴜɴsᴇʟᴇᴄᴛ ᴀʟʟ", callback_data="df_unselect_all")
+    ])
+    buttons.append([
+        InlineKeyboardButton("ᴄᴏɴғɪʀᴍ ᴅᴇʟᴇᴛᴇ", callback_data="df_confirm"),
+        InlineKeyboardButton("ᴄᴀɴᴄᴇʟ", callback_data="df_cancel")
+    ])
+
+    await message.reply(
+        f"🗂 Found {len(files)} files\n\nSelect files to delete:",
+        reply_markup=InlineKeyboardMarkup(buttons),
+        quote=True
+    )
+
+@Client.on_callback_query(filters.regex("^df_"))
+async def del_files_callback(client, callback):
+    user_id = callback.from_user.id
+    session = DEL_FILES_SESSION.get(user_id)
+
+    # ❌ session না থাকলে
+    if not session:
+        return await callback.answer(
+            "❌ Session expired",
+            show_alert=True
+        )
+
+    data = callback.data
+
+    # 🔁 SINGLE FILE TOGGLE
+    if data.startswith("df_toggle:"):
+        file_id = data.split(":", 1)[1]
+
+        if file_id in session["selected"]:
+            session["selected"].remove(file_id)
+        else:
+            session["selected"].add(file_id)
+
+    # ☑️ SELECT ALL
+    elif data == "df_select_all":
+        session["selected"] = set(session["files"].keys())
+
+    # ⬜ UNSELECT ALL
+    elif data == "df_unselect_all":
+        session["selected"].clear()
+
+    # ❌ CANCEL DELETE
+    elif data == "df_cancel":
+        DEL_FILES_SESSION.pop(user_id, None)
+        await callback.message.edit_text("❌ Delete cancelled")
+        return await callback.answer("Cancelled")
+
+    # ✅ CONFIRM DELETE
+    elif data == "df_confirm":
+        ids = list(session["selected"])
+
+        if not ids:
+            return await callback.answer(
+                "⚠️ No file selected",
+                show_alert=True
+            )
+
+        # 🗑 delete from main DB
+        await Media.collection.delete_many(
+            {"_id": {"$in": ids}}
+        )
+
+        # 🗑 delete from second DB (if enabled)
+        if MULTIPLE_DB:
+            await Media2.collection.delete_many(
+                {"_id": {"$in": ids}}
+            )
+
+        DEL_FILES_SESSION.pop(user_id, None)
+
+        await callback.message.edit_text(
+            f"✅ Deleted {len(ids)} selected files"
+        )
+        return await callback.answer("Done")
+
+    # 🔄 BUTTON REBUILD (UI UPDATE)
+    buttons = []
+
+    for fid, f in session["files"].items():
+        mark = "✅" if fid in session["selected"] else "⬜"
+        buttons.append([
+            InlineKeyboardButton(
+                f"{mark} {f['file_name']}",
+                callback_data=f"df_toggle:{fid}"
+            )
+        ])
+
+    # 🔘 CONTROL BUTTONS (2 per row)
+    buttons.append([
+        InlineKeyboardButton("sᴇʟᴇᴄᴛ ᴀʟʟ", callback_data="df_select_all"),
+        InlineKeyboardButton("ᴜɴsᴇʟᴇᴄᴛ ᴀʟʟ", callback_data="df_unselect_all")
+    ])
+    buttons.append([
+        InlineKeyboardButton("ᴄᴏɴғɪʀᴍ ᴅᴇʟᴇᴛᴇ", callback_data="df_confirm"),
+        InlineKeyboardButton("ᴄᴀɴᴄᴇʟ", callback_data="df_cancel")
+    ])
+
+    await callback.message.edit_reply_markup(
+        InlineKeyboardMarkup(buttons)
+    )
+    await callback.answer()
 
 @Client.on_message(filters.command('deleteall') & filters.user(ADMINS))
 async def delete_all_index(bot, message):
