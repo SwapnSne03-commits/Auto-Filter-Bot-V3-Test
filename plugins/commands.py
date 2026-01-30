@@ -27,9 +27,37 @@ BATCH_FILES = {}
 
 # 🔐 Temporary store for del_files selection
 DEL_FILES_SESSION = {}
+DEL_FILES_PER_PAGE = 10
 
 # 🔥 Words that should be removed from filename/caption
 REMOVED_SPC_WORD = ["[SANKET]", "HDWebMovies", "Telegram", "TG", "www.", "ExtraFlix.pw", "hdhub4u", "skymovieshd", "@Eliteflix", "t.me", "4kdbhub", "movies4u", "tw4all", "Hdhub4u", "cinevood", "skymoviedHD", "4khdhub", "Toonworld4all", "TW4ALL", "ExtraFlix", "Hdhub", "Movies4u", "movies4u", "Vegamovies", "extraflix", "Filmy4wap", "Filmu4cab", "Tamilmv", "CineVood", "Hub4u", "Hub4", "SkymoviesHD", "Skymovieshd", "telegram", "tg", "TG", "Telegram", "HdWebMovies", "mkvcinemas", "mkvCinemas", "mkvking", "5moviez", "hdm2", "mkvcinema", "1tamil", "1tamilmv", "1Tamil", "1tamilblaster", "1TamilBlaster", "Moviez", "moviez", "yts mx", "YTS", "YTS MX", "mkvCinem", "filmyzilla", "filmzilla", "CineVood", "BT MOVIES HD", "FILMSCLUB04", "XDMovies", "mp4movies", "mp4moviez", "MLWBD", "MLSBD", "mlsbd", "mlwbd", "FibWatch", "fibwatch", "Joya9tv", "joya9tv", "Cinedoze", "CineDoze", "cinedoze", "world4u", "SSRMovies", "SSRmovies", "5MovieRulz", "FilmyCab", "hdweb", "RymOfficial", "(Mᴏᴏɴ Kɴɪɢʜᴛ)"] #[remove words form file name]
+
+def human_size(size):
+    for unit in ["B", "KB", "MB", "GB", "TB"]:
+        if size < 1024:
+            return f"{size:.1f}{unit}"
+        size /= 1024
+    return "0B"
+
+
+def extract_file_info(name: str):
+    name = name.lower()
+
+    # 🎬 episode / season priority
+    ep = re.search(r"s\d{1,2}e\d{1,2}", name)
+    if ep:
+        return ep.group().upper()
+
+    season = re.search(r"s\d{1,2}", name)
+    if season:
+        return season.group().upper()
+
+    # 🎞 quality (only if no season/episode)
+    quality = re.search(r"(2160p|1080p|720p|480p|360p|240p)", name)
+    if quality:
+        return quality.group()
+
+    return None
 
 def clean_special_words(text: str) -> str:
     """
@@ -51,6 +79,64 @@ def clean_special_words(text: str) -> str:
     # 🔧 extra space cleanup
     cleaned = re.sub(r"[\t]", " ", cleaned).strip()
     return cleaned
+
+def build_del_files_buttons(session):
+    page = session["page"]
+    files = session["files"]
+    selected = session["selected"]
+
+    start = page * DEL_FILES_PER_PAGE
+    end = start + DEL_FILES_PER_PAGE
+    page_files = files[start:end]
+
+    buttons = []
+
+    # 📂 file buttons (WITH SIZE + QUALITY / SEASON / EP)
+    for f in page_files:
+        fid = str(f["_id"])
+        mark = "✅" if fid in selected else "⬜"
+
+        name = f.get("file_name", "Unknown")
+        size = human_size(f.get("file_size", 0))
+        info = extract_file_info(name)
+
+        if info:
+            text = f"{mark} {name}\n📦 {size} | {info}"
+        else:
+            text = f"{mark} {name}\n📦 {size}"
+
+        buttons.append([
+            InlineKeyboardButton(
+                text,
+                callback_data=f"df_toggle:{fid}"
+            )
+        ])
+    # 🔁 page info
+    total_pages = (len(files) - 1) // DEL_FILES_PER_PAGE + 1
+
+    # ⏮ navigation
+    nav = []
+    if page > 0:
+        nav.append(InlineKeyboardButton("☜︎︎︎ ᴘʀᴇᴠ", callback_data="df_prev"))
+    nav.append(InlineKeyboardButton(f"{page+1}/{total_pages}", callback_data="noop"))
+    if page < total_pages - 1:
+        nav.append(InlineKeyboardButton("ɴᴇxᴛ ☞︎︎︎", callback_data="df_next"))
+    buttons.append(nav)
+
+    # ☑️ select controls
+    buttons.append([
+        InlineKeyboardButton("sᴇʟᴇᴄᴛ ᴀʟʟ", callback_data="df_select_all"),
+        InlineKeyboardButton("ᴜɴsᴇʟᴇᴄᴛ ᴀʟʟ", callback_data="df_unselect_all")
+    ])
+
+    # ✅ confirm
+    buttons.append([
+        InlineKeyboardButton("✅ ᴄᴏɴғɪʀᴍ ᴘʀᴏᴄᴇss", callback_data="df_confirm"),
+        InlineKeyboardButton("❌ ᴄᴀɴᴄᴇʟ", callback_data="df_cancel")
+    ])
+
+    return InlineKeyboardMarkup(buttons)
+
 @Client.on_message(filters.command("start") & filters.incoming)
 async def start(client, message):
     bot_id = client.me.id
@@ -511,7 +597,7 @@ async def del_files_handler(client, message):
     # 🔎 search files by name
     files = await Media.collection.find(
         {"file_name": {"$regex": query, "$options": "i"}}
-    ).to_list(length=50)
+    ).to_list(length=None)
 
     if not files:
         return await message.reply(
@@ -521,31 +607,16 @@ async def del_files_handler(client, message):
 
     # 🧠 session init
     DEL_FILES_SESSION[message.from_user.id] = {
-        "files": {str(f["_id"]): f for f in files},
-        "selected": set()
+        "files": files,
+        "selected": set(),
+        "page": 0
     }
 
-    buttons = []
-    for f in files:
-        buttons.append([
-            InlineKeyboardButton(
-                f"⬜ {f['file_name']}",
-                callback_data=f"df_toggle:{f['_id']}"
-            )
-        ])
-
-    buttons.append([
-        InlineKeyboardButton("sᴇʟᴇᴄᴛ ᴀʟʟ", callback_data="df_select_all"),
-        InlineKeyboardButton("ᴜɴsᴇʟᴇᴄᴛ ᴀʟʟ", callback_data="df_unselect_all")
-    ])
-    buttons.append([
-        InlineKeyboardButton("ᴄᴏɴғɪʀᴍ ᴅᴇʟᴇᴛᴇ", callback_data="df_confirm"),
-        InlineKeyboardButton("ᴄᴀɴᴄᴇʟ", callback_data="df_cancel")
-    ])
+    session = DEL_FILES_SESSION[message.from_user.id]
 
     await message.reply(
         f"🗂 Found {len(files)} files\n\nSelect files to delete:",
-        reply_markup=InlineKeyboardMarkup(buttons),
+        reply_markup=build_del_files_buttons(session),
         quote=True
     )
 
@@ -574,7 +645,7 @@ async def del_files_callback(client, callback):
 
     # ☑️ SELECT ALL
     elif data == "df_select_all":
-        session["selected"] = set(session["files"].keys())
+        session["selected"] = set(str(f["_id"]) for f in session["files"])
 
     # ⬜ UNSELECT ALL
     elif data == "df_unselect_all":
@@ -585,6 +656,17 @@ async def del_files_callback(client, callback):
         DEL_FILES_SESSION.pop(user_id, None)
         await callback.message.edit_text("❌ Delete cancelled")
         return await callback.answer("Cancelled")
+
+    # ➡️ NEXT PAGE
+    elif data == "df_next":
+        max_page = (len(session["files"]) - 1) // DEL_FILES_PER_PAGE
+        if session["page"] < max_page:
+            session["page"] += 1
+
+    # ⬅️ PREV PAGE
+    elif data == "df_prev":
+        if session["page"] > 0:
+            session["page"] -= 1
 
     # ✅ CONFIRM DELETE
     elif data == "df_confirm":
@@ -614,30 +696,8 @@ async def del_files_callback(client, callback):
         )
         return await callback.answer("Done")
 
-    # 🔄 BUTTON REBUILD (UI UPDATE)
-    buttons = []
-
-    for fid, f in session["files"].items():
-        mark = "✅" if fid in session["selected"] else "⬜"
-        buttons.append([
-            InlineKeyboardButton(
-                f"{mark} {f['file_name']}",
-                callback_data=f"df_toggle:{fid}"
-            )
-        ])
-
-    # 🔘 CONTROL BUTTONS (2 per row)
-    buttons.append([
-        InlineKeyboardButton("sᴇʟᴇᴄᴛ ᴀʟʟ", callback_data="df_select_all"),
-        InlineKeyboardButton("ᴜɴsᴇʟᴇᴄᴛ ᴀʟʟ", callback_data="df_unselect_all")
-    ])
-    buttons.append([
-        InlineKeyboardButton("ᴄᴏɴғɪʀᴍ ᴅᴇʟᴇᴛᴇ", callback_data="df_confirm"),
-        InlineKeyboardButton("ᴄᴀɴᴄᴇʟ", callback_data="df_cancel")
-    ])
-
     await callback.message.edit_reply_markup(
-        InlineKeyboardMarkup(buttons)
+        build_del_files_buttons(session)
     )
     await callback.answer()
 
