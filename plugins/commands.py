@@ -112,9 +112,9 @@ def build_del_files_buttons(session):
         short_name = name[:45] + "…" if len(name) > 45 else name
 
         if info:
-            text = f"{mark} {short_name}\n📦 {size} | {info}"
+            text = f"{mark} [{info} | {size}] {short_name}"
         else:
-            text = f"{mark} {short_name}\n📦 {size}"
+            text = f"{mark} [{size}] {short_name}"
 
         buttons.append([
             InlineKeyboardButton(
@@ -534,11 +534,15 @@ async def start(client, message):
 
 @Client.on_message(filters.command('logs') & filters.user(ADMINS))
 async def log_file(bot, message):
-    """Send log file"""
-    try:
-        await message.reply_document('TELEGRAM BOT.LOG')
-    except Exception as e:
-        await message.reply(str(e))
+    log_path = "log.txt"
+
+    if not os.path.exists(log_path):
+        return await message.reply("❌ Log file not found")
+
+    await message.reply_document(
+        document=log_path,
+        caption="📄 Bot Logs"
+    )
 
 
 @Client.on_message(filters.command('delete') & filters.user(ADMINS))
