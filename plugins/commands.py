@@ -43,16 +43,17 @@ def human_size(size):
 def extract_file_info(name: str):
     name = name.lower()
 
-    # 🎬 episode / season priority
-    ep = re.search(r"s\d{1,2}e\d{1,2}", name)
+    # 🎬 episode (highest priority)
+    ep = re.search(r"s\d{1,2}\s*e\d{1,2}", name)
     if ep:
         return ep.group().upper()
 
+    # 📺 season
     season = re.search(r"s\d{1,2}", name)
     if season:
         return season.group().upper()
 
-    # 🎞 quality (only if no season/episode)
+    # 🎞 quality (movies / fallback)
     quality = re.search(r"(2160p|1080p|720p|480p|360p|240p)", name)
     if quality:
         return quality.group()
@@ -99,17 +100,21 @@ def build_del_files_buttons(session):
         name = f.get("file_name", "Unknown")
         raw_size = (
             f.get("file_size")
-            or f.get("size")
             or f.get("fileSize")
+            or f.get("size")
             or 0
                 )
-        size = human_size(raw_size)
+        try:
+            size = human_size(int(raw_size))
+        except Exception:
+            size = "N/A"
         info = extract_file_info(name)
+        short_name = name[:45] + "…" if len(name) > 45 else name
 
         if info:
-            text = f"{mark} {name}\n📦 {size} | {info}"
+            text = f"{mark} {short_name}\n📦 {size} | {info}"
         else:
-            text = f"{mark} {name}\n📦 {size}"
+            text = f"{mark} {short_name}\n📦 {size}"
 
         buttons.append([
             InlineKeyboardButton(
