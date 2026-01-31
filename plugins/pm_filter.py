@@ -779,15 +779,7 @@ async def filter_language_cb_handler(client: Client, query: CallbackQuery):
             if not files:
                 return await query.answer(
                     "🚫 ɴᴏ ꜰɪʟᴇꜱ ᴡᴇʀᴇ ꜰᴏᴜɴᴅ 🚫",
-                    show_aleif not files:
-                # 🔁 homepage এ গেলে popup না দেখাও
-                if SMART_SELECTION_MODE and seas == "homepage":
-                    files = all_files
-                else:
-                    return await query.answer(
-                        "🚫 ɴᴏ ꜰɪʟᴇꜱ ᴡᴇʀᴇ ꜰᴏᴜɴᴅ 🚫",
-                        show_alert=True
-					)rt=True
+                    show_alert=True
                 )
 
             temp.GETALL[key] = files
