@@ -2029,6 +2029,8 @@ async def auto_filter(client, msg, spoll=False):
             search = re.sub(r'\s+', ' ', search).strip()
             m=await message.reply_text(f'<b>Wait {message.from_user.mention} Searching Your Query: <i>{search}...</i></b>', reply_to_message_id=message.id)
             files, offset, total_results = await get_search_results(message.chat.id ,search, offset=0, filter=True)
+            uid = message.from_user.id if message.from_user else 0
+            key = f"{message.chat.id}-{uid}"
             settings = await get_settings(message.chat.id)
 
             if not hasattr(temp, "PAGE_STATE"):
@@ -2089,7 +2091,6 @@ async def auto_filter(client, msg, spoll=False):
                     if q:
                         smart_qualities.add(q.group())
 
-                key = f"{message.chat.id}-{message.from_user.id}"
 
                 # 🔹 store EVERYTHING for smart filters
                 temp.GETALL[key] = all_files
