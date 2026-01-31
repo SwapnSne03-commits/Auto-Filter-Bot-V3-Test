@@ -320,44 +320,63 @@ async def old_qualities_cb(client: Client, query: CallbackQuery):
 
 
 # ================= SMART QUALITY CALLBACK =================
+# ================= SMART QUALITY CALLBACK =================
 async def smart_qualities_cb(client: Client, query: CallbackQuery):
-    _, key, offset = query.data.split("#")
+    try:
+        _, key, offset = query.data.split("#")
+        offset = int(offset)
 
-    data = temp.SMART_FILTERS.get(key, {}).get("qualities", [])
-
-    if not data:
-        return await query.answer(
-            "❌ No quality available",
-            show_alert=True
-        )
-
-    btn = []
-    for i in range(0, len(data), 2):
-        row = [
-            InlineKeyboardButton(
-                data[i].upper(),
-                callback_data=f"fq#{data[i]}#{key}#{offset}"
+        if key not in temp.SMART_FILTERS:
+            return await query.answer(
+                "❌ Session expired, please search again",
+                show_alert=True
             )
-        ]
-        if i + 1 < len(data):
-            row.append(
+
+        data = temp.SMART_FILTERS[key].get("qualities", [])
+
+        if not data:
+            return await query.answer(
+                "❌ No quality available",
+                show_alert=True
+            )
+
+        btn = []
+        for i in range(0, len(data), 2):
+            row = [
                 InlineKeyboardButton(
-                    data[i + 1].upper(),
-                    callback_data=f"fq#{data[i + 1]}#{key}#{offset}"
+                    data[i].upper(),
+                    callback_data=f"fq#{data[i]}#{key}#{offset}"
                 )
+            ]
+            if i + 1 < len(data):
+                row.append(
+                    InlineKeyboardButton(
+                        data[i + 1].upper(),
+                        callback_data=f"fq#{data[i + 1]}#{key}#{offset}"
+                    )
+                )
+            btn.append(row)
+
+        btn.insert(0, [
+            InlineKeyboardButton(
+                "⇊ ꜱᴇʟᴇᴄᴛ ǫᴜᴀʟɪᴛʏ ⇊",
+                callback_data="ident"
             )
-        btn.append(row)
+        ])
 
-    btn.append([
-        InlineKeyboardButton(
-            "↭ ʙᴀᴄᴋ ᴛᴏ ꜰɪʟᴇs ↭",
-            callback_data=f"fq#homepage#{key}#0"
+        btn.append([
+            InlineKeyboardButton(
+                "↭ ʙᴀᴄᴋ ᴛᴏ ꜰɪʟᴇs ↭",
+                callback_data=f"fq#homepage#{key}#0"
+            )
+        ])
+
+        await query.edit_message_reply_markup(
+            InlineKeyboardMarkup(btn)
         )
-    ])
 
-    await query.edit_message_reply_markup(
-        InlineKeyboardMarkup(btn)
-    )
+    except Exception as e:
+        LOGGER.error(f"Error In Smart Quality Callback - {e}")
 
 
 # ================= QUALITY ROUTER =================
@@ -692,44 +711,63 @@ async def old_seasons_cb(client: Client, query: CallbackQuery):
 
 
 # ================= SMART SEASON CALLBACK =================
+# ================= SMART SEASON CALLBACK =================
 async def smart_seasons_cb(client: Client, query: CallbackQuery):
-    _, key, offset = query.data.split("#")
+    try:
+        _, key, offset = query.data.split("#")
+        offset = int(offset)
 
-    data = temp.SMART_FILTERS.get(key, {}).get("seasons", [])
-
-    if not data:
-        return await query.answer(
-            "❌ No season available",
-            show_alert=True
-        )
-
-    btn = []
-    for i in range(0, len(data), 2):
-        row = [
-            InlineKeyboardButton(
-                data[i],
-                callback_data=f"fs#{data[i].lower()}#{key}#{offset}"
+        if key not in temp.SMART_FILTERS:
+            return await query.answer(
+                "❌ Session expired, please search again",
+                show_alert=True
             )
-        ]
-        if i + 1 < len(data):
-            row.append(
+
+        data = temp.SMART_FILTERS[key].get("seasons", [])
+
+        if not data:
+            return await query.answer(
+                "❌ No season available",
+                show_alert=True
+            )
+
+        btn = []
+        for i in range(0, len(data), 2):
+            row = [
                 InlineKeyboardButton(
-                    data[i + 1],
-                    callback_data=f"fs#{data[i + 1].lower()}#{key}#{offset}"
+                    data[i],
+                    callback_data=f"fs#{data[i].lower()}#{key}#{offset}"
                 )
+            ]
+            if i + 1 < len(data):
+                row.append(
+                    InlineKeyboardButton(
+                        data[i + 1],
+                        callback_data=f"fs#{data[i + 1].lower()}#{key}#{offset}"
+                    )
+                )
+            btn.append(row)
+
+        btn.insert(0, [
+            InlineKeyboardButton(
+                "⇊ ꜱᴇʟᴇᴄᴛ Sᴇᴀꜱᴏɴ ⇊",
+                callback_data="ident"
             )
-        btn.append(row)
+        ])
 
-    btn.append([
-        InlineKeyboardButton(
-            "↭ ʙᴀᴄᴋ ᴛᴏ ꜰɪʟᴇs ↭",
-            callback_data=f"fl#homepage#{key}#0"
+        btn.append([
+            InlineKeyboardButton(
+                "↭ ʙᴀᴄᴋ ᴛᴏ ꜰɪʟᴇs ↭",
+                callback_data=f"fl#homepage#{key}#0"
+            )
+        ])
+
+        await query.edit_message_reply_markup(
+            InlineKeyboardMarkup(btn)
         )
-    ])
 
-    await query.edit_message_reply_markup(
-        InlineKeyboardMarkup(btn)
-    )
+    except Exception as e:
+        LOGGER.error(f"Error In Smart Season Callback - {e}")
 
 
 # ================= SEASON ROUTER =================
@@ -1790,7 +1828,9 @@ async def auto_filter(client, msg, spoll=False):
                 smart_seasons = set()
                 smart_qualities = set()
 
-                for file in files:
+                all_files = files  # safe fallback
+
+                for file in all_files:
                     name = (file.file_name or "").lower()
 
                     # 🔤 Language detection
