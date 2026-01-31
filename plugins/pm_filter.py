@@ -490,6 +490,7 @@ async def filter_qualities_cb_handler(client: Client, query: CallbackQuery):
 
 
 # ================= OLD LANGUAGE CALLBACK =================
+# ================= OLD LANGUAGE CALLBACK =================
 async def old_languages_cb(client: Client, query: CallbackQuery):
     try:
         try:
@@ -507,7 +508,12 @@ async def old_languages_cb(client: Client, query: CallbackQuery):
 
         _, key, offset = query.data.split("#")
         search = FRESH.get(key)
-        search = search.replace(" ", "_")
+        if not search:
+            return await query.answer(
+                "❌ Session expired, please search again",
+                show_alert=True
+            )
+
         offset = int(offset)
 
         btn = []
@@ -543,6 +549,65 @@ async def old_languages_cb(client: Client, query: CallbackQuery):
 
     except Exception as e:
         LOGGER.error(f"Error In Old Language Callback - {e}")
+
+
+# ================= SMART LANGUAGE CALLBACK =================
+async def smart_languages_cb(client: Client, query: CallbackQuery):
+    try:
+        _, key, offset = query.data.split("#")
+        offset = int(offset)
+
+        if key not in temp.SMART_FILTERS:
+            return await query.answer(
+                "❌ Session expired, please search again",
+                show_alert=True
+            )
+
+        languages = temp.SMART_FILTERS[key].get("languages", [])
+
+        if not languages:
+            return await query.answer(
+                "❌ No language available",
+                show_alert=True
+            )
+
+        btn = []
+        for i in range(0, len(languages), 2):
+            row = [
+                InlineKeyboardButton(
+                    SMART_LANG_MAP[languages[i]]["label"],
+                    callback_data=f"fl#{languages[i]}#{key}#{offset}"
+                )
+            ]
+            if i + 1 < len(languages):
+                row.append(
+                    InlineKeyboardButton(
+                        SMART_LANG_MAP[languages[i + 1]]["label"],
+                        callback_data=f"fl#{languages[i + 1]}#{key}#{offset}"
+                    )
+                )
+            btn.append(row)
+
+        btn.insert(0, [
+            InlineKeyboardButton(
+                text="⇊ ꜱᴇʟᴇᴄᴛ ʟᴀɴɢᴜᴀɢᴇ ⇊",
+                callback_data="ident"
+            )
+        ])
+
+        btn.append([
+            InlineKeyboardButton(
+                text="↭ ʙᴀᴄᴋ ᴛᴏ ꜰɪʟᴇs ↭",
+                callback_data=f"fl#homepage#{key}#0"
+            )
+        ])
+
+        await query.edit_message_reply_markup(
+            InlineKeyboardMarkup(btn)
+        )
+
+    except Exception as e:
+        LOGGER.error(f"Error In Smart Language Callback - {e}")
 
 
 # ================= LANGUAGE ROUTER =================
@@ -1881,7 +1946,7 @@ async def auto_filter(client, msg, spoll=False):
         m=await message.reply_text(f'<b>Wᴀɪᴛ {message.from_user.mention} Sᴇᴀʀᴄʜɪɴɢ Yᴏᴜʀ Qᴜᴇʀʏ :<i>{search}...</i></b>', reply_to_message_id=message.id)
         settings = await get_settings(message.chat.id)
         await msg.message.delete()
-    key = f"{message.chat.id}-{message.id}"
+    key = f"{message.chat.id}-{message.from_user.id}"
     FRESH[key] = search
     temp.GETALL[key] = files
     temp.SHORT[message.from_user.id] = message.chat.id
