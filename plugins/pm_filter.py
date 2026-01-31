@@ -413,11 +413,19 @@ async def filter_qualities_cb_handler(client: Client, query: CallbackQuery):
         if qual != "homepage":
             search = f"{search} {qual}" 
         BUTTONS[key] = search   
-        files, n_offset, total_results = await get_search_results(chat_id, search, offset=offset, filter=True)
+        if SMART_SELECTION_MODE:
+            files = temp.GETALL.get(key, [])
+            n_offset = ""
+            total_results = len(files)
+        else:
+            files, n_offset, total_results = await get_search_results(
+                chat_id, search, offset=offset, filter=True
+	        )
         if not files:
             await query.answer("🚫 ɴᴏ ꜰɪʟᴇꜱ ᴡᴇʀᴇ ꜰᴏᴜɴᴅ 🚫", show_alert=1)
             return
-        temp.GETALL[key] = files
+        if not SMART_SELECTION_MODE:
+            temp.GETALL[key] = files
         settings = await get_settings(message.chat.id)
         if settings.get('button'):
             btn = [
@@ -644,11 +652,19 @@ async def filter_languages_cb_handler(client: Client, query: CallbackQuery):
         if lang != "homepage":
             search = f"{search} {lang}"
         BUTTONS[key] = search
-        files, n_offset, total_results = await get_search_results(chat_id, search, offset=offset, filter=True)
+        if SMART_SELECTION_MODE:
+            files = temp.GETALL.get(key, [])
+            n_offset = ""
+            total_results = len(files)
+        else:
+            files, n_offset, total_results = await get_search_results(
+                chat_id, search, offset=offset, filter=True
+			)
         if not files:
             await query.answer("🚫 ɴᴏ ꜰɪʟᴇꜱ ᴡᴇʀᴇ ꜰᴏᴜɴᴅ 🚫", show_alert=1)
             return
-        temp.GETALL[key] = files
+        if not SMART_SELECTION_MODE:
+            temp.GETALL[key] = files
         settings = await get_settings(message.chat.id)
         if settings.get('button'):
             btn = [
@@ -870,11 +886,19 @@ async def filter_season_cb_handler(client: Client, query: CallbackQuery):
         if seas != "homepage":
             search = f"{search} {seas}"
         BUTTONS[key] = search
-        files, n_offset, total_results = await get_search_results(chat_id, search, offset=offset, filter=True)
+        if SMART_SELECTION_MODE:
+            files = temp.GETALL.get(key, [])
+            n_offset = ""
+            total_results = len(files)
+        else:
+            files, n_offset, total_results = await get_search_results(
+                chat_id, search, offset=offset, filter=True
+			)
         if not files:
             await query.answer("🚫 ɴᴏ ꜰɪʟᴇꜱ ᴡᴇʀᴇ ꜰᴏᴜɴᴅ 🚫", show_alert=1)
             return
-        temp.GETALL[key] = files
+        if not SMART_SELECTION_MODE:
+            temp.GETALL[key] = files
         settings = await get_settings(message.chat.id)
         if settings.get('button'):
             btn = [
