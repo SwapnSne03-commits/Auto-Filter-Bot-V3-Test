@@ -332,43 +332,39 @@ async def smart_qualities_cb(client: Client, query: CallbackQuery):
                 show_alert=True
             )
 
-        data = temp.SMART_FILTERS[key].get("qualities", [])
+        qualities = temp.SMART_FILTERS[key].get("qualities", [])
+        all_files = temp.GETALL.get(key, [])
 
-        if not data:
+        if not qualities:
             return await query.answer(
                 "❌ No quality available",
                 show_alert=True
             )
 
+        # 🔹 Only button view (no filter yet)
         btn = []
-        for i in range(0, len(data), 2):
+        for i in range(0, len(qualities), 2):
             row = [
                 InlineKeyboardButton(
-                    data[i].upper(),
-                    callback_data=f"fq#{data[i]}#{key}#{offset}"
+                    qualities[i].upper(),
+                    callback_data=f"fq#{qualities[i]}#{key}#0"
                 )
             ]
-            if i + 1 < len(data):
+            if i + 1 < len(qualities):
                 row.append(
                     InlineKeyboardButton(
-                        data[i + 1].upper(),
-                        callback_data=f"fq#{data[i + 1]}#{key}#{offset}"
+                        qualities[i + 1].upper(),
+                        callback_data=f"fq#{qualities[i + 1]}#{key}#0"
                     )
                 )
             btn.append(row)
 
         btn.insert(0, [
-            InlineKeyboardButton(
-                "⇊ ꜱᴇʟᴇᴄᴛ ǫᴜᴀʟɪᴛʏ ⇊",
-                callback_data="ident"
-            )
+            InlineKeyboardButton("⇊ ꜱᴇʟᴇᴄᴛ ǫᴜᴀʟɪᴛʏ ⇊", callback_data="ident")
         ])
 
         btn.append([
-            InlineKeyboardButton(
-                "↭ ʙᴀᴄᴋ ᴛᴏ ꜰɪʟᴇs ↭",
-                callback_data=f"fq#homepage#{key}#0"
-            )
+            InlineKeyboardButton("↭ ʙᴀᴄᴋ ᴛᴏ ꜰɪʟᴇs ↭", callback_data=f"fq#homepage#{key}#0")
         ])
 
         await query.edit_message_reply_markup(
@@ -377,7 +373,6 @@ async def smart_qualities_cb(client: Client, query: CallbackQuery):
 
     except Exception as e:
         LOGGER.error(f"Error In Smart Quality Callback - {e}")
-
 
 # ================= QUALITY ROUTER =================
 @Client.on_callback_query(filters.regex(r"^qualities#"))
