@@ -14,6 +14,7 @@ def is_enabled(value, default):
     else:
         return default
 
+SMART_SELECTION_MODE = False
 
 SESSION = environ.get('SESSION', 'media_search')
 API_ID = int(environ.get('API_ID', ''))
@@ -120,6 +121,71 @@ LANGUAGES = ["malayalam", "", "tamil", "", "english", "", "hindi", "", "telugu",
 QUALITIES = ["360P", "", "480P", "", "720P", "", "1080P", "", "1440P", "", "2160P", "", "4k", ""]
 SEASONS = ["s01" , "s02" , "s03" , "s04", "s05" , "s06" , "s07" , "s08" , "s09" , "s10" , "s11" , "s12"]
 
+#Smart Mode Buttons
+SMART_LANG_MAP = {
+    "malayalam": {
+        "label": "ᴍᴀʟᴀʏᴀʟᴀᴍ",
+        "aliases": ["malayalam", "mal"]
+    },
+    "tamil": {
+        "label": "ᴛᴀᴍɪʟ",
+        "aliases": ["tamil", "tam"]
+    },
+    "english": {
+        "label": "ᴇɴɢʟɪꜱʜ",
+        "aliases": ["english", "eng"]
+    },
+    "hindi": {
+        "label": "ʜɪɴᴅɪ",
+        "aliases": ["hindi", "hin"]
+    },
+    "telugu": {
+        "label": "ᴛᴇʟᴜɢᴜ",
+        "aliases": ["telugu", "tel"]
+    },
+    "kannada": {
+        "label": "ᴋᴀɴɴᴀᴅᴀ",
+        "aliases": ["kannada", "kan"]
+    },
+    "gujarati": {
+        "label": "ɢᴜᴊᴀʀᴀᴛɪ",
+        "aliases": ["gujarati", "guj"]
+    },
+    "marathi": {
+        "label": "ᴍᴀʀᴀᴛʜɪ",
+        "aliases": ["marathi", "mar"]
+    },
+    "punjabi": {
+        "label": "ᴘᴜɴᴊᴀʙɪ",
+        "aliases": ["punjabi", "pan"]
+    },
+    "bengali": {
+        "label": "ʙᴇɴɢᴀʟɪ",
+        "aliases": ["bengali", "bangla", "ben"]
+    },
+
+    # 🌏 Extra Asian Languages
+    "japanese": {
+        "label": "ᴊᴀᴘᴀɴᴇꜱᴇ",
+        "aliases": ["japanese", "jpn", "jap"]
+    },
+    "korean": {
+        "label": "ᴋᴏʀᴇᴀɴ",
+        "aliases": ["korean", "kor"]
+    },
+    "chinese": {
+        "label": "ᴄʜɪɴᴇꜱᴇ",
+        "aliases": ["chinese", "chi", "chn"]
+    }
+}
+
+SMART_QUALITY_REGEX = r"(2160p|1440p|1080p|720p|480p|360p)"
+
+SMART_SEASON_REGEX = [
+    r"\bs\d{1,2}e\d{1,2}\b",
+    r"\bs\d{1,2}\b",
+    r"\bseason\s*\d{1,2}\b"
+]
 
 NO_PORT = bool(environ.get('NO_PORT', False))
 APP_NAME = None
