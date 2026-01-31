@@ -448,10 +448,14 @@ async def filter_qualities_cb_handler(client: Client, query: CallbackQuery):
                     n_offset = ""   # 👈 এইখানেই "no more page available" trigger হবে   # ❌ no pagination in filter mode
 
             if not files:
-                return await query.answer(
-                    "🚫 ɴᴏ ꜰɪʟᴇꜱ ᴡᴇʀᴇ ꜰᴏᴜɴᴅ 🚫",
-                    show_alert=True
-                )
+                # 🔁 homepage এ গেলে popup না দেখাও
+                if SMART_SELECTION_MODE and qual == "homepage":
+                    files = all_files
+                else:
+                    return await query.answer(
+                        "🚫 ɴᴏ ꜰɪʟᴇꜱ ᴡᴇʀᴇ ꜰᴏᴜɴᴅ 🚫",
+                        show_alert=True
+					)
 
         # ================= OLD MODE =================
         else:
@@ -721,6 +725,7 @@ async def filter_language_cb_handler(client: Client, query: CallbackQuery):
                     n_offset = ""
             # 🔍 FILTER MODE (quality selected)
             else:
+                aliases = SMART_LANG_MAP.get(lang, {}).get("aliases", [])
                 # 1️⃣ সব ফাইল থেকে filter করো
                 filtered_files = [
                     f for f in all_files
@@ -741,12 +746,16 @@ async def filter_language_cb_handler(client: Client, query: CallbackQuery):
                     n_offset = per_page
                 else:
                     n_offset = ""   # 👈 এইখানেই "no more page available" trigger হবে   # ❌ no pagination in filter mode
-
             if not files:
-                return await query.answer(
-                    "🚫 ɴᴏ ꜰɪʟᴇꜱ ᴡᴇʀᴇ ꜰᴏᴜɴᴅ 🚫",
-                    show_alert=True
-                )
+                # 🔁 homepage এ গেলে popup না দেখাও
+                if SMART_SELECTION_MODE and lang == "homepage":
+                    files = all_files
+                else:
+                    return await query.answer(
+                        "🚫 ɴᴏ ꜰɪʟᴇꜱ ᴡᴇʀᴇ ꜰᴏᴜɴᴅ 🚫",
+                        show_alert=True
+					)
+            
    # ❌ no pagination in filter mode
 
             #if not files:
@@ -770,7 +779,15 @@ async def filter_language_cb_handler(client: Client, query: CallbackQuery):
             if not files:
                 return await query.answer(
                     "🚫 ɴᴏ ꜰɪʟᴇꜱ ᴡᴇʀᴇ ꜰᴏᴜɴᴅ 🚫",
-                    show_alert=True
+                    show_aleif not files:
+                # 🔁 homepage এ গেলে popup না দেখাও
+                if SMART_SELECTION_MODE and seas == "homepage":
+                    files = all_files
+                else:
+                    return await query.answer(
+                        "🚫 ɴᴏ ꜰɪʟᴇꜱ ᴡᴇʀᴇ ꜰᴏᴜɴᴅ 🚫",
+                        show_alert=True
+					)rt=True
                 )
 
             temp.GETALL[key] = files
@@ -1003,7 +1020,7 @@ async def filter_season_cb_handler(client: Client, query: CallbackQuery):
         # ================= SMART MODE =================
         if SMART_SELECTION_MODE:
             all_files = temp.GETALL.get(key, [])
-
+            settings = await get_settings(chat_id)
             # 🔁 BACK TO MAIN FILE LIST
             if seas == "homepage":
                 files = all_files
@@ -1040,10 +1057,14 @@ async def filter_season_cb_handler(client: Client, query: CallbackQuery):
                     n_offset = ""   # ❌ no pagination in filter mode
 
             if not files:
-                return await query.answer(
-                    "🚫 ɴᴏ ꜰɪʟᴇꜱ ᴡᴇʀᴇ ꜰᴏᴜɴᴅ 🚫",
-                    show_alert=True
-                )
+                # 🔁 homepage এ গেলে popup না দেখাও
+                if SMART_SELECTION_MODE and seas == "homepage":
+                    files = all_files
+                else:
+                    return await query.answer(
+                        "🚫 ɴᴏ ꜰɪʟᴇꜱ ᴡᴇʀᴇ ꜰᴏᴜɴᴅ 🚫",
+                        show_alert=True
+		            )
 
         # ================= OLD MODE =================
         else:
