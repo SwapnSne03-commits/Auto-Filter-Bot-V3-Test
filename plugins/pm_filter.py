@@ -411,11 +411,14 @@ async def filter_qualities_cb_handler(client: Client, query: CallbackQuery):
         if SMART_SELECTION_MODE:
             all_files = temp.GETALL.get(key, [])
 
-            # ✅ এখানেই আসল FILTER হচ্ছে
-            files = [
-                f for f in all_files
-                if qual.lower() in (f.file_name or "").lower()
-            ]
+            # ✅ BACK TO FILES HANDLE
+            if qual == "homepage":
+                files = all_files
+            else:
+                files = [
+                    f for f in all_files
+                    if qual.lower() in (f.file_name or "").lower()
+                ]
 
             n_offset = ""
             total_results = len(files)
@@ -424,8 +427,14 @@ async def filter_qualities_cb_handler(client: Client, query: CallbackQuery):
                 chat_id, search, offset=offset, filter=True
 	        )
         if not files:
-            await query.answer("🚫 ɴᴏ ꜰɪʟᴇꜱ ᴡᴇʀᴇ ꜰᴏᴜɴᴅ 🚫", show_alert=1)
-            return
+            if SMART_SELECTION_MODE and qual == "homepage":
+                files = all_files  # 🔁 back to full list silently
+            else:
+                await query.answer(
+                    "🚫 ɴᴏ ꜰɪʟᴇꜱ ᴡᴇʀᴇ ꜰᴏᴜɴᴅ 🚫",
+                    show_alert=True
+                )
+                return
         if not SMART_SELECTION_MODE:
             temp.GETALL[key] = files
         settings = await get_settings(message.chat.id)
@@ -657,11 +666,14 @@ async def filter_languages_cb_handler(client: Client, query: CallbackQuery):
         if SMART_SELECTION_MODE:
             all_files = temp.GETALL.get(key, [])
 
-            # ✅ এখানেই আসল FILTER হচ্ছে
-            files = [
-                f for f in all_files
-                if lang.lower() in (f.file_name or "").lower()
-            ]
+            # ✅ BACK TO FILES HANDLE
+            if lang == "homepage":
+                files = all_files
+            else:
+                files = [
+                    f for f in all_files
+                    if lang.lower() in (f.file_name or "").lower()
+                ]
 
             n_offset = ""
             total_results = len(files)
@@ -670,8 +682,14 @@ async def filter_languages_cb_handler(client: Client, query: CallbackQuery):
                 chat_id, search, offset=offset, filter=True
 			)
         if not files:
-            await query.answer("🚫 ɴᴏ ꜰɪʟᴇꜱ ᴡᴇʀᴇ ꜰᴏᴜɴᴅ 🚫", show_alert=1)
-            return
+            if SMART_SELECTION_MODE and lang == "homepage":
+                files = all_files  # silent fallback
+            else:
+                await query.answer(
+                    "🚫 ɴᴏ ꜰɪʟᴇꜱ ᴡᴇʀᴇ ꜰᴏᴜɴᴅ 🚫",
+                    show_alert=True
+                )
+                return
         if not SMART_SELECTION_MODE:
             temp.GETALL[key] = files
         settings = await get_settings(message.chat.id)
@@ -898,11 +916,14 @@ async def filter_season_cb_handler(client: Client, query: CallbackQuery):
         if SMART_SELECTION_MODE:
             all_files = temp.GETALL.get(key, [])
 
-            # ✅ এখানেই আসল FILTER হচ্ছে
-            files = [
-                f for f in all_files
-                if seas.lower() in (f.file_name or "").lower()
-            ]
+            # ✅ BACK TO FILES HANDLE
+            if seas == "homepage":
+                files = all_files
+            else:
+                files = [
+                    f for f in all_files
+                    if seas.lower() in (f.file_name or "").lower()
+                ]
 
             n_offset = ""
             total_results = len(files)
@@ -911,8 +932,14 @@ async def filter_season_cb_handler(client: Client, query: CallbackQuery):
                 chat_id, search, offset=offset, filter=True
 			)
         if not files:
-            await query.answer("🚫 ɴᴏ ꜰɪʟᴇꜱ ᴡᴇʀᴇ ꜰᴏᴜɴᴅ 🚫", show_alert=1)
-            return
+            if SMART_SELECTION_MODE and seas == "homepage":
+                files = all_files  # silent fallback
+            else:
+                await query.answer(
+                    "🚫 ɴᴏ ꜰɪʟᴇꜱ ᴡᴇʀᴇ ꜰᴏᴜɴᴅ 🚫",
+                    show_alert=True
+                )
+                return
         if not SMART_SELECTION_MODE:
             temp.GETALL[key] = files
         settings = await get_settings(message.chat.id)
@@ -1971,6 +1998,7 @@ async def auto_filter(client, msg, spoll=False):
 
                 key = f"{message.chat.id}-{message.from_user.id}"
 
+                temp.GETALL[key] = all_files
                 temp.SMART_FILTERS[key] = {
                     "languages": sorted(smart_languages),
                     "seasons": sorted(smart_seasons),
