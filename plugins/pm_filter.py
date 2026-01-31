@@ -263,47 +263,109 @@ async def next_page(bot, query):
     except Exception as e:
         LOGGER.error(f"Error In Next Funtion - {e}")
 
-@Client.on_callback_query(filters.regex(r"^qualities#"))
-async def qualities_cb_handler(client: Client, query: CallbackQuery):
+# ================= OLD QUALITY CALLBACK =================
+async def old_qualities_cb(client: Client, query: CallbackQuery):
     try:
         try:
-            if int(query.from_user.id) not in [query.message.reply_to_message.from_user.id, 0]:
+            if int(query.from_user.id) not in [
+                query.message.reply_to_message.from_user.id, 0
+            ]:
                 return await query.answer(
-                    f"⚠️ ʜᴇʟʟᴏ {query.from_user.first_name},\nᴛʜɪꜱ ɪꜱ ɴᴏᴛ ʏᴏᴜʀ ᴍᴏᴠɪᴇ ʀᴇǫᴜᴇꜱᴛ,\nʀᴇǫᴜᴇꜱᴛ ʏᴏᴜʀ'ꜱ...",
+                    f"⚠️ ʜᴇʟʟᴏ {query.from_user.first_name},\n"
+                    f"ᴛʜɪꜱ ɪꜱ ɴᴏᴛ ʏᴏᴜʀ ᴍᴏᴠɪᴇ ʀᴇǫᴜᴇꜱᴛ,\n"
+                    f"ʀᴇǫᴜᴇꜱᴛ ʏᴏᴜʀ'ꜱ...",
                     show_alert=True,
                 )
         except:
             pass
+
         _, key, offset = query.data.split("#")
         search = FRESH.get(key)
+        search = search.replace(" ", "_")
         offset = int(offset)
-        search = search.replace(' ', '_')
+
         btn = []
-        for i in range(0, len(QUALITIES)-1, 2):
+        for i in range(0, len(QUALITIES) - 1, 2):
             btn.append([
                 InlineKeyboardButton(
                     text=QUALITIES[i].title(),
                     callback_data=f"fq#{QUALITIES[i].lower()}#{key}#{offset}"
                 ),
                 InlineKeyboardButton(
-                    text=QUALITIES[i+1].title(),
-                    callback_data=f"fq#{QUALITIES[i+1].lower()}#{key}#{offset}"
+                    text=QUALITIES[i + 1].title(),
+                    callback_data=f"fq#{QUALITIES[i + 1].lower()}#{key}#{offset}"
                 ),
             ])
-        btn.insert(
-            0,
-            [
-                InlineKeyboardButton(
-                    text="⇊ ꜱᴇʟᴇᴄᴛ ǫᴜᴀʟɪᴛʏ ⇊", callback_data="ident"
-                )
-            ],
+
+        btn.insert(0, [
+            InlineKeyboardButton(
+                text="⇊ ꜱᴇʟᴇᴄᴛ ǫᴜᴀʟɪᴛʏ ⇊",
+                callback_data="ident"
+            )
+        ])
+
+        btn.append([
+            InlineKeyboardButton(
+                text="↭ ʙᴀᴄᴋ ᴛᴏ ꜰɪʟᴇs ↭",
+                callback_data=f"fq#homepage#{key}#0"
+            )
+        ])
+
+        await query.edit_message_reply_markup(
+            InlineKeyboardMarkup(btn)
         )
-        req = query.from_user.id
-        offset = 0
-        btn.append([InlineKeyboardButton(text="↭ ʙᴀᴄᴋ ᴛᴏ ꜰɪʟᴇs ↭", callback_data=f"fq#homepage#{key}#{offset}")])
-        await query.edit_message_reply_markup(InlineKeyboardMarkup(btn))
+
     except Exception as e:
-        LOGGER.error(f"Error In Quality Callback Handler - {e}")
+        LOGGER.error(f"Error In Old Quality Callback - {e}")
+
+
+# ================= SMART QUALITY CALLBACK =================
+async def smart_qualities_cb(client: Client, query: CallbackQuery):
+    _, key, offset = query.data.split("#")
+
+    data = temp.SMART_FILTERS.get(key, {}).get("qualities", [])
+
+    if not data:
+        return await query.answer(
+            "❌ No quality available",
+            show_alert=True
+        )
+
+    btn = []
+    for i in range(0, len(data), 2):
+        row = [
+            InlineKeyboardButton(
+                data[i].upper(),
+                callback_data=f"fq#{data[i]}#{key}#{offset}"
+            )
+        ]
+        if i + 1 < len(data):
+            row.append(
+                InlineKeyboardButton(
+                    data[i + 1].upper(),
+                    callback_data=f"fq#{data[i + 1]}#{key}#{offset}"
+                )
+            )
+        btn.append(row)
+
+    btn.append([
+        InlineKeyboardButton(
+            "↭ ʙᴀᴄᴋ ᴛᴏ ꜰɪʟᴇs ↭",
+            callback_data=f"fq#homepage#{key}#0"
+        )
+    ])
+
+    await query.edit_message_reply_markup(
+        InlineKeyboardMarkup(btn)
+    )
+
+
+# ================= QUALITY ROUTER =================
+@Client.on_callback_query(filters.regex(r"^qualities#"))
+async def qualities_router(client: Client, query: CallbackQuery):
+    if SMART_SELECTION_MODE:
+        return await smart_qualities_cb(client, query)
+    return await old_qualities_cb(client, query)
 
 @Client.on_callback_query(filters.regex(r"^fq#"))
 async def filter_qualities_cb_handler(client: Client, query: CallbackQuery):
@@ -407,48 +469,69 @@ async def filter_qualities_cb_handler(client: Client, query: CallbackQuery):
     except Exception as e:
         LOGGER.error(f"Error In Quality - {e}")
 
-@Client.on_callback_query(filters.regex(r"^languages#"))
-async def languages_cb_handler(client: Client, query: CallbackQuery):
+
+# ================= OLD LANGUAGE CALLBACK =================
+async def old_languages_cb(client: Client, query: CallbackQuery):
     try:
         try:
-            if int(query.from_user.id) not in [query.message.reply_to_message.from_user.id, 0]:
+            if int(query.from_user.id) not in [
+                query.message.reply_to_message.from_user.id, 0
+            ]:
                 return await query.answer(
-                    f"⚠️ ʜᴇʟʟᴏ {query.from_user.first_name},\nᴛʜɪꜱ ɪꜱ ɴᴏᴛ ʏᴏᴜʀ ᴍᴏᴠɪᴇ ʀᴇǫᴜᴇꜱᴛ,\nʀᴇǫᴜᴇꜱᴛ ʏᴏᴜʀ'ꜱ...",
+                    f"⚠️ ʜᴇʟʟᴏ {query.from_user.first_name},\n"
+                    f"ᴛʜɪꜱ ɪꜱ ɴᴏᴛ ʏᴏᴜʀ ᴍᴏᴠɪᴇ ʀᴇǫᴜᴇꜱᴛ,\n"
+                    f"ʀᴇǫᴜᴇꜱᴛ ʏᴏᴜʀ'ꜱ...",
                     show_alert=True,
                 )
         except:
             pass
+
         _, key, offset = query.data.split("#")
         search = FRESH.get(key)
-        search = search.replace(' ', '_')
+        search = search.replace(" ", "_")
         offset = int(offset)
+
         btn = []
-        for i in range(0, len(LANGUAGES)-1, 2):
+        for i in range(0, len(LANGUAGES) - 1, 2):
             btn.append([
                 InlineKeyboardButton(
                     text=LANGUAGES[i].title(),
                     callback_data=f"fl#{LANGUAGES[i].lower()}#{key}#{offset}"
                 ),
                 InlineKeyboardButton(
-                    text=LANGUAGES[i+1].title(),
-                    callback_data=f"fl#{LANGUAGES[i+1].lower()}#{key}#{offset}"
+                    text=LANGUAGES[i + 1].title(),
+                    callback_data=f"fl#{LANGUAGES[i + 1].lower()}#{key}#{offset}"
                 ),
             ])
-        btn.insert(
-            0,
-            [
-                InlineKeyboardButton(
-                    text="⇊ ꜱᴇʟᴇᴄᴛ ʟᴀɴɢᴜᴀɢᴇ ⇊", callback_data="ident"
-                )
-            ],
+
+        btn.insert(0, [
+            InlineKeyboardButton(
+                text="⇊ ꜱᴇʟᴇᴄᴛ ʟᴀɴɢᴜᴀɢᴇ ⇊",
+                callback_data="ident"
+            )
+        ])
+
+        btn.append([
+            InlineKeyboardButton(
+                text="↭ ʙᴀᴄᴋ ᴛᴏ ꜰɪʟᴇs ↭",
+                callback_data=f"fl#homepage#{key}#0"
+            )
+        ])
+
+        await query.edit_message_reply_markup(
+            InlineKeyboardMarkup(btn)
         )
-        req = query.from_user.id
-        offset = 0
-        btn.append([InlineKeyboardButton(text="↭ ʙᴀᴄᴋ ᴛᴏ ꜰɪʟᴇs ↭", callback_data=f"fl#homepage#{key}#{offset}")])
-        await query.edit_message_reply_markup(InlineKeyboardMarkup(btn))
+
     except Exception as e:
-        LOGGER.error(f"Error In Language Cb Handaler - {e}")
-    
+        LOGGER.error(f"Error In Old Language Callback - {e}")
+
+
+# ================= LANGUAGE ROUTER =================
+@Client.on_callback_query(filters.regex(r"^languages#"))
+async def languages_router(client: Client, query: CallbackQuery):
+    if SMART_SELECTION_MODE:
+        return await smart_languages_cb(client, query)
+    return await old_languages_cb(client, query)
 
 @Client.on_callback_query(filters.regex(r"^fl#"))
 async def filter_languages_cb_handler(client: Client, query: CallbackQuery):
@@ -552,47 +635,109 @@ async def filter_languages_cb_handler(client: Client, query: CallbackQuery):
     except Exception as e:
         LOGGER.error(f"Error In Language - {e}")
         
-@Client.on_callback_query(filters.regex(r"^seasons#"))
-async def season_cb_handler(client: Client, query: CallbackQuery):
+# ================= OLD SEASON CALLBACK =================
+async def old_seasons_cb(client: Client, query: CallbackQuery):
     try:
         try:
-            if int(query.from_user.id) not in [query.message.reply_to_message.from_user.id, 0]:
+            if int(query.from_user.id) not in [
+                query.message.reply_to_message.from_user.id, 0
+            ]:
                 return await query.answer(
-                    f"⚠️ ʜᴇʟʟᴏ {query.from_user.first_name},\nᴛʜɪꜱ ɪꜱ ɴᴏᴛ ʏᴏᴜʀ ᴍᴏᴠɪᴇ ʀᴇǫᴜᴇꜱᴛ,\nʀᴇǫᴜᴇꜱᴛ ʏᴏᴜʀ'ꜱ...",
+                    f"⚠️ ʜᴇʟʟᴏ {query.from_user.first_name},\n"
+                    f"ᴛʜɪꜱ ɪꜱ ɴᴏᴛ ʏᴏᴜʀ ᴍᴏᴠɪᴇ ʀᴇǫᴜᴇꜱᴛ,\n"
+                    f"ʀᴇǫᴜᴇꜱᴛ ʏᴏᴜʀ'ꜱ...",
                     show_alert=True,
                 )
         except:
             pass
+
         _, key, offset = query.data.split("#")
         search = FRESH.get(key)
-        search = search.replace(' ', '_')
+        search = search.replace(" ", "_")
         offset = int(offset)
+
         btn = []
-        for i in range(0, len(SEASONS)-1, 2):
+        for i in range(0, len(SEASONS) - 1, 2):
             btn.append([
                 InlineKeyboardButton(
                     text=SEASONS[i].title(),
                     callback_data=f"fs#{SEASONS[i].lower()}#{key}#{offset}"
                 ),
                 InlineKeyboardButton(
-                    text=SEASONS[i+1].title(),
-                    callback_data=f"fs#{SEASONS[i+1].lower()}#{key}#{offset}"
+                    text=SEASONS[i + 1].title(),
+                    callback_data=f"fs#{SEASONS[i + 1].lower()}#{key}#{offset}"
                 ),
             ])
-        btn.insert(
-            0,
-            [
-                InlineKeyboardButton(
-                    text="⇊ ꜱᴇʟᴇᴄᴛ Sᴇᴀsᴏɴ ⇊", callback_data="ident"
-                )
-            ],
+
+        btn.insert(0, [
+            InlineKeyboardButton(
+                text="⇊ ꜱᴇʟᴇᴄᴛ Sᴇᴀsᴏɴ ⇊",
+                callback_data="ident"
+            )
+        ])
+
+        btn.append([
+            InlineKeyboardButton(
+                text="↭ ʙᴀᴄᴋ ᴛᴏ ꜰɪʟᴇs ↭",
+                callback_data=f"fl#homepage#{key}#0"
+            )
+        ])
+
+        await query.edit_message_reply_markup(
+            InlineKeyboardMarkup(btn)
         )
-        req = query.from_user.id
-        offset = 0
-        btn.append([InlineKeyboardButton(text="↭ ʙᴀᴄᴋ ᴛᴏ ꜰɪʟᴇs ↭", callback_data=f"fl#homepage#{key}#{offset}")])
-        await query.edit_message_reply_markup(InlineKeyboardMarkup(btn))
+
     except Exception as e:
-        LOGGER.error(f"Error In Season Cb Handaler - {e}")
+        LOGGER.error(f"Error In Old Season Callback - {e}")
+
+
+# ================= SMART SEASON CALLBACK =================
+async def smart_seasons_cb(client: Client, query: CallbackQuery):
+    _, key, offset = query.data.split("#")
+
+    data = temp.SMART_FILTERS.get(key, {}).get("seasons", [])
+
+    if not data:
+        return await query.answer(
+            "❌ No season available",
+            show_alert=True
+        )
+
+    btn = []
+    for i in range(0, len(data), 2):
+        row = [
+            InlineKeyboardButton(
+                data[i],
+                callback_data=f"fs#{data[i].lower()}#{key}#{offset}"
+            )
+        ]
+        if i + 1 < len(data):
+            row.append(
+                InlineKeyboardButton(
+                    data[i + 1],
+                    callback_data=f"fs#{data[i + 1].lower()}#{key}#{offset}"
+                )
+            )
+        btn.append(row)
+
+    btn.append([
+        InlineKeyboardButton(
+            "↭ ʙᴀᴄᴋ ᴛᴏ ꜰɪʟᴇs ↭",
+            callback_data=f"fl#homepage#{key}#0"
+        )
+    ])
+
+    await query.edit_message_reply_markup(
+        InlineKeyboardMarkup(btn)
+    )
+
+
+# ================= SEASON ROUTER =================
+@Client.on_callback_query(filters.regex(r"^seasons#"))
+async def seasons_router(client: Client, query: CallbackQuery):
+    if SMART_SELECTION_MODE:
+        return await smart_seasons_cb(client, query)
+    return await old_seasons_cb(client, query)
 
 
 @Client.on_callback_query(filters.regex(r"^fs#"))
@@ -1619,6 +1764,11 @@ async def cb_handler(client: Client, query: CallbackQuery):
         
 async def auto_filter(client, msg, spoll=False):
     curr_time = datetime.now(pytz.timezone('Asia/Kolkata')).time()
+    # ================= SMART MODE INIT =================
+    if SMART_SELECTION_MODE:
+        if not hasattr(temp, "SMART_FILTERS"):
+            temp.SMART_FILTERS = {}
+    # ==================================================
     if not spoll:
         message = msg
         if message.text.startswith("/"): return
@@ -1634,6 +1784,43 @@ async def auto_filter(client, msg, spoll=False):
             m=await message.reply_text(f'<b>Wait {message.from_user.mention} Searching Your Query: <i>{search}...</i></b>', reply_to_message_id=message.id)
             files, offset, total_results = await get_search_results(message.chat.id ,search, offset=0, filter=True)
             settings = await get_settings(message.chat.id)
+            # ================= SMART MODE DETECTION =================
+            if SMART_SELECTION_MODE:
+                smart_languages = set()
+                smart_seasons = set()
+                smart_qualities = set()
+
+                for file in files:
+                    name = (file.file_name or "").lower()
+
+                    # 🔤 Language detection
+                    for lang_key, data in SMART_LANG_MAP.items():
+                        for alias in data["aliases"]:
+                            if re.search(rf"(^|[.\s_-]){alias}([.\s_-]|$)", name):
+                                smart_languages.add(lang_key)
+                                break
+
+                    # 📺 Season detection
+                    for pattern in SMART_SEASON_REGEX:
+                        match = re.search(pattern, name)
+                        if match:
+                            num = re.search(r"\d{1,2}", match.group())
+                            if num:
+                                smart_seasons.add(f"S{int(num.group()):02d}")
+                            break
+                    # 🎞 Quality detection
+                    q = re.search(SMART_QUALITY_REGEX, name)
+                    if q:
+                        smart_qualities.add(q.group())
+
+                key = f"{message.chat.id}-{message.from_user.id}"
+
+                temp.SMART_FILTERS[key] = {
+                    "languages": sorted(smart_languages),
+                    "seasons": sorted(smart_seasons),
+                    "qualities": sorted(smart_qualities)
+                }
+            # ========================================================
             if not files:
                 if settings["spell_check"]:
                     ai_sts = await m.edit('🤖 ᴘʟᴇᴀꜱᴇ ᴡᴀɪᴛ, ᴀɪ ɪꜱ ᴄʜᴇᴄᴋɪɴɢ ʏᴏᴜʀ ꜱᴘᴇʟʟɪɴɢ...')
