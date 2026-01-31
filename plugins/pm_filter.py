@@ -416,17 +416,36 @@ async def filter_qualities_cb_handler(client: Client, query: CallbackQuery):
                 state = temp.PAGE_STATE.get(key, {})
                 per_page = state.get("per_page", 10)
                 total_results = state.get("total_results", len(all_files))
-                n_offset = state.get("current_offset", 0)
+                offset = state.get("current_offset", 0)
 
+                files = files[offset: offset + per_page]
+
+                if total_results > offset + per_page:
+                    n_offset = offset + per_page
+                else:
+                    n_offset = ""
             # 🔍 FILTER MODE (quality selected)
             else:
-                files = [
+                # 1️⃣ সব ফাইল থেকে filter করো
+                filtered_files = [
                     f for f in all_files
                     if qual.lower() in (f.file_name or "").lower()
                 ]
 
-                total_results = len(files)
-                n_offset = ""   # ❌ no pagination in filter mode
+                total_results = len(filtered_files)
+
+                settings = await get_settings(chat_id)
+                per_page = 10 if settings.get("max_btn") else int(MAX_B_TN)
+
+                # 2️⃣ filter করলে সবসময় first page থেকে শুরু
+                offset = 0
+                files = filtered_files[:per_page]
+
+                # 3️⃣ pagination decide করো
+                if total_results > per_page:
+                    n_offset = per_page
+                else:
+                    n_offset = ""   # 👈 এইখানেই "no more page available" trigger হবে   # ❌ no pagination in filter mode
 
             if not files:
                 return await query.answer(
@@ -692,28 +711,49 @@ async def filter_language_cb_handler(client: Client, query: CallbackQuery):
                 state = temp.PAGE_STATE.get(key, {})
                 per_page = state.get("per_page", 10)
                 total_results = state.get("total_results", len(all_files))
-                n_offset = state.get("current_offset", 0)
+                offset = state.get("current_offset", 0)
 
-            # 🔍 FILTER MODE (language selected)
+                files = files[offset: offset + per_page]
+
+                if total_results > offset + per_page:
+                    n_offset = offset + per_page
+                else:
+                    n_offset = ""
+            # 🔍 FILTER MODE (quality selected)
             else:
-                aliases = SMART_LANG_MAP.get(lang, {}).get("aliases", [])
-
-                files = [
+                # 1️⃣ সব ফাইল থেকে filter করো
+                filtered_files = [
                     f for f in all_files
-                    if any(
-                        alias in (f.file_name or "").lower()
-                        for alias in aliases
-                    )
-                ]
+                    if any(alias in (f.file_name or "").lower() for alias in aliases)
+				]
 
-                total_results = len(files)
-                n_offset = ""   # ❌ no pagination in filter mode
+                total_results = len(filtered_files)
+
+                settings = await get_settings(chat_id)
+                per_page = 10 if settings.get("max_btn") else int(MAX_B_TN)
+
+                # 2️⃣ filter করলে সবসময় first page থেকে শুরু
+                offset = 0
+                files = filtered_files[:per_page]
+
+                # 3️⃣ pagination decide করো
+                if total_results > per_page:
+                    n_offset = per_page
+                else:
+                    n_offset = ""   # 👈 এইখানেই "no more page available" trigger হবে   # ❌ no pagination in filter mode
 
             if not files:
                 return await query.answer(
                     "🚫 ɴᴏ ꜰɪʟᴇꜱ ᴡᴇʀᴇ ꜰᴏᴜɴᴅ 🚫",
                     show_alert=True
                 )
+   # ❌ no pagination in filter mode
+
+            #if not files:
+                #return await query.answer(
+                    #"🚫 ɴᴏ ꜰɪʟᴇꜱ ᴡᴇʀᴇ ꜰᴏᴜɴᴅ 🚫",
+                    #show_alert=True
+                #)
 
         # ================= OLD MODE =================
         else:
@@ -974,14 +1014,30 @@ async def filter_season_cb_handler(client: Client, query: CallbackQuery):
                 total_results = state.get("total_results", len(all_files))
                 n_offset = state.get("current_offset", 0)
 
+                files = files[offset: offset + per_page]
+
+                if total_results > offset + per_page:
+                    n_offset = offset + per_page
+                else:
+                    n_offset = ""
             # 🔍 FILTER MODE (season selected)
             else:
-                files = [
+                filtered_files = [
                     f for f in all_files
                     if seas.lower() in (f.file_name or "").lower()
                 ]
-                total_results = len(files)
-                n_offset = ""   # ❌ no pagination in filter mode
+
+                total_results = len(filtered_files)
+
+                per_page = 10 if settings.get("max_btn") else int(MAX_B_TN)
+
+                offset = 0
+                files = filtered_files[:per_page]
+
+                if total_results > per_page:
+                    n_offset = per_page
+                else:
+                    n_offset = ""   # ❌ no pagination in filter mode
 
             if not files:
                 return await query.answer(
