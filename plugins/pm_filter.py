@@ -1894,7 +1894,18 @@ async def auto_filter(client, msg, spoll=False):
                 smart_qualities = set()
 
                 all_files = files  # safe fallback
-
+                # 🔽 ADD THIS (NEW)
+                if total_results > len(files):
+                    try:
+                        all_files, _, _ = await get_search_results(
+                            message.chat.id,
+                            search,
+                            offset=0,
+                            filter=True,
+                            max_results=1000  # db যতটা allow করে
+                        )
+                    except:
+                        all_files = files
                 for file in all_files:
                     name = (file.file_name or "").lower()
 
