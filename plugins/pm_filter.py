@@ -408,23 +408,31 @@ async def filter_qualities_cb_handler(client: Client, query: CallbackQuery):
         if SMART_SELECTION_MODE:
             all_files = temp.GETALL.get(key, [])
 
-            # 🔁 Back to all files
+            # 🔁 BACK TO MAIN FILE LIST
             if qual == "homepage":
                 files = all_files
+
+                # 🔄 restore pagination state
+                state = temp.PAGE_STATE.get(key, {})
+                per_page = state.get("per_page", 10)
+                total_results = state.get("total_results", len(all_files))
+                n_offset = state.get("current_offset", 0)
+
+            # 🔍 FILTER MODE (quality selected)
             else:
                 files = [
                     f for f in all_files
                     if qual.lower() in (f.file_name or "").lower()
                 ]
 
+                total_results = len(files)
+                n_offset = ""   # ❌ no pagination in filter mode
+
             if not files:
                 return await query.answer(
                     "🚫 ɴᴏ ꜰɪʟᴇꜱ ᴡᴇʀᴇ ꜰᴏᴜɴᴅ 🚫",
                     show_alert=True
                 )
-
-            total_results = len(files)
-            n_offset = ""   # ❗ smart mode = no pagination
 
         # ================= OLD MODE =================
         else:
@@ -446,7 +454,7 @@ async def filter_qualities_cb_handler(client: Client, query: CallbackQuery):
 
             temp.GETALL[key] = files
 
-        # ================= BUILD RESULT BUTTONS =================
+        # ================= BUILD FILE BUTTONS =================
         settings = await get_settings(chat_id)
 
         btn = [
@@ -466,8 +474,8 @@ async def filter_qualities_cb_handler(client: Client, query: CallbackQuery):
             InlineKeyboardButton("ꜱᴇᴀꜱᴏɴ", callback_data=f"seasons#{key}#0"),
         ])
 
-        # 🔽 Pagination ONLY for OLD MODE
-        if not SMART_SELECTION_MODE and n_offset:
+        # 🔽 Pagination (old mode OR restored homepage)
+        if n_offset != "":
             try:
                 per_page = 10 if settings.get("max_btn") else int(MAX_B_TN)
                 btn.append([
@@ -483,6 +491,14 @@ async def filter_qualities_cb_handler(client: Client, query: CallbackQuery):
                 ])
             except:
                 pass
+        else:
+            # ℹ️ single page info
+            btn.append([
+                InlineKeyboardButton(
+                    text="↭ ɴᴏ ᴍᴏʀᴇ ᴘᴀɢᴇꜱ ᴀᴠᴀɪʟᴀʙʟᴇ ↭",
+                    callback_data="pages"
+                )
+            ])
 
         # ================= SEND UPDATE =================
         try:
@@ -668,9 +684,17 @@ async def filter_language_cb_handler(client: Client, query: CallbackQuery):
         if SMART_SELECTION_MODE:
             all_files = temp.GETALL.get(key, [])
 
-            # 🔁 Back to all files
+            # 🔁 BACK TO MAIN FILE LIST
             if lang == "homepage":
                 files = all_files
+
+                # 🔄 restore pagination state
+                state = temp.PAGE_STATE.get(key, {})
+                per_page = state.get("per_page", 10)
+                total_results = state.get("total_results", len(all_files))
+                n_offset = state.get("current_offset", 0)
+
+            # 🔍 FILTER MODE (language selected)
             else:
                 aliases = SMART_LANG_MAP.get(lang, {}).get("aliases", [])
 
@@ -682,14 +706,14 @@ async def filter_language_cb_handler(client: Client, query: CallbackQuery):
                     )
                 ]
 
+                total_results = len(files)
+                n_offset = ""   # ❌ no pagination in filter mode
+
             if not files:
                 return await query.answer(
                     "🚫 ɴᴏ ꜰɪʟᴇꜱ ᴡᴇʀᴇ ꜰᴏᴜɴᴅ 🚫",
                     show_alert=True
                 )
-
-            total_results = len(files)
-            n_offset = ""  # ❗ smart mode → no pagination
 
         # ================= OLD MODE =================
         else:
@@ -711,7 +735,7 @@ async def filter_language_cb_handler(client: Client, query: CallbackQuery):
 
             temp.GETALL[key] = files
 
-        # ================= BUILD RESULT BUTTONS =================
+        # ================= BUILD FILE BUTTONS =================
         settings = await get_settings(chat_id)
 
         btn = [
@@ -731,8 +755,8 @@ async def filter_language_cb_handler(client: Client, query: CallbackQuery):
             InlineKeyboardButton("ꜱᴇᴀꜱᴏɴ", callback_data=f"seasons#{key}#0"),
         ])
 
-        # 🔽 Pagination (ONLY old mode)
-        if not SMART_SELECTION_MODE and n_offset:
+        # 🔽 Pagination (ONLY old mode OR restored homepage)
+        if n_offset != "":
             try:
                 per_page = 10 if settings.get("max_btn") else int(MAX_B_TN)
                 btn.append([
@@ -748,6 +772,14 @@ async def filter_language_cb_handler(client: Client, query: CallbackQuery):
                 ])
             except:
                 pass
+        else:
+            # ℹ️ only one page
+            btn.append([
+                InlineKeyboardButton(
+                    text="↭ ɴᴏ ᴍᴏʀᴇ ᴘᴀɢᴇꜱ ᴀᴠᴀɪʟᴀʙʟᴇ ↭",
+                    callback_data="pages"
+                )
+            ])
 
         # ================= SEND UPDATE =================
         try:
@@ -915,7 +947,9 @@ async def filter_season_cb_handler(client: Client, query: CallbackQuery):
 
         # 🔐 Ownership check
         try:
-            if int(query.from_user.id) not in [message.reply_to_message.from_user.id, 0]:
+            if int(query.from_user.id) not in [
+                message.reply_to_message.from_user.id, 0
+            ]:
                 return await query.answer(
                     f"⚠️ Hello {query.from_user.first_name}, this is not your request.",
                     show_alert=True,
@@ -930,23 +964,30 @@ async def filter_season_cb_handler(client: Client, query: CallbackQuery):
         if SMART_SELECTION_MODE:
             all_files = temp.GETALL.get(key, [])
 
-            # 🔁 Back to all files
+            # 🔁 BACK TO MAIN FILE LIST
             if seas == "homepage":
                 files = all_files
+
+                # ✅ restore pagination state
+                state = temp.PAGE_STATE.get(key, {})
+                per_page = state.get("per_page", 10)
+                total_results = state.get("total_results", len(all_files))
+                n_offset = state.get("current_offset", 0)
+
+            # 🔍 FILTER MODE (season selected)
             else:
                 files = [
                     f for f in all_files
                     if seas.lower() in (f.file_name or "").lower()
                 ]
+                total_results = len(files)
+                n_offset = ""   # ❌ no pagination in filter mode
 
             if not files:
                 return await query.answer(
                     "🚫 ɴᴏ ꜰɪʟᴇꜱ ᴡᴇʀᴇ ꜰᴏᴜɴᴅ 🚫",
                     show_alert=True
                 )
-
-            total_results = len(files)
-            n_offset = ""   # ❗ smart mode = no pagination
 
         # ================= OLD MODE =================
         else:
@@ -974,7 +1015,9 @@ async def filter_season_cb_handler(client: Client, query: CallbackQuery):
         btn = [
             [
                 InlineKeyboardButton(
-                    text=f"{silent_size(f.file_size)} | {extract_tag(f.file_name)} {clean_filename(f.file_name)}",
+                    text=f"{silent_size(f.file_size)} | "
+                         f"{extract_tag(f.file_name)} "
+                         f"{clean_filename(f.file_name)}",
                     callback_data=f"file#{f.file_id}"
                 )
             ]
@@ -988,23 +1031,32 @@ async def filter_season_cb_handler(client: Client, query: CallbackQuery):
             InlineKeyboardButton("ꜱᴇᴀꜱᴏɴ", callback_data=f"seasons#{key}#0"),
         ])
 
-        # 🔽 Pagination ONLY for OLD MODE
-        if not SMART_SELECTION_MODE and n_offset:
-            try:
-                per_page = 10 if settings.get("max_btn") else int(MAX_B_TN)
+        # 🔽 Pagination handling (ONLY old mode)
+        if not SMART_SELECTION_MODE:
+            if n_offset:
+                try:
+                    per_page = 10 if settings.get("max_btn") else int(MAX_B_TN)
+                    btn.append([
+                        InlineKeyboardButton("ᴘᴀɢᴇ", callback_data="pages"),
+                        InlineKeyboardButton(
+                            text=f"1/{math.ceil(total_results / per_page)}",
+                            callback_data="pages"
+                        ),
+                        InlineKeyboardButton(
+                            "ɴᴇxᴛ ⋟",
+                            callback_data=f"next_{req}_{key}_{n_offset}"
+                        )
+                    ])
+                except:
+                    pass
+            else:
+                # ✅ single page → inactive info button
                 btn.append([
-                    InlineKeyboardButton("ᴘᴀɢᴇ", callback_data="pages"),
                     InlineKeyboardButton(
-                        text=f"1/{math.ceil(total_results / per_page)}",
+                        text="↭ ɴᴏ ᴍᴏʀᴇ ᴘᴀɢᴇꜱ ᴀᴠᴀɪʟᴀʙʟᴇ ↭",
                         callback_data="pages"
-                    ),
-                    InlineKeyboardButton(
-                        "ɴᴇxᴛ ⋟",
-                        callback_data=f"next_{req}_{key}_{n_offset}"
                     )
                 ])
-            except:
-                pass
 
         # ================= SEND UPDATE =================
         try:
@@ -1978,6 +2030,17 @@ async def auto_filter(client, msg, spoll=False):
             m=await message.reply_text(f'<b>Wait {message.from_user.mention} Searching Your Query: <i>{search}...</i></b>', reply_to_message_id=message.id)
             files, offset, total_results = await get_search_results(message.chat.id ,search, offset=0, filter=True)
             settings = await get_settings(message.chat.id)
+
+            if not hasattr(temp, "PAGE_STATE"):
+                temp.PAGE_STATE = {}
+
+            per_page = 10 if settings.get("max_btn") else int(MAX_B_TN)
+
+            temp.PAGE_STATE[key] = {
+                "total_results": total_results,
+                "per_page": per_page,
+                "current_offset": offset,
+			} # normally 0
             # ================= SMART MODE DETECTION =================
             # ================= SMART MODE: COLLECT ALL FILES =================
             if SMART_SELECTION_MODE:
