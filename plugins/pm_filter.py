@@ -409,7 +409,14 @@ async def filter_qualities_cb_handler(client: Client, query: CallbackQuery):
             search = f"{search} {qual}" 
         BUTTONS[key] = search   
         if SMART_SELECTION_MODE:
-            files = temp.GETALL.get(key, [])
+            all_files = temp.GETALL.get(key, [])
+
+            # ✅ এখানেই আসল FILTER হচ্ছে
+            files = [
+                f for f in all_files
+                if qual.lower() in (f.file_name or "").lower()
+            ]
+
             n_offset = ""
             total_results = len(files)
         else:
@@ -648,7 +655,14 @@ async def filter_languages_cb_handler(client: Client, query: CallbackQuery):
             search = f"{search} {lang}"
         BUTTONS[key] = search
         if SMART_SELECTION_MODE:
-            files = temp.GETALL.get(key, [])
+            all_files = temp.GETALL.get(key, [])
+
+            # ✅ এখানেই আসল FILTER হচ্ছে
+            files = [
+                f for f in all_files
+                if lang.lower() in (f.file_name or "").lower()
+            ]
+
             n_offset = ""
             total_results = len(files)
         else:
@@ -882,7 +896,14 @@ async def filter_season_cb_handler(client: Client, query: CallbackQuery):
             search = f"{search} {seas}"
         BUTTONS[key] = search
         if SMART_SELECTION_MODE:
-            files = temp.GETALL.get(key, [])
+            all_files = temp.GETALL.get(key, [])
+
+            # ✅ এখানেই আসল FILTER হচ্ছে
+            files = [
+                f for f in all_files
+                if seas.lower() in (f.file_name or "").lower()
+            ]
+
             n_offset = ""
             total_results = len(files)
         else:
@@ -896,7 +917,7 @@ async def filter_season_cb_handler(client: Client, query: CallbackQuery):
             temp.GETALL[key] = files
         settings = await get_settings(message.chat.id)
         if settings.get('button'):
-            btn = [
+            btn = [ 
                 [
                     InlineKeyboardButton(
                         text=f"{silent_size(file.file_size)}| {extract_tag(file.file_name)} {clean_filename(file.file_name)}", callback_data=f'file#{file.file_id}'
