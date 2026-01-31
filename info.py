@@ -14,7 +14,6 @@ def is_enabled(value, default):
     else:
         return default
 
-SMART_SELECTION_MODE = False
 
 SESSION = environ.get('SESSION', 'media_search')
 API_ID = int(environ.get('API_ID', ''))
@@ -82,6 +81,10 @@ SHORTENER_WEBSITE3 = environ.get("SHORTENER_WEBSITE3", "https://vplink.in")
 
 TWO_VERIFY_GAP = int(environ.get('TWO_VERIFY_GAP', "1200"))
 THREE_VERIFY_GAP = int(environ.get('THREE_VERIFY_GAP', "54000"))
+
+#Smart Select Mode
+SMART_SELECTION_MODE = environ.get("SMART_SELECTION_MODE", "false").lower() == "true"
+#_________________Swapno Adaption_______________
 
 MOVIE_UPDATE_NOTIFICATION = bool(environ.get("MOVIE_UPDATE_NOTIFICATION", False))
 NO_RESULTS_MSG = bool(environ.get("NO_RESULTS_MSG", True))
