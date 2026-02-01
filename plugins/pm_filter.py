@@ -141,11 +141,54 @@ async def next_page(bot, query):
         if not search:
             await query.answer(script.OLD_ALRT_TXT.format(query.from_user.first_name),show_alert=True)
             return
-        files, n_offset, total = await get_search_results(query.message.chat.id, search, offset=offset, filter=True)
+        active = temp.ACTIVE_FILTER.get(key)
+        settings = await get_settings(query.message.chat.id)
+        per_page = 10 if settings.get("max_btn") else int(MAX_B_TN)
+        #active = temp.ACTIVE_FILTER.get(key)
+
+        if active:
+            # 🔹 FILTERED PAGINATION MODE
+            all_files = temp.GETALL.get(key, [])
+
+            if active["type"] == "quality":
+                data = [
+                    f for f in all_files
+                    if active["value"].lower() in (f.file_name or "").lower()
+                ]
+
+            elif active["type"] == "season":
+                data = [
+                    f for f in all_files
+                    if active["value"].lower() in (f.file_name or "").lower()
+                ]
+
+            elif active["type"] == "language":
+                aliases = SMART_LANG_MAP.get(active["value"], {}).get("aliases", [])
+                data = [
+                    f for f in all_files
+                    if any(a in (f.file_name or "").lower() for a in aliases)
+                ]
+
+            total = len(data)
+            files = data[offset: offset + per_page]
+
+            if total > offset + per_page:
+                n_offset = offset + per_page
+            else:
+                n_offset = 0
+
+        else:
+            # 🔹 NORMAL HOMEPAGE PAGINATION MODE
+            files, n_offset, total = await get_search_results(
+                query.message.chat.id, search, offset=offset, filter=True
+            )
+
+            # normalize n_offset
         try:
             n_offset = int(n_offset)
         except:
             n_offset = 0
+
         if not files:
             return
         #temp.GETALL[key] = files
@@ -403,7 +446,20 @@ async def filter_qualities_cb_handler(client: Client, query: CallbackQuery):
 
         search = FRESH.get(key, "").replace("_", " ")
         BUTTONS[key] = search
+        # ================= SAVE ACTIVE FILTER STATE =================
+        if not hasattr(temp, "ACTIVE_FILTER"):
+            temp.ACTIVE_FILTER = {}
 
+        if qual == "homepage":
+            # homepage এ গেলে filter clear
+            temp.ACTIVE_FILTER.pop(key, None)
+        else:
+            # quality filter active
+            temp.ACTIVE_FILTER[key] = {
+                "type": "quality",
+                "value": qual
+            }
+# ============================================================
         # ================= SMART MODE =================
         if SMART_SELECTION_MODE:
             offset = 0   # ⬅️ IMPORTANT
@@ -442,6 +498,12 @@ async def filter_qualities_cb_handler(client: Client, query: CallbackQuery):
                 offset = 0
                 files = filtered_files[:per_page]
 
+                # ⭐⭐⭐ EXACTLY HERE ⭐⭐⭐
+                temp.PAGE_STATE[key] = {
+                    "total_results": total_results,
+                    "per_page": per_page,
+                    "current_offset": offset
+	            }
                 # 3️⃣ pagination decide করো
                 if total_results > per_page:
                     n_offset = per_page
@@ -701,7 +763,17 @@ async def filter_language_cb_handler(client: Client, query: CallbackQuery):
                 )
         except:
             pass
+        # ================= SAVE ACTIVE FILTER STATE =================
+        if not hasattr(temp, "ACTIVE_FILTER"):
+            temp.ACTIVE_FILTER = {}
 
+        if lang == "homepage":
+            temp.ACTIVE_FILTER.pop(key, None)
+        else:
+            temp.ACTIVE_FILTER[key] = {
+                "type": "language",
+                "value": lang
+			}
         search = FRESH.get(key, "").replace("_", " ")
         BUTTONS[key] = search
 
@@ -745,6 +817,12 @@ async def filter_language_cb_handler(client: Client, query: CallbackQuery):
                 offset = 0
                 files = filtered_files[:per_page]
 
+                # ⭐⭐⭐ EXACTLY HERE ⭐⭐⭐
+                temp.PAGE_STATE[key] = {
+                    "total_results": total_results,
+                    "per_page": per_page,
+                    "current_offset": offset
+				}
                 # 3️⃣ pagination decide করো
                 if total_results > per_page:
                     n_offset = per_page
@@ -1012,6 +1090,18 @@ async def filter_season_cb_handler(client: Client, query: CallbackQuery):
         except:
             pass
 
+        # ================= SAVE ACTIVE FILTER STATE =================
+        if not hasattr(temp, "ACTIVE_FILTER"):
+            temp.ACTIVE_FILTER = {}
+
+        if seas == "homepage":
+            temp.ACTIVE_FILTER.pop(key, None)
+        else:
+            temp.ACTIVE_FILTER[key] = {
+                "type": "season",
+                "value": seas
+            }
+# ============================================================
         search = FRESH.get(key, "").replace("_", " ")
         BUTTONS[key] = search
 
@@ -1051,6 +1141,11 @@ async def filter_season_cb_handler(client: Client, query: CallbackQuery):
                 offset = 0
                 files = filtered_files[:per_page]
 
+                temp.PAGE_STATE[key] = {
+                    "total_results": total_results,
+                    "per_page": per_page,
+                    "current_offset": offset
+				}
                 if total_results > per_page:
                     n_offset = per_page
                 else:
