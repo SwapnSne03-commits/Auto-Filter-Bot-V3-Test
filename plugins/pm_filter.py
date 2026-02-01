@@ -406,6 +406,7 @@ async def filter_qualities_cb_handler(client: Client, query: CallbackQuery):
 
         # ================= SMART MODE =================
         if SMART_SELECTION_MODE:
+            offset = 0   # ⬅️ IMPORTANT
             all_files = temp.GETALL.get(key, [])
 
             # 🔁 BACK TO MAIN FILE LIST
@@ -416,7 +417,6 @@ async def filter_qualities_cb_handler(client: Client, query: CallbackQuery):
                 state = temp.PAGE_STATE.get(key, {})
                 per_page = state.get("per_page", 10)
                 total_results = state.get("total_results", len(all_files))
-                offset = state.get("current_offset", 0)
 
                 files = files[offset: offset + per_page]
 
@@ -708,6 +708,7 @@ async def filter_language_cb_handler(client: Client, query: CallbackQuery):
 
         # ================= SMART MODE =================
         if SMART_SELECTION_MODE:
+            offset = 0   # ⬅️ IMPORTANT
             all_files = temp.GETALL.get(key, [])
 
             # 🔁 BACK TO MAIN FILE LIST
@@ -718,7 +719,7 @@ async def filter_language_cb_handler(client: Client, query: CallbackQuery):
                 state = temp.PAGE_STATE.get(key, {})
                 per_page = state.get("per_page", 10)
                 total_results = state.get("total_results", len(all_files))
-                offset = state.get("current_offset", 0)
+                #offset = state.get("current_offset", 0)
 
                 files = files[offset: offset + per_page]
 
@@ -1018,6 +1019,7 @@ async def filter_season_cb_handler(client: Client, query: CallbackQuery):
 
         # ================= SMART MODE =================
         if SMART_SELECTION_MODE:
+            offset = 0   # ⬅️ IMPORTANT
             all_files = temp.GETALL.get(key, [])
             settings = await get_settings(chat_id)
             # 🔁 BACK TO MAIN FILE LIST
@@ -1028,7 +1030,7 @@ async def filter_season_cb_handler(client: Client, query: CallbackQuery):
                 state = temp.PAGE_STATE.get(key, {})
                 per_page = state.get("per_page", 10)
                 total_results = state.get("total_results", len(all_files))
-                offset = state.get("current_offset", 0)
+                #offset = state.get("current_offset", 0)
 
                 files = files[offset: offset + per_page]
 
