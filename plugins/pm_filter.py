@@ -369,6 +369,13 @@ async def smart_qualities_cb(client: Client, query: CallbackQuery):
         _, key, offset = query.data.split("#")
         offset = int(offset)
 
+        # 🔐 STRICT OWNERSHIP CHECK (ADD HERE)
+        owner_id = int(key.split("-")[1])
+        if query.from_user.id != owner_id:
+            return await query.answer(
+                "🚫 ɴᴏᴛ ʏᴏᴜʀ ʀᴇǫᴜᴇsᴛ ʙᴜᴅᴅʏ !!",
+                show_alert=True
+			)
         if key not in temp.SMART_FILTERS:
             return await query.answer(
                 "❌ Session expired, please search again",
@@ -407,7 +414,7 @@ async def smart_qualities_cb(client: Client, query: CallbackQuery):
         ])
 
         btn.append([
-            InlineKeyboardButton("↭ ʙᴀᴄᴋ ᴛᴏ ꜰɪʟᴇs ↭", callback_data=f"fq#homepage#{key}#0")
+            InlineKeyboardButton("⋞ ʙᴀᴄᴋ ᴛᴏ ꜰɪʟᴇs", callback_data=f"fq#homepage#{key}#0")
         ])
 
         await query.edit_message_reply_markup(
@@ -673,7 +680,7 @@ async def old_languages_cb(client: Client, query: CallbackQuery):
 
         btn.append([
             InlineKeyboardButton(
-                text="↭ ʙᴀᴄᴋ ᴛᴏ ꜰɪʟᴇs ↭",
+                text="⋞ ʙᴀᴄᴋ ᴛᴏ ꜰɪʟᴇs",
                 callback_data=f"fl#homepage#{key}#0"
             )
         ])
@@ -692,6 +699,13 @@ async def smart_languages_cb(client: Client, query: CallbackQuery):
         _, key, offset = query.data.split("#")
         offset = int(offset)
 
+        # 🔐 STRICT OWNERSHIP CHECK (ADD HERE)
+        owner_id = int(key.split("-")[1])
+        if query.from_user.id != owner_id:
+            return await query.answer(
+                "🚫 ɴᴏᴛ ʏᴏᴜʀ ʀᴇǫᴜᴇsᴛ ʙᴜᴅᴅʏ !!",
+                show_alert=True
+			)
         if key not in temp.SMART_FILTERS:
             return await query.answer(
                 "❌ Session expired, please search again",
@@ -732,7 +746,7 @@ async def smart_languages_cb(client: Client, query: CallbackQuery):
 
         btn.append([
             InlineKeyboardButton(
-                text="↭ ʙᴀᴄᴋ ᴛᴏ ꜰɪʟᴇs ↭",
+                text="⋞ ʙᴀᴄᴋ ᴛᴏ ꜰɪʟᴇs",
                 callback_data=f"fl#homepage#{key}#0"
             )
         ])
@@ -1003,7 +1017,7 @@ async def old_seasons_cb(client: Client, query: CallbackQuery):
 
         btn.append([
             InlineKeyboardButton(
-                text="↭ ʙᴀᴄᴋ ᴛᴏ ꜰɪʟᴇs ↭",
+                text="⋞ ʙᴀᴄᴋ ᴛᴏ ꜰɪʟᴇs",
                 callback_data=f"fl#homepage#{key}#0"
             )
         ])
@@ -1023,6 +1037,13 @@ async def smart_seasons_cb(client: Client, query: CallbackQuery):
         _, key, offset = query.data.split("#")
         offset = int(offset)
 
+        # 🔐 STRICT OWNERSHIP CHECK (ADD HERE)
+        owner_id = int(key.split("-")[1])
+        if query.from_user.id != owner_id:
+            return await query.answer(
+                "🚫 ɴᴏᴛ ʏᴏᴜʀ ʀᴇǫᴜᴇsᴛ ʙᴜᴅᴅʏ !!",
+                show_alert=True
+			)
         if key not in temp.SMART_FILTERS:
             return await query.answer(
                 "❌ Session expired, please search again",
