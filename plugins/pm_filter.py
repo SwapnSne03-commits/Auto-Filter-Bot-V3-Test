@@ -2292,7 +2292,7 @@ async def auto_filter(client, msg, spoll=False):
             files, offset, total_results = await get_search_results(message.chat.id ,search, offset=0, filter=True)
             uid = message.from_user.id if message.from_user else 0
             key = f"{message.chat.id}-{uid}"
-			if not hasattr(temp, "OWNER"):
+            if not hasattr(temp, "OWNER"):
                 temp.OWNER = {}
             temp.OWNER[key] = uid
             settings = await get_settings(message.chat.id)
