@@ -370,12 +370,19 @@ async def smart_qualities_cb(client: Client, query: CallbackQuery):
         offset = int(offset)
 
         # 🔐 STRICT OWNERSHIP CHECK (ADD HERE)
-        owner_id = int(key.split("-")[1])
+        owner_id = temp.OWNER.get(key)
+
+        if owner_id is None:
+             return await query.answer(
+                "❌ Session expired, please search again",
+                show_alert=True
+            )
+
         if query.from_user.id != owner_id:
-            return await query.answer(
+             return await query.answer(
                 "🚫 ɴᴏᴛ ʏᴏᴜʀ ʀᴇǫᴜᴇsᴛ ʙᴜᴅᴅʏ !!",
                 show_alert=True
-			)
+			 )
         if key not in temp.SMART_FILTERS:
             return await query.answer(
                 "❌ Session expired, please search again",
@@ -438,26 +445,33 @@ async def filter_qualities_cb_handler(client: Client, query: CallbackQuery):
         offset = 0
 
          # 🔐 STRICT OWNERSHIP CHECK (ADD HERE)
-        owner_id = int(key.split("-")[1])
+        owner_id = temp.OWNER.get(key)
+
+        if owner_id is None:
+             return await query.answer(
+                "❌ Session expired, please search again",
+                show_alert=True
+            )
+
         if query.from_user.id != owner_id:
-            return await query.answer(
+             return await query.answer(
                 "🚫 ɴᴏᴛ ʏᴏᴜʀ ʀᴇǫᴜᴇsᴛ ʙᴜᴅᴅʏ !!",
                 show_alert=True
-			)
+			 )
 
         message = query.message
         chat_id = message.chat.id
         req = query.from_user.id
 
         # 🔐 Ownership check
-        try:
-            if int(query.from_user.id) not in [message.reply_to_message.from_user.id, 0]:
-                return await query.answer(
-                    f"⚠️ Hello {query.from_user.first_name}, this is not your request.",
-                    show_alert=True,
-                )
-        except:
-            pass
+       # try:
+           # if int(query.from_user.id) not in [message.reply_to_message.from_user.id, 0]:
+               # return await query.answer(
+                 #   f"⚠️ Hello {query.from_user.first_name}, this is not your request.",
+                   # show_alert=True,
+               # )
+        #except:
+            #pass
 
         search = FRESH.get(key, "").replace("_", " ")
         BUTTONS[key] = search
@@ -700,12 +714,19 @@ async def smart_languages_cb(client: Client, query: CallbackQuery):
         offset = int(offset)
 
         # 🔐 STRICT OWNERSHIP CHECK (ADD HERE)
-        owner_id = int(key.split("-")[1])
+        owner_id = temp.OWNER.get(key)
+
+        if owner_id is None:
+             return await query.answer(
+                "❌ Session expired, please search again",
+                show_alert=True
+            )
+
         if query.from_user.id != owner_id:
-            return await query.answer(
+             return await query.answer(
                 "🚫 ɴᴏᴛ ʏᴏᴜʀ ʀᴇǫᴜᴇsᴛ ʙᴜᴅᴅʏ !!",
                 show_alert=True
-			)
+			 )
         if key not in temp.SMART_FILTERS:
             return await query.answer(
                 "❌ Session expired, please search again",
@@ -773,26 +794,33 @@ async def filter_language_cb_handler(client: Client, query: CallbackQuery):
         offset = 0
 
         # 🔐 STRICT OWNERSHIP CHECK (ADD HERE)
-        owner_id = int(key.split("-")[1])
+        owner_id = temp.OWNER.get(key)
+
+        if owner_id is None:
+             return await query.answer(
+                "❌ Session expired, please search again",
+                show_alert=True
+            )
+
         if query.from_user.id != owner_id:
-            return await query.answer(
+             return await query.answer(
                 "🚫 ɴᴏᴛ ʏᴏᴜʀ ʀᴇǫᴜᴇsᴛ ʙᴜᴅᴅʏ !!",
                 show_alert=True
-			)
+			 )
 
         message = query.message
         chat_id = message.chat.id
         req = query.from_user.id
 
         # 🔐 Ownership check
-        try:
-            if int(query.from_user.id) not in [message.reply_to_message.from_user.id, 0]:
-                return await query.answer(
-                    f"⚠️ Hello {query.from_user.first_name}, this is not your request.",
-                    show_alert=True,
-                )
-        except:
-            pass
+        #try:
+            #if int(query.from_user.id) not in [message.reply_to_message.from_user.id, 0]:
+                #return await query.answer(
+                    #f"⚠️ Hello {query.from_user.first_name}, this is not your request.",
+                   # show_alert=True,
+                #)
+       # except:
+           # pass
         # ================= SAVE ACTIVE FILTER STATE =================
         if not hasattr(temp, "ACTIVE_FILTER"):
             temp.ACTIVE_FILTER = {}
@@ -1038,12 +1066,19 @@ async def smart_seasons_cb(client: Client, query: CallbackQuery):
         offset = int(offset)
 
         # 🔐 STRICT OWNERSHIP CHECK (ADD HERE)
-        owner_id = int(key.split("-")[1])
+        owner_id = temp.OWNER.get(key)
+
+        if owner_id is None:
+             return await query.answer(
+                "❌ Session expired, please search again",
+                show_alert=True
+            )
+
         if query.from_user.id != owner_id:
-            return await query.answer(
+             return await query.answer(
                 "🚫 ɴᴏᴛ ʏᴏᴜʀ ʀᴇǫᴜᴇsᴛ ʙᴜᴅᴅʏ !!",
                 show_alert=True
-			)
+			 )
         if key not in temp.SMART_FILTERS:
             return await query.answer(
                 "❌ Session expired, please search again",
@@ -1112,28 +1147,36 @@ async def filter_season_cb_handler(client: Client, query: CallbackQuery):
         offset = 0
 
         # 🔐 STRICT OWNERSHIP CHECK (ADD HERE)
-        owner_id = int(key.split("-")[1])
+        # 🔐 STRICT OWNERSHIP CHECK (SAFE)
+        owner_id = temp.OWNER.get(key)
+
+        if owner_id is None:
+             return await query.answer(
+                "❌ Session expired, please search again",
+                show_alert=True
+            )
+
         if query.from_user.id != owner_id:
-            return await query.answer(
+             return await query.answer(
                 "🚫 ɴᴏᴛ ʏᴏᴜʀ ʀᴇǫᴜᴇsᴛ ʙᴜᴅᴅʏ !!",
                 show_alert=True
-			)
+	        )
 
         message = query.message
         chat_id = message.chat.id
         req = query.from_user.id
 
         # 🔐 Ownership check
-        try:
-            if int(query.from_user.id) not in [
-                message.reply_to_message.from_user.id, 0
-            ]:
-                return await query.answer(
-                    f"⚠️ Hello {query.from_user.first_name}, this is not your request.",
-                    show_alert=True,
-                )
-        except:
-            pass
+        #try:
+            #if int(query.from_user.id) not in [
+                #message.reply_to_message.from_user.id, 0
+            #]:
+                #return await query.answer(
+                    #f"⚠️ Hello {query.from_user.first_name}, this is not your request.",
+                    #show_alert=True,
+                #)
+        #except:
+            #pass
 
         # ================= SAVE ACTIVE FILTER STATE =================
         if not hasattr(temp, "ACTIVE_FILTER"):
@@ -2249,6 +2292,9 @@ async def auto_filter(client, msg, spoll=False):
             files, offset, total_results = await get_search_results(message.chat.id ,search, offset=0, filter=True)
             uid = message.from_user.id if message.from_user else 0
             key = f"{message.chat.id}-{uid}"
+			if not hasattr(temp, "OWNER"):
+                temp.OWNER = {}
+            temp.OWNER[key] = uid
             settings = await get_settings(message.chat.id)
 
             if not hasattr(temp, "PAGE_STATE"):
