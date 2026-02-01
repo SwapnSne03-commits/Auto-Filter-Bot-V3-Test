@@ -426,6 +426,7 @@ async def filter_qualities_cb_handler(client: Client, query: CallbackQuery):
                     n_offset = ""
             # 🔍 FILTER MODE (quality selected)
             else:
+                offset = 0
                 # 1️⃣ সব ফাইল থেকে filter করো
                 filtered_files = [
                     f for f in all_files
@@ -727,6 +728,7 @@ async def filter_language_cb_handler(client: Client, query: CallbackQuery):
                     n_offset = ""
             # 🔍 FILTER MODE (quality selected)
             else:
+                offset = 0
                 aliases = SMART_LANG_MAP.get(lang, {}).get("aliases", [])
                 # 1️⃣ সব ফাইল থেকে filter করো
                 filtered_files = [
@@ -1036,6 +1038,7 @@ async def filter_season_cb_handler(client: Client, query: CallbackQuery):
                     n_offset = ""
             # 🔍 FILTER MODE (season selected)
             else:
+                offset = 0
                 filtered_files = [
                     f for f in all_files
                     if seas.lower() in (f.file_name or "").lower()
