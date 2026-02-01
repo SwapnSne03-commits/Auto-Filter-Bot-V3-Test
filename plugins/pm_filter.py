@@ -430,6 +430,14 @@ async def filter_qualities_cb_handler(client: Client, query: CallbackQuery):
         _, qual, key, _ = query.data.split("#")
         offset = 0
 
+         # 🔐 STRICT OWNERSHIP CHECK (ADD HERE)
+        owner_id = int(key.split("-")[1])
+        if query.from_user.id != owner_id:
+            return await query.answer(
+                "🚫 ɴᴏᴛ ʏᴏᴜʀ ʀᴇǫᴜᴇsᴛ ʙᴜᴅᴅʏ !!",
+                show_alert=True
+			)
+
         message = query.message
         chat_id = message.chat.id
         req = query.from_user.id
@@ -749,6 +757,14 @@ async def filter_language_cb_handler(client: Client, query: CallbackQuery):
     try:
         _, lang, key, _ = query.data.split("#")
         offset = 0
+
+        # 🔐 STRICT OWNERSHIP CHECK (ADD HERE)
+        owner_id = int(key.split("-")[1])
+        if query.from_user.id != owner_id:
+            return await query.answer(
+                "🚫 ɴᴏᴛ ʏᴏᴜʀ ʀᴇǫᴜᴇsᴛ ʙᴜᴅᴅʏ !!",
+                show_alert=True
+			)
 
         message = query.message
         chat_id = message.chat.id
@@ -1073,6 +1089,14 @@ async def filter_season_cb_handler(client: Client, query: CallbackQuery):
     try:
         _, seas, key, _ = query.data.split("#")
         offset = 0
+
+        # 🔐 STRICT OWNERSHIP CHECK (ADD HERE)
+        owner_id = int(key.split("-")[1])
+        if query.from_user.id != owner_id:
+            return await query.answer(
+                "🚫 ɴᴏᴛ ʏᴏᴜʀ ʀᴇǫᴜᴇsᴛ ʙᴜᴅᴅʏ !!",
+                show_alert=True
+			)
 
         message = query.message
         chat_id = message.chat.id
