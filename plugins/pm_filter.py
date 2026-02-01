@@ -476,7 +476,6 @@ async def filter_qualities_cb_handler(client: Client, query: CallbackQuery):
                     show_alert=True
                 )
 
-            temp.GETALL[key] = files
 
         # ================= BUILD FILE BUTTONS =================
         settings = await get_settings(chat_id)
@@ -787,7 +786,6 @@ async def filter_language_cb_handler(client: Client, query: CallbackQuery):
                     show_alert=True
                 )
 
-            temp.GETALL[key] = files
 
         # ================= BUILD FILE BUTTONS =================
         settings = await get_settings(chat_id)
@@ -1085,8 +1083,6 @@ async def filter_season_cb_handler(client: Client, query: CallbackQuery):
                     "🚫 ɴᴏ ꜰɪʟᴇꜱ ᴡᴇʀᴇ ꜰᴏᴜɴᴅ 🚫",
                     show_alert=True
                 )
-
-            temp.GETALL[key] = files
 
         # ================= BUILD RESULT BUTTONS =================
         settings = await get_settings(chat_id)
