@@ -2200,7 +2200,11 @@ async def auto_filter(client, msg, spoll=False):
         await msg.message.delete()
     key = f"{message.chat.id}-{message.from_user.id}"
     FRESH[key] = search
-    temp.GETALL[key] = files
+    if SMART_SELECTION_MODE:
+        # already stored full result earlier, do nothing
+        pass
+    else:
+        temp.GETALL[key] = files
     temp.SHORT[message.from_user.id] = message.chat.id
     if settings.get('button'):
         btn = [
