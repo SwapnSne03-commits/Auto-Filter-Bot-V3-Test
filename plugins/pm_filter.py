@@ -384,8 +384,8 @@ async def qualities_router(client: Client, query: CallbackQuery):
 @Client.on_callback_query(filters.regex(r"^fq#"))
 async def filter_qualities_cb_handler(client: Client, query: CallbackQuery):
     try:
-        _, qual, key, offset = query.data.split("#")
-        offset = int(offset)
+        _, qual, key, _ = query.data.split("#")
+        offset = 0
 
         message = query.message
         chat_id = message.chat.id
@@ -685,8 +685,8 @@ async def languages_router(client: Client, query: CallbackQuery):
 @Client.on_callback_query(filters.regex(r"^fl#"))
 async def filter_language_cb_handler(client: Client, query: CallbackQuery):
     try:
-        _, lang, key, offset = query.data.split("#")
-        offset = int(offset)
+        _, lang, key, _ = query.data.split("#")
+        offset = 0
 
         message = query.message
         chat_id = message.chat.id
@@ -993,8 +993,8 @@ async def seasons_router(client: Client, query: CallbackQuery):
 @Client.on_callback_query(filters.regex(r"^fs#"))
 async def filter_season_cb_handler(client: Client, query: CallbackQuery):
     try:
-        _, seas, key, offset = query.data.split("#")
-        offset = int(offset)
+        _, seas, key, _ = query.data.split("#")
+        offset = 0
 
         message = query.message
         chat_id = message.chat.id
