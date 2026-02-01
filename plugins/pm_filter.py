@@ -501,10 +501,12 @@ async def filter_qualities_cb_handler(client: Client, query: CallbackQuery):
         if n_offset != "":
             try:
                 per_page = 10 if settings.get("max_btn") else int(MAX_B_TN)
+                current_page = (offset // per_page) + 1
+                total_pages = math.ceil(total_results / per_page)
                 btn.append([
                     InlineKeyboardButton("ᴘᴀɢᴇ", callback_data="pages"),
                     InlineKeyboardButton(
-                        text=f"1/{math.ceil(total_results / per_page)}",
+                        text=f"{current_page}/{total_pages}",
                         callback_data="pages"
                     ),
                     InlineKeyboardButton(
@@ -805,13 +807,18 @@ async def filter_language_cb_handler(client: Client, query: CallbackQuery):
         ])
 
         # 🔽 Pagination (ONLY old mode OR restored homepage)
+        # 🔽 Pagination
         if n_offset != "":
             try:
                 per_page = 10 if settings.get("max_btn") else int(MAX_B_TN)
+
+                current_page = (offset // per_page) + 1
+                total_pages = math.ceil(total_results / per_page)
+
                 btn.append([
                     InlineKeyboardButton("ᴘᴀɢᴇ", callback_data="pages"),
                     InlineKeyboardButton(
-                        text=f"1/{math.ceil(total_results / per_page)}",
+                        text=f"{current_page}/{total_pages}",
                         callback_data="pages"
                     ),
                     InlineKeyboardButton(
@@ -822,14 +829,12 @@ async def filter_language_cb_handler(client: Client, query: CallbackQuery):
             except:
                 pass
         else:
-            # ℹ️ only one page
             btn.append([
                 InlineKeyboardButton(
                     text="↭ ɴᴏ ᴍᴏʀᴇ ᴘᴀɢᴇꜱ ᴀᴠᴀɪʟᴀʙʟᴇ ↭",
                     callback_data="pages"
                 )
             ])
-
         # ================= SEND UPDATE =================
         try:
             if settings.get("button"):
@@ -1021,7 +1026,7 @@ async def filter_season_cb_handler(client: Client, query: CallbackQuery):
                 state = temp.PAGE_STATE.get(key, {})
                 per_page = state.get("per_page", 10)
                 total_results = state.get("total_results", len(all_files))
-                n_offset = state.get("current_offset", 0)
+                offset = state.get("current_offset", 0)
 
                 files = files[offset: offset + per_page]
 
@@ -1101,31 +1106,34 @@ async def filter_season_cb_handler(client: Client, query: CallbackQuery):
         ])
 
         # 🔽 Pagination handling (ONLY old mode)
-        if not SMART_SELECTION_MODE:
-            if n_offset:
-                try:
-                    per_page = 10 if settings.get("max_btn") else int(MAX_B_TN)
-                    btn.append([
-                        InlineKeyboardButton("ᴘᴀɢᴇ", callback_data="pages"),
-                        InlineKeyboardButton(
-                            text=f"1/{math.ceil(total_results / per_page)}",
-                            callback_data="pages"
-                        ),
-                        InlineKeyboardButton(
-                            "ɴᴇxᴛ ⋟",
-                            callback_data=f"next_{req}_{key}_{n_offset}"
-                        )
-                    ])
-                except:
-                    pass
-            else:
-                # ✅ single page → inactive info button
+        # 🔽 Pagination
+        if n_offset != "":
+            try:
+                per_page = 10 if settings.get("max_btn") else int(MAX_B_TN)
+
+                current_page = (offset // per_page) + 1
+                total_pages = math.ceil(total_results / per_page)
+
                 btn.append([
+                    InlineKeyboardButton("ᴘᴀɢᴇ", callback_data="pages"),
                     InlineKeyboardButton(
-                        text="↭ ɴᴏ ᴍᴏʀᴇ ᴘᴀɢᴇꜱ ᴀᴠᴀɪʟᴀʙʟᴇ ↭",
+                        text=f"{current_page}/{total_pages}",
                         callback_data="pages"
+                    ),
+                    InlineKeyboardButton(
+                        "ɴᴇxᴛ ⋟",
+                        callback_data=f"next_{req}_{key}_{n_offset}"
                     )
                 ])
+            except:
+                pass
+        else:
+            btn.append([
+                InlineKeyboardButton(
+                    text="↭ ɴᴏ ᴍᴏʀᴇ ᴘᴀɢᴇꜱ ᴀᴠᴀɪʟᴀʙʟᴇ ↭",
+                    callback_data="pages"
+                )
+            ])
 
         # ================= SEND UPDATE =================
         try:
@@ -2110,7 +2118,7 @@ async def auto_filter(client, msg, spoll=False):
             temp.PAGE_STATE[key] = {
                 "total_results": total_results,
                 "per_page": per_page,
-                "current_offset": offset,
+                "current_offset": 0,
 			} # normally 0
             # ================= SMART MODE DETECTION =================
             # ================= SMART MODE: COLLECT ALL FILES =================
