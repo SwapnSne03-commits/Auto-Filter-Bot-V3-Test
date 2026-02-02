@@ -498,9 +498,11 @@ async def start(client, message):
     f_caption = files.caption
     settings = await get_settings(int(grp_id))
     # ✅ DAILY LIMIT CHECK (single file only)
+    user_id = message.from_user.id
     if DAILY_LIMIT:
+        is_admin = user_id in ADMINS
         is_premium = await db.has_premium_access(message.from_user.id)
-        if not is_premium:
+        if not is_admin and not is_premium:
             if not check_daily_limit(message.from_user.id, DAILY_TOTAL_LIMIT):
                 await message.reply_text(
                     f"🚫 <b>ᴅᴀɪʟʏ ʟɪᴍɪᴛ ʀᴇᴀᴄʜᴇᴅ</b>\n\n"
@@ -539,11 +541,17 @@ async def start(client, message):
         reply_markup=InlineKeyboardMarkup(btn)
     )
 
-    k = await msg.reply(f"<b><u>❗️❗️❗️IMPORTANT❗️️❗️❗️</u>\n\n ᴛʜɪꜱ ᴍᴏᴠɪᴇ ꜰɪʟᴇ/ᴠɪᴅᴇᴏ ᴡɪʟʟ ʙᴇ ᴅᴇʟᴇᴛᴇᴅ ɪɴ {get_time(DELETE_TIME)} 🫥 (ᴅᴜᴇ ᴛᴏ ᴄᴏᴘʏʀɪɢʜᴛ ɪꜱꜱᴜᴇꜱ).\n\n ғᴏʀᴡᴀʀᴅ ᴛʜɪꜱ ғɪʟᴇs ᴛo sᴏᴍᴇᴡʜᴇʀᴇ ᴇʟsᴇ ᴀɴᴅ sᴛᴀʀᴛ ᴅᴏᴡɴʟᴏᴀᴅ ᴛʜᴇʀᴇ.</b>", quote=True)     
+    #k = await msg.reply(f"<b><u>❗️❗️❗️IMPORTANT❗️️❗️❗️</u>\n\n ᴛʜɪꜱ ᴍᴏᴠɪᴇ ꜰɪʟᴇ/ᴠɪᴅᴇᴏ ᴡɪʟʟ ʙᴇ ᴅᴇʟᴇᴛᴇᴅ ɪɴ {get_time(DELETE_TIME)} 🫥 (ᴅᴜᴇ ᴛᴏ ᴄᴏᴘʏʀɪɢʜᴛ ɪꜱꜱᴜᴇꜱ).\n\n ғᴏʀᴡᴀʀᴅ ᴛʜɪꜱ ғɪʟᴇs ᴛo sᴏᴍᴇᴡʜᴇʀᴇ ᴇʟsᴇ ᴀɴᴅ sᴛᴀʀᴛ ᴅᴏᴡɴʟᴏᴀᴅ ᴛʜᴇʀᴇ.</b>", quote=True)     
 
     # ✅ DAILY LIMIT COUNT (single file only)
-    if DAILY_LIMIT and not await db.has_premium_access(message.from_user.id):
-        increase_daily_count(message.from_user.id)
+    user_id = message.from_user.id
+
+    if DAILY_LIMIT:
+        is_admin = user_id in ADMINS
+        is_premium = await db.has_premium_access(user_id)
+
+        if not is_admin and not is_premium:
+            increase_daily_count(user_id)
     k = await msg.reply(f"<b><u>❗️❗️❗️IMPORTANT❗️️❗️❗️</u>\n\n ᴛʜɪꜱ ᴍᴏᴠɪᴇ ꜰɪʟᴇ/ᴠɪᴅᴇᴏ ᴡɪʟʟ ʙᴇ ᴅᴇʟᴇᴛᴇᴅ ɪɴ {get_time(DELETE_TIME)} 🫥 (ᴅᴜᴇ ᴛᴏ ᴄᴏᴘʏʀɪɢʜᴛ ɪꜱꜱᴜᴇꜱ).\n\n ғᴏʀᴡᴀʀᴅ ᴛʜɪꜱ ғɪʟᴇs ᴛo sᴏᴍᴇᴡʜᴇʀᴇ ᴇʟsᴇ ᴀɴᴅ sᴛᴀʀᴛ ᴅᴏᴡɴʟᴏᴀᴅ ᴛʜᴇʀᴇ.</b>", quote=True)     
     await asyncio.sleep(DELETE_TIME)
     await msg.delete()
