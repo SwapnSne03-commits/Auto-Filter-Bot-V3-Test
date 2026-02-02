@@ -500,9 +500,9 @@ async def start(client, message):
     # ✅ DAILY LIMIT CHECK (single file only)
     user_id = message.from_user.id
     if DAILY_LIMIT:
-        is_admin = user_id in ADMINS
+        is_limit_less = user_id in LIMIT_LESS_USERS
         is_premium = await db.has_premium_access(message.from_user.id)
-        if not is_admin and not is_premium:
+        if not is_limit_less and not is_premium:
             if not check_daily_limit(message.from_user.id, DAILY_TOTAL_LIMIT):
                 await message.reply_text(
                     f"🚫 <b>ᴅᴀɪʟʏ ʟɪᴍɪᴛ ʀᴇᴀᴄʜᴇᴅ</b>\n\n"
@@ -547,10 +547,10 @@ async def start(client, message):
     user_id = message.from_user.id
 
     if DAILY_LIMIT:
-        is_admin = user_id in ADMINS
+        is_limit_less = user_id in LIMIT_LESS_USERS
         is_premium = await db.has_premium_access(user_id)
 
-        if not is_admin and not is_premium:
+        if not is_limit_less and not is_premium:
             increase_daily_count(user_id)
     k = await msg.reply(f"<b><u>❗️❗️❗️IMPORTANT❗️️❗️❗️</u>\n\n ᴛʜɪꜱ ᴍᴏᴠɪᴇ ꜰɪʟᴇ/ᴠɪᴅᴇᴏ ᴡɪʟʟ ʙᴇ ᴅᴇʟᴇᴛᴇᴅ ɪɴ {get_time(DELETE_TIME)} 🫥 (ᴅᴜᴇ ᴛᴏ ᴄᴏᴘʏʀɪɢʜᴛ ɪꜱꜱᴜᴇꜱ).\n\n ғᴏʀᴡᴀʀᴅ ᴛʜɪꜱ ғɪʟᴇs ᴛo sᴏᴍᴇᴡʜᴇʀᴇ ᴇʟsᴇ ᴀɴᴅ sᴛᴀʀᴛ ᴅᴏᴡɴʟᴏᴀᴅ ᴛʜᴇʀᴇ.</b>", quote=True)     
     await asyncio.sleep(DELETE_TIME)
