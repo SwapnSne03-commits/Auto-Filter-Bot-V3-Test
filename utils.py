@@ -51,8 +51,6 @@ class temp(object):
     SHORT = {}
     IMDB_CAP = {}
     VERIFICATIONS = {}
-
-
     DAILY_USAGE = {} 
 
 def today_date():
@@ -77,46 +75,6 @@ def increase_daily_count(user_id):
         temp.DAILY_USAGE[user_id] = {"date": today, "count": 1}
     else:
         temp.DAILY_USAGE[user_id]["count"] += 1
-
-def clean_search_query(query: str) -> str:
-    query = QUALITY_REGEX.sub('', query)
-    query = re.sub(r'\s+', ' ', query).strip()
-    return query
-    
-def normalize_title(text: str) -> str:
-    if not text:
-        return ""
-    text = unicodedata.normalize("NFKD", text)
-    text = text.encode("ascii", "ignore").decode("ascii")
-    text = text.lower()
-    text = re.sub(r"[^a-z0-9\s]", " ", text)
-    text = re.sub(r"\s+", " ", text).strip()
-    return text
-
-
-def rank_by_exact_match(results, user_query):
-    q = normalize_title(user_query)
-
-    exact = []
-    close = []
-    others = []
-
-    for m in results:
-        title = normalize_title(m.title)
-
-        if title == q:
-            exact.append(m)
-        elif q in title or title in q:
-            close.append(m)
-        else:
-            others.append(m)
-
-    return exact + close + others
-    
-def prioritize_movie(results):
-    movies = [m for m in results if m.kind == "movie"]
-    tvs = [m for m in results if m.kind != "movie"]
-    return movies + tvs
 
 
 def get_main_buttons():
