@@ -52,7 +52,6 @@ class temp(object):
     IMDB_CAP = {}
     VERIFICATIONS = {}
     DAILY_USAGE = {} 
-    OWNER = ADMINS  # alias for backward compatibility
 
 def today_date():
     return datetime.now().strftime("%Y-%m-%d")
