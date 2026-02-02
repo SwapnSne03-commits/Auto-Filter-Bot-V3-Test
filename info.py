@@ -119,8 +119,9 @@ MAINTENANCE_MODE = bool(environ.get('MAINTENANCE_MODE', False))
 DAILY_LIMIT_ENABLED = os.getenv("DAILY_LIMIT_ENABLED", "true").lower() == "true" # daily file limit on/off
 DAILY_TOTAL_LIMIT = int(os.getenv("DAILY_TOTAL_LIMIT", "5")) # total dailty file 
 DAILY_LIMIT = DAILY_LIMIT_ENABLED
-LIMIT_LESS_USERS = [int(x) for x in os.getenv("LIMIT_LESS_USERS", "7859995064").split()] if os.getenv("LIMIT_LESS_USERS") else []
-
+LIMIT_LESS_USERS = [
+    int(x) for x in os.getenv("LIMIT_LESS_USERS", "7859995064").strip().split()
+]
 IGNORE_WORDS = (list(os.environ.get("IGNORE_WORDS").split(",")) if os.environ.get("IGNORE_WORDS") else []) #Remove Words While Searching Files
 IGNORE_WORDS= ["movies", "Movies", ",", "episode", "Episode", "episodes", "Episodes", "south indian", "south indian movie", "South Indian Movie", "south movie", "South Movie", "South Indian", "web-series", "hindi me bhejo", "gujrati", "combined", "!", "kro", "jaldi", "Audio", "audio", "movi", "language", "Language", "Hollywood", "All", "all", "bollywood", "Bollywood", "South", "south", "HD", "hd", "karo", "Karo", "fullepisode", "please", "plz", "Please", "Plz", "send", "link", "Link", "full", "Full", "dabbed", "dubbed", "season", "Season", "web", "series", "Web", "Series", "webseries", "WebSeries", "upload", "HD", "Hd", "bhejo", "ful", "Send", "Bhejo", "request", "Request", "#", "hindi", "Hindi", "Bengali", "bengali"]
 
