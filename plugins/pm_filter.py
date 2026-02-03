@@ -499,7 +499,7 @@ async def filter_qualities_cb_handler(client: Client, query: CallbackQuery):
                 files = all_files
 
                 # 🔄 restore pagination state
-                state = temp.PAGE_STATE.get(key, {})
+                state = temp.MAIN_STATE.get(key, {})
                 per_page = state.get("per_page", 10)
                 total_results = state.get("total_results", len(all_files))
 
@@ -845,7 +845,7 @@ async def filter_language_cb_handler(client: Client, query: CallbackQuery):
                 files = all_files
 
                 # 🔄 restore pagination state
-                state = temp.PAGE_STATE.get(key, {})
+                state = temp.MAIN_STATE.get(key, {})
                 per_page = state.get("per_page", 10)
                 total_results = state.get("total_results", len(all_files))
                 #offset = state.get("current_offset", 0)
@@ -1203,7 +1203,7 @@ async def filter_season_cb_handler(client: Client, query: CallbackQuery):
                 files = all_files
 
                 # ✅ restore pagination state
-                state = temp.PAGE_STATE.get(key, {})
+                state = temp.MAIN_STATE.get(key, {})
                 per_page = state.get("per_page", 10)
                 total_results = state.get("total_results", len(all_files))
                 #offset = state.get("current_offset", 0)
@@ -2302,11 +2302,21 @@ async def auto_filter(client, msg, spoll=False):
 
             per_page = 10 if settings.get("max_btn") else int(MAX_B_TN)
 
+            # ✅ MAIN STATE (never change, original search)
+            if not hasattr(temp, "MAIN_STATE"):
+                temp.MAIN_STATE = {}
+
+            temp.MAIN_STATE[key] = {
+                "total_results": total_results,
+                "per_page": per_page
+            }
+
+            # ✅ CURRENT STATE (can change by filter)
             temp.PAGE_STATE[key] = {
                 "total_results": total_results,
                 "per_page": per_page,
-                "current_offset": 0,
-			} # normally 0
+                "current_offset": 0
+            }
             # ================= SMART MODE DETECTION =================
             # ================= SMART MODE: COLLECT ALL FILES =================
             if SMART_SELECTION_MODE:
