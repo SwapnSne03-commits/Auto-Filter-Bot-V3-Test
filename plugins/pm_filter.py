@@ -2291,7 +2291,7 @@ async def auto_filter(client, msg, spoll=False):
             m=await message.reply_text(f'<b>Wait {message.from_user.mention} Searching Your Query: <i>{search}...</i></b>', reply_to_message_id=message.id)
             files, offset, total_results = await get_search_results(message.chat.id ,search, offset=0, filter=True)
             uid = message.from_user.id if message.from_user else 0
-            key = f"{message.chat.id}-{uid}"
+            key = f"{message.chat.id}-{message.id}"
             if not hasattr(temp, "OWNER"):
                 temp.OWNER = {}
             temp.OWNER[key] = uid
@@ -2384,7 +2384,7 @@ async def auto_filter(client, msg, spoll=False):
         m=await message.reply_text(f'<b>Wᴀɪᴛ {message.from_user.mention} Sᴇᴀʀᴄʜɪɴɢ Yᴏᴜʀ Qᴜᴇʀʏ :<i>{search}...</i></b>', reply_to_message_id=message.id)
         settings = await get_settings(message.chat.id)
         await msg.message.delete()
-    key = f"{message.chat.id}-{message.from_user.id}"
+    key = f"{message.chat.id}-{message.id}"
     FRESH[key] = search
     if SMART_SELECTION_MODE:
         # already stored full result earlier, do nothing
