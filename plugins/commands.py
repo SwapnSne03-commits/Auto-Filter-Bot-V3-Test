@@ -570,6 +570,37 @@ async def log_file(bot, message):
         caption="📄 Bot Logs"
     )
 
+@Client.on_message(filters.command("help") & filters.private)
+async def help_cmd(client, message):
+
+    text = (
+        "📚 <b>Search Guide</b>\n\n"
+
+        "🎬 <b>Movies:</b>\n"
+        "• Movie Name + Year\n"
+        "• Example → <code>RRR 2022</code>\n\n"
+
+        "📺 <b>Series:</b>\n"
+        "• Name + Season → <code>Kurukshetra S01</code>\n"
+        "• Episode → <code>Kurukshetra S01E05</code>\n\n"
+
+        "⚡ <b>Tips for better results:</b>\n"
+        "• Don't use special symbols → <code>: ; ' \" * , . - _ #</code>\n"
+        "• If the title is long, search using only first 3–4 words\n"
+        "• You can add quality/language → <code>1080p Hindi Tamil</code>\n\n"
+
+        "🍿 <b>Send your query now!</b>"
+    )
+
+    btn = [[
+        InlineKeyboardButton("📩 ʀᴇǫᴜᴇsᴛ ʜᴇʀᴇ", url=GRP_LNK)
+    ]]
+
+    await message.reply_text(
+        text,
+        reply_markup=InlineKeyboardMarkup(btn),
+        disable_web_page_preview=True
+    )
 
 @Client.on_message(filters.command('delete') & filters.user(ADMINS))
 async def delete(bot, message):
@@ -850,6 +881,50 @@ async def connect_group(client, message):
             await message.reply_text(f"Linked {chat.title} to PM.")
         except:
             await message.reply_text("Invalid group ID or error occurred.")
+
+@Client.on_message(filters.command("request") & filters.private)
+async def private_request(bot, message):
+
+    if REQST_CHANNEL is None:
+        return
+
+    reporter = str(message.from_user.id)
+    mention = message.from_user.mention
+
+    # /request Movie Name → extract text safely
+    parts = message.text.split(maxsplit=1)
+
+    if len(parts) == 1:
+        return await message.reply_text("<b>🎬 Please provide the name of movie/series\n\n 📝 Examples:\n /request Eko 2025\n /request True Detective S04</b>")
+
+    content = parts[1].strip()
+
+    if len(content) < 3:
+        return await message.reply_text(
+            "<b><Request must be at least 3 characters.\n\nMovie/Series Neme:\nYear:\nLanguage:</b>"
+        )
+
+    # ✅ SAME admin buttons (same as group)
+    btn = [[
+        InlineKeyboardButton(
+            "ꜱʜᴏᴡ ᴏᴘᴛɪᴏɴꜱ",
+            callback_data=f"show_option#{reporter}"
+        )
+    ]]
+
+    await bot.send_message(
+        chat_id=REQST_CHANNEL,
+        text=(
+            f"<b>📝 ʀᴇǫᴜᴇꜱᴛ : <u>{content}</u>\n\n"
+            f"📚 ʀᴇᴘᴏʀᴛᴇᴅ ʙʏ : {mention}\n"
+            f"📖 ʀᴇᴘᴏʀᴛᴇʀ ɪᴅ : {reporter}</b>"
+        ),
+        reply_markup=InlineKeyboardMarkup(btn)
+    )
+
+    await message.reply_text(
+        "<b>✅ ʏᴏᴜʀ ʀᴇǫᴜᴇsᴛ sᴜᴄᴄᴇssғᴜʟʟʏ sᴇɴᴛ ᴛᴏ ᴀᴅᴍɪɴ.\nᴋɪɴᴅʟʏ ᴡᴀɪᴛ ғᴏʀ ʀᴇᴘʟʏ.</b>"
+    )
 
 @Client.on_message((filters.command(["request", "Request"]) | filters.regex("#request") | filters.regex("#Request")) & filters.group)
 async def requests(bot, message):
