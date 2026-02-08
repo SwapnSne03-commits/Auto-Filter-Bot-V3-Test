@@ -1112,14 +1112,14 @@ async def smart_seasons_cb(client: Client, query: CallbackQuery):
 
         btn.insert(0, [
             InlineKeyboardButton(
-                "⇊ ꜱᴇʟᴇᴄᴛ Sᴇᴀꜱᴏɴ ⇊",
+                "⇊ ꜱᴇʟᴇᴄᴛ sᴇᴀꜱᴏɴ ⇊",
                 callback_data="ident"
             )
         ])
 
         btn.append([
             InlineKeyboardButton(
-                "↭ ʙᴀᴄᴋ ᴛᴏ ꜰɪʟᴇs ↭",
+                "⋞ ʙᴀᴄᴋ ᴛᴏ ꜰɪʟᴇs",
                 callback_data=f"fl#homepage#{key}#0"
             )
         ])
