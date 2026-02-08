@@ -1038,7 +1038,7 @@ async def old_seasons_cb(client: Client, query: CallbackQuery):
 
         btn.insert(0, [
             InlineKeyboardButton(
-                text="⇊ ꜱᴇʟᴇᴄᴛ Sᴇᴀsᴏɴ ⇊",
+                text="⇊ ꜱᴇʟᴇᴄᴛ sᴇᴀsᴏɴ ⇊",
                 callback_data="ident"
             )
         ])
@@ -2376,10 +2376,10 @@ async def auto_filter(client, msg, spoll=False):
             # ========================================================
             if not files:
                 if settings["spell_check"]:
-                    ai_sts = await m.edit('🤖 ᴘʟᴇᴀꜱᴇ ᴡᴀɪᴛ, ᴀɪ ɪꜱ ᴄʜᴇᴄᴋɪɴɢ ʏᴏᴜʀ ꜱᴘᴇʟʟɪɴɢ...')
+                    ai_sts = await m.edit('<b>Fixing Spelling With AI</b>🕵️')
                     is_misspelled = await ai_spell_check(chat_id = message.chat.id,wrong_name=search)
                     if is_misspelled:
-                        await ai_sts.edit(f'<b>✅Aɪ Sᴜɢɢᴇsᴛᴇᴅ ᴍᴇ<code> {is_misspelled}</code> \nSᴏ Iᴍ Sᴇᴀʀᴄʜɪɴɢ ғᴏʀ <code>{is_misspelled}</code></b>')
+                        await ai_sts.edit(f'<b>🕵️ I Get Correct Spelling -<code> {is_misspelled}</code>\n✅ Now I am Searching With This -<code> {is_misspelled}</b>')
                         await asyncio.sleep(2)
                         message.text = is_misspelled
                         await ai_sts.delete()
@@ -2391,7 +2391,7 @@ async def auto_filter(client, msg, spoll=False):
     else:
         message = msg.message.reply_to_message
         search, files, offset, total_results = spoll
-        m=await message.reply_text(f'<b>Wᴀɪᴛ {message.from_user.mention} Sᴇᴀʀᴄʜɪɴɢ Yᴏᴜʀ Qᴜᴇʀʏ :<i>{search}...</i></b>', reply_to_message_id=message.id)
+        m=await message.reply_text(f'<b>✅ Wᴀɪᴛ {message.from_user.mention}\nAᴍ Sᴇᴀʀᴄʜɪɴɢ Yᴏᴜʀ Qᴜᴇʀʏ :<i>{search}...</i></b>', reply_to_message_id=message.id)
         settings = await get_settings(message.chat.id)
         await msg.message.delete()
     key = f"{message.chat.id}-{message.id}"
@@ -2503,9 +2503,9 @@ async def auto_filter(client, msg, spoll=False):
                 cap += f"\n\n<b>{file_num}. <a href='https://telegram.me/{temp.U_NAME}?start=file_{message.chat.id}_{file.file_id}'>{get_size(file.file_size)} | {clean_filename(file.file_name)}</a></b>"
     else:
         if settings.get('button'):
-            cap = f"<b><blockquote>Hᴇʏ,{message.from_user.mention}</blockquote>\n\n📂 Hᴇʀᴇ I Fᴏᴜɴᴅ Fᴏʀ Yᴏᴜʀ Sᴇᴀʀᴄʜ <code>{search}</code></b>\n\n"
+            cap = f"<b><blockquote>Hᴇʏ, {message.from_user.mention}</blockquote>\n\nʜᴇʀᴇ ɪ ꜰᴏᴜɴᴅ ꜰᴏʀ ʏᴏᴜʀ sᴇᴀʀᴄʜ <code>{search}</code>\n\n 🚧 ᴛʜɪꜱ ᴍᴇꜱꜱᴀɢᴇ ᴡɪʟʟ ʙᴇ ᴀᴜᴛᴏ ᴅᴇʟᴇᴛᴇ ᴀғᴛᴇʀ ғᴇᴡ ᴍɪɴᴜᴛᴇs.</b>"
         else:
-            cap = f"<b><blockquote>Hᴇʏ,{message.from_user.mention}</blockquote>\n\n📂 Hᴇʀᴇ I Fᴏᴜɴᴅ Fᴏʀ Yᴏᴜʀ Sᴇᴀʀᴄʜ <code>{search}</code></b>\n\n"            
+            cap = f"<b><blockquote>Hᴇʏ, {message.from_user.mention}</blockquote>\n\nʜᴇʀᴇ ɪ ꜰᴏᴜɴᴅ ꜰᴏʀ ʏᴏᴜʀ sᴇᴀʀᴄʜ <code>{search}</code>\n\n🚧 ᴛʜɪꜱ ᴍᴇꜱꜱᴀɢᴇ ᴡɪʟʟ ʙᴇ ᴀᴜᴛᴏ ᴅᴇʟᴇᴛᴇ ᴀғᴛᴇʀ ғᴇᴡ ᴍɪɴᴜᴛᴇs.</b>"            
             for file_num, file in enumerate(files, start=1):
                 cap += f"<b>{file_num}. <a href='https://telegram.me/{temp.U_NAME}?start=file_{message.chat.id}_{file.file_id}'>{get_size(file.file_size)} | {clean_filename(file.file_name)}\n\n</a></b>"                
     try:
@@ -2645,7 +2645,7 @@ async def advantage_spell_chok(client, message):
         for movie in movies
     ]
     buttons.append(
-        [InlineKeyboardButton(text="🚫 ᴄʟᴏsᴇ 🚫", callback_data='close_data')]
+        [InlineKeyboardButton(text="ᴄʟᴏsᴇ ❌", callback_data='close_data')]
     )
     d = await message.reply_text(text=script.CUDNT_FND.format(message.from_user.mention), reply_markup=InlineKeyboardMarkup(buttons), reply_to_message_id=message.id)
     await asyncio.sleep(60)
