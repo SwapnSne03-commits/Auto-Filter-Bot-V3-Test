@@ -52,6 +52,7 @@ class temp(object):
     IMDB_CAP = {}
     VERIFICATIONS = {}
     DAILY_USAGE = {} 
+    ACTIVE_FILTER = {}
 
 def today_date():
     return datetime.now().strftime("%Y-%m-%d")
