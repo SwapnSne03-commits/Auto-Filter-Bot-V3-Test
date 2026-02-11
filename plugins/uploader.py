@@ -7,7 +7,7 @@ from PIL import Image
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from telegraph import Telegraph
-from info import IMGBB_API_KEY
+from info import IMGBB_API_KEY, LOG_CHANNEL
 
 
 MAX_SIZE = 5 * 1024 * 1024
@@ -46,7 +46,7 @@ async def progress(msg, text):
 async def collect_media(client, message):
 
     ask = await message.reply_text(
-        f"📤 Send up to {MAX_BATCH} photos only\nSend /done when finished"
+        f"📤 **𝙎𝙚𝙣𝙙 𝙥𝙝𝙤𝙩𝙤𝙨 (max {MAX_BATCH})**\n🛑 /done 𝙬𝙝𝙚𝙣 𝙛𝙞𝙣𝙞𝙨𝙝𝙚𝙙"
     )
 
     paths = []
@@ -73,7 +73,7 @@ async def collect_media(client, message):
 
         paths.append(path)
 
-        await progress(ask, f"✅ Added {len(paths)} image(s)")
+        await progress(ask, f"✅ 𝘼𝙙𝙙𝙚𝙙 {len(paths)} 𝙞𝙢𝙖𝙜𝙚(s)")
 
     return paths, ask
 
@@ -81,23 +81,6 @@ async def collect_media(client, message):
 # =================================
 # 🔹 hosts
 # =================================
-def upload_telegraph(path):
-    with open(path, "rb") as f:
-        r = telegraph.upload_file(f)
-    return f"https://telegra.ph{r[0]}"
-
-
-def upload_catbox(path):
-    with open(path, "rb") as f:
-        r = requests.post(
-            "https://catbox.moe/user/api.php",
-            data={"reqtype": "fileupload"},
-            files={"fileToUpload": f},
-            timeout=30
-        )
-    return r.text.strip()
-
-
 def upload_imgbb(path):
     if not IMGBB_API_KEY:
         return None
@@ -113,12 +96,29 @@ def upload_imgbb(path):
     return r["data"]["url"]
 
 
+def upload_catbox(path):
+    with open(path, "rb") as f:
+        r = requests.post(
+            "https://catbox.moe/user/api.php",
+            data={"reqtype": "fileupload"},
+            files={"fileToUpload": f},
+            timeout=30
+        )
+    return r.text.strip()
+
+
+def upload_telegraph(path):
+    with open(path, "rb") as f:
+        r = telegraph.upload_file(f)
+    return f"https://telegra.ph{r[0]}"
+
+
 # =================================
-# 🔥 smart fallback upload
+# 🔥 smart fallback (BEST ORDER)
 # =================================
 async def smart_upload(path):
 
-    for func in [upload_telegraph, upload_catbox, upload_imgbb]:
+    for func in [upload_imgbb, upload_catbox, upload_telegraph]:
         try:
             url = await asyncio.to_thread(func, path)
             if url:
@@ -138,13 +138,13 @@ async def smart_uploader(client, message):
     paths, ask = await collect_media(client, message)
 
     if not paths:
-        return await ask.edit_text("❌ No images received")
+        return await ask.edit_text("❌ 𝙉𝙤 𝙞𝙢𝙖𝙜𝙚𝙨 𝙧𝙚𝙘𝙚𝙞𝙫𝙚𝙙")
 
     links = []
 
     for i, path in enumerate(paths, start=1):
 
-        await progress(ask, f"⬆️ Uploading {i}/{len(paths)} ...")
+        await progress(ask, f"⬆️ 𝙐𝙥𝙡𝙤𝙖𝙙𝙞𝙣𝙜 {i}/{len(paths)} ...")
 
         try:
             url = await smart_upload(path)
@@ -155,12 +155,31 @@ async def smart_uploader(client, message):
                 os.remove(path)
 
     if not links:
-        return await ask.edit_text("❌ Upload failed on all hosts")
+        return await ask.edit_text("❌ 𝙐𝙥𝙡𝙤𝙖𝙙 𝙛𝙖𝙞𝙡𝙚𝙙 𝙤𝙣 𝙖𝙡𝙡 𝙝𝙤𝙨𝙩𝙨")
 
+    # =================================
+    # 🔹 LOG CHANNEL
+    # =================================
+    try:
+        log_text = (
+            f"🖼 **Image Upload Log**\n\n"
+            f"👤 User : {message.from_user.mention}\n"
+            f"🆔 ID : `{message.from_user.id}`\n"
+            f"📦 Files : {len(links)}\n\n" +
+            "\n".join(links)
+        )
+
+        await client.send_message(LOG_CHANNEL, log_text, disable_web_page_preview=True)
+    except:
+        pass
+
+    # =================================
+    # 🔹 USER MESSAGE
+    # =================================
     await ask.edit_text(
-        "✅ Uploaded Successfully\n\n" + "\n".join(links),
+        "✅ **𝙐𝙥𝙡𝙤𝙖𝙙 𝘾𝙤𝙢𝙥𝙡𝙚𝙩𝙚!** 🎉\n\n" + "\n".join(links),
         disable_web_page_preview=True,
         reply_markup=InlineKeyboardMarkup([
-            [InlineKeyboardButton("🔗 Open First", url=links[0])]
+            [InlineKeyboardButton("🔗 𝙊𝙥𝙚𝙣 𝙁𝙞𝙧𝙨𝙩", url=links[0])]
         ])
-)
+        )
