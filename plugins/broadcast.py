@@ -1,284 +1,345 @@
-import datetime
-import time
-import os
 import asyncio
+import time
+import datetime
 from logging_helper import LOGGER
+
 from pyrogram import Client, filters
-from pyrogram.errors.exceptions.bad_request_400 import MessageTooLong
 from pyrogram.errors import FloodWait
+from pyrogram.errors.exceptions.bad_request_400 import MessageTooLong
+from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup
+
 from database.users_chats_db import db
 from info import ADMINS
-from utils import users_broadcast, groups_broadcast, temp, get_readable_time, clear_junk, junk_group
-from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup
-import logging
+from utils import (
+    users_broadcast,
+    groups_broadcast,
+    clear_junk,
+    junk_group,
+    temp,
+    get_readable_time
+)
+
+
+# =====================================================
+# ⚙️ GLOBAL SAFE SETTINGS (Koyeb Free Optimized)
+# =====================================================
+
+MIN_BATCH = 8
+MAX_BATCH = 35
+RETRY_LIMIT = 2
+DELAY = 0.02
 
 lock = asyncio.Lock()
 
+
+# =====================================================
+# 🔥 AUTO SPEED CONTROL
+# =====================================================
+
+def auto_batch_size(total):
+    if total < 1500:
+        return 30
+    elif total < 5000:
+        return 22
+    else:
+        return 15
+
+
+# =====================================================
+# 🔥 PROGRESS BAR
+# =====================================================
+
+def progress_bar(done, total):
+    percent = int((done / total) * 100) if total else 0
+    filled = percent // 5
+    return f"[{'█'*filled}{'░'*(20-filled)}] {percent}%"
+
+
+# =====================================================
+# 🔥 SAFE SEND WITH RETRY
+# =====================================================
+
+async def safe_user_send(uid, msg, is_pin):
+    for _ in range(RETRY_LIMIT):
+        try:
+            _, res = await users_broadcast(uid, msg, is_pin)
+            return res
+        except FloodWait as e:
+            await asyncio.sleep(e.value)
+        except Exception:
+            await asyncio.sleep(1)
+    return "Error"
+
+
+async def safe_group_send(cid, msg, is_pin):
+    for _ in range(RETRY_LIMIT):
+        try:
+            return await groups_broadcast(cid, msg, is_pin)
+        except FloodWait as e:
+            await asyncio.sleep(e.value)
+        except Exception:
+            await asyncio.sleep(1)
+    return "Error"
+
+
+# =====================================================
+# 🔥 CANCEL BUTTON
+# =====================================================
+
 @Client.on_callback_query(filters.regex(r'^broadcast_cancel'))
-async def broadcast_cancel(bot, query):
-    _, target = query.data.split("#", 1)
-    if target == 'users':
+async def cancel_broadcast(_, query):
+    target = query.data.split("#")[-1]
+
+    if target == "users":
         temp.B_USERS_CANCEL = True
-        await query.message.edit("🛑 ᴛʀʏɪɴɢ ᴛᴏ ᴄᴀɴᴄᴇʟ ᴜꜱᴇʀꜱ ʙʀᴏᴀᴅᴄᴀꜱᴛɪɴɢ...")
-    elif target == 'groups':
+    else:
         temp.B_GROUPS_CANCEL = True
-        await query.message.edit("🛑 ᴛʀʏɪɴɢ ᴛᴏ ᴄᴀɴᴄᴇʟ ɢʀᴏᴜᴘꜱ ʙʀᴏᴀᴅᴄᴀꜱᴛɪɴɢ...")
+
+    await query.message.edit("🛑 Broadcast cancelling...")
+
+
+# =====================================================
+# 🔥 USER BROADCAST
+# =====================================================
 
 @Client.on_message(filters.command("broadcast") & filters.user(ADMINS) & filters.reply)
 async def broadcast_users(bot, message):
+
     if lock.locked():
-        return await message.reply("⚠️ Another broadcast is in progress. Please wait...")
+        return await message.reply("⚠️ Another broadcast running...")
 
     ask = await message.reply(
-        "<b>Do you want to pin this message in users?</b>",
-        reply_markup=ReplyKeyboardMarkup([["Yes", "No"]], one_time_keyboard=True, resize_keyboard=True)
+        "📌 Pin message?",
+        reply_markup=ReplyKeyboardMarkup(
+            [["Yes", "No"]],
+            resize_keyboard=True,
+            one_time_keyboard=True
+        )
     )
-    try:
-        silentxbotz_user_response = await bot.listen(chat_id=message.chat.id, user_id=message.from_user.id, timeout=60)
-    except asyncio.TimeoutError:
-        await ask.delete()
-        return await message.reply("❌ Timed out. Broadcast cancelled.")
-    await ask.delete()
-    if silentxbotz_user_response.text not in ("Yes", "No"):
-        return await message.reply("❌ Invalid input. Broadcast cancelled.")
 
-    is_pin = silentxbotz_user_response.text == "Yes"
+    try:
+        ans = await bot.listen(chat_id=message.chat.id, user_id=message.from_user.id, timeout=60)
+    except asyncio.TimeoutError:
+        return await message.reply("❌ Timeout")
+
+    await ask.delete()
+
+    is_pin = ans.text == "Yes"
     b_msg = message.reply_to_message
+
     cursor = await db.get_all_users()
-    total_users = await db.total_users_count()
-    silentxbotz_status_msg = await message.reply_text("📤 <b>Broadcasting your message...</b>")
-    success = blocked = deleted = failed = 0
-    done = 0
-    start_time = time.time()
-    cancelled = False
-    async def send(user):
-        try:
-            _, result = await users_broadcast(int(user["id"]), b_msg, is_pin)
-            await asyncio.sleep(0)
-            return result
-        except Exception as e:
-            LOGGER.error(f"Error sending broadcast to {user['id']}")
-            return "Error"
+    total = await db.total_users_count()
+
+    batch_size = auto_batch_size(total)
+
+    status = await message.reply_text("🚀 Starting broadcast...")
+
+    success = blocked = deleted = failed = done = 0
+    start = time.time()
 
     async with lock:
-        batch = []
-        BATCH_SIZE = 100
+
+        tasks = []
 
         async for user in cursor:
+
             if temp.B_USERS_CANCEL:
-                cancelled = True
                 temp.B_USERS_CANCEL = False
                 break
 
-            batch.append(user)
-            if len(batch) >= BATCH_SIZE:
-                results = await asyncio.gather(*[send(u) for u in batch])
-                for res in results:
-                    if res == "Success": success += 1
-                    elif res == "Blocked": blocked += 1
-                    elif res == "Deleted": deleted += 1
-                    elif res == "Error": failed += 1
+            tasks.append(safe_user_send(int(user["id"]), b_msg, is_pin))
 
-                done += len(batch)
-                batch = []
+            if len(tasks) >= batch_size:
 
-                elapsed = get_readable_time(time.time() - start_time)
+                results = await asyncio.gather(*tasks)
+                tasks.clear()
+
+                for r in results:
+                    if r == "Success": success += 1
+                    elif r == "Blocked": blocked += 1
+                    elif r == "Deleted": deleted += 1
+                    else: failed += 1
+
+                done += len(results)
+
+                # dynamic adjust
+                if failed > 5:
+                    batch_size = max(MIN_BATCH, batch_size - 3)
+                else:
+                    batch_size = min(MAX_BATCH, batch_size + 1)
+
+                await asyncio.sleep(DELAY)
+
+                bar = progress_bar(done, total)
+
                 try:
-                    await silentxbotz_status_msg.edit(
-                        f"📣 <b>Broadcast Progress....:</b>\n\n"
-                        f"👥 Total: <code>{total_users}</code>\n"
-                        f"✅ Done: <code>{done}</code>\n"
-                        f"📬 Success: <code>{success}</code>\n"
-                        f"⛔ Blocked: <code>{blocked}</code>\n"
-                        f"🗑️ Deleted: <code>{deleted}</code>\n"
-                        f"⏱️ Time: {elapsed}",
-                        reply_markup=InlineKeyboardMarkup([
-                            [InlineKeyboardButton("❌ CANCEL", callback_data="broadcast_cancel#users")]
-                        ])
-                    )
-                except FloodWait as e:
-                    await asyncio.sleep(e.value)
-                except Exception:
-                    pass
-                    
-        if batch and not cancelled:
-             results = await asyncio.gather(*[send(u) for u in batch])
-             for res in results:
-                if res == "Success": success += 1
-                elif res == "Blocked": blocked += 1
-                elif res == "Deleted": deleted += 1
-                elif res == "Error": failed += 1
-             done += len(batch)
-
-    elapsed = get_readable_time(time.time() - start_time)
-    final_status = (
-        f"{'❌ <b>Broadcast Cancelled.</b>' if cancelled else '✅ <b>Broadcast Completed.</b>'}\n\n"
-        f"🕒 Time: {elapsed}\n"
-        f"👥 Total: <code>{total_users}</code>\n"
-        f"📬 Success: <code>{success}</code>\n"
-        f"⛔ Blocked: <code>{blocked}</code>\n"
-        f"🗑️ Deleted: <code>{deleted}</code>\n"
-        f"❌ Failed: <code>{failed}</code>"
-    )
-    await silentxbotz_status_msg.edit(final_status)
-
-
-@Client.on_message(filters.command("grp_broadcast") & filters.user(ADMINS) & filters.reply)
-async def broadcast_group(bot, message):
-    if lock.locked():
-        return await message.reply("⚠️ Another broadcast is in progress. Please wait...")
-
-    ask = await message.reply(
-        "<b>Do you want to pin this message in groups?</b>",
-        reply_markup=ReplyKeyboardMarkup([["Yes", "No"]], one_time_keyboard=True, resize_keyboard=True)
-    )
-    try:
-        silentxbotz_user_response = await bot.listen(chat_id=message.chat.id, user_id=message.from_user.id, timeout=60)
-    except asyncio.TimeoutError:
-        await ask.delete()
-        return await message.reply("❌ Timed out. Broadcast cancelled.")
-    await ask.delete()
-    if silentxbotz_user_response.text not in ("Yes", "No"):
-        return await message.reply("❌ Invalid input. Broadcast cancelled.")
-
-    is_pin = silentxbotz_user_response.text == "Yes"
-    b_msg = message.reply_to_message
-
-    cursor = await db.get_all_chats()
-    total_chats = await db.total_chat_count()
-
-    silentxbotz_status_msg = await message.reply_text("📤 <b>Broadcasting your message to groups...</b>")
-    start_time = time.time()
-    done = success = failed = 0
-    cancelled = False
-
-    async with lock:
-        async for chat in cursor:
-            if temp.B_GROUPS_CANCEL:
-                temp.B_GROUPS_CANCEL = False
-                cancelled = True
-                break
-            try:
-                sts = await groups_broadcast(int(chat['id']), b_msg, is_pin)
-            except Exception as e:
-                LOGGER.exception(f"Error broadcasting to group {chat['id']}")
-                sts = 'Error'
-
-            if sts == "Success":
-                success += 1
-            else:
-                failed += 1
-            done += 1
-            if done % 10 == 0:
-                btn = [[InlineKeyboardButton("❌ CANCEL", callback_data="broadcast_cancel#groups")]]
-                try:
-                    await silentxbotz_status_msg.edit(
-                        f"📣 <b>Group broadcast progress:</b>\n\n"
-                        f"👥 Total Groups: <code>{total_chats}</code>\n"
-                        f"✅ Completed: <code>{done} / {total_chats}</code>\n"
-                        f"📬 Success: <code>{success}</code>\n"
-                        f"❌ Failed: <code>{failed}</code>",
-                        reply_markup=InlineKeyboardMarkup(btn)
+                    await status.edit(
+                        f"📣 Broadcasting...\n\n"
+                        f"{bar}\n\n"
+                        f"👥 {done}/{total}\n"
+                        f"✅ {success} | ❌ {failed}",
+                        reply_markup=InlineKeyboardMarkup(
+                            [[InlineKeyboardButton("❌ Cancel", callback_data="broadcast_cancel#users")]]
+                        )
                     )
                 except:
                     pass
 
-    time_taken = get_readable_time(time.time() - start_time)
-    silentxbotz_text = (
-        f"{'❌ <b>Groups broadcast cancelled!</b>' if cancelled else '✅ <b>Group broadcast completed.</b>'}\n"
-        f"⏱️ Completed in {time_taken}\n\n"
-        f"👥 Total Groups: <code>{total_chats}</code>\n"
-        f"✅ Completed: <code>{done} / {total_chats}</code>\n"
-        f"📬 Success: <code>{success}</code>\n"
-        f"❌ Failed: <code>{failed}</code>"
+        if tasks:
+            await asyncio.gather(*tasks)
+
+    elapsed = get_readable_time(time.time() - start)
+
+    await status.edit(
+        f"✅ Broadcast Completed\n\n"
+        f"🕒 {elapsed}\n"
+        f"📬 Success {success}\n"
+        f"⛔ Blocked {blocked}\n"
+        f"🗑 Deleted {deleted}\n"
+        f"❌ Failed {failed}"
     )
-    try:
-        await silentxbotz_status_msg.edit(silentxbotz_text)
-    except MessageTooLong:
-        with open("reason.txt", "w+") as outfile:
-            outfile.write(str(failed))
-        await message.reply_document(
-            "reason.txt", caption=silentxbotz_text
-        )
-        os.remove("reason.txt")
 
-@Client.on_message(filters.command("clear_junk") & filters.user(ADMINS))
-async def remove_junkuser__db(bot, message):
+
+# =====================================================
+# 🔥 GROUP BROADCAST
+# =====================================================
+
+@Client.on_message(filters.command("grp_broadcast") & filters.user(ADMINS) & filters.reply)
+async def broadcast_groups(bot, message):
+
     if lock.locked():
-         return await message.reply("⚠️ A broadcast is in progress. Wait for it to finish.")
+        return await message.reply("⚠️ Another broadcast running...")
 
-    users = await db.get_all_users()
-    b_msg = message 
-    sts = await message.reply_text('ɪɴ ᴘʀᴏɢʀᴇss.... ᴘʟᴇᴀsᴇ ᴡᴀɪᴛ')   
-    start_time = time.time()
-    total_users = await db.total_users_count()
-    blocked = 0
-    deleted = 0
-    failed = 0
-    done = 0
+    b_msg = message.reply_to_message
 
-    async with lock: # Lock DB operations
-        async for user in users:
-            pti, sh = await clear_junk(int(user['id']), b_msg)
-            if pti == False:
-                if sh == "Blocked":
-                    blocked+=1
-                elif sh == "Deleted":
-                    deleted += 1
-                elif sh == "Error":
-                    failed += 1
-            done += 1
-            if not done % 50:
-                try:
-                    await sts.edit(f"In Progress:\n\nTotal Users {total_users}\nCompleted: {done} / {total_users}\nBlocked: {blocked}\nDeleted: {deleted}")
-                except: pass
+    cursor = await db.get_all_chats()
+    total = await db.total_chat_count()
 
-    time_taken = datetime.timedelta(seconds=int(time.time()-start_time))
-    await sts.delete()
-    await bot.send_message(message.chat.id, f"Completed:\nCompleted in {time_taken} seconds.\n\nTotal Users {total_users}\nCompleted: {done} / {total_users}\nBlocked: {blocked}\nDeleted: {deleted}")
+    batch_size = auto_batch_size(total)
 
-@Client.on_message(filters.command(["junk_group", "clear_junk_group"]) & filters.user(ADMINS))
-async def junk_clear_group(bot, message):
-    if lock.locked():
-         return await message.reply("⚠️ A broadcast is in progress. Wait for it to finish.")
+    status = await message.reply_text("🚀 Broadcasting to groups...")
 
-    groups = await db.get_all_chats()
-    if not groups:
-        grp = await message.reply_text("❌ Nᴏ ɢʀᴏᴜᴘs ғᴏᴜɴᴅ ғᴏʀ ᴄʟᴇᴀʀ Jᴜɴᴋ ɢʀᴏᴜᴘs.")
-        await asyncio.sleep(60)
-        await grp.delete()
-        return
-    b_msg = message
-    sts = await message.reply_text(text='..............')
-    start_time = time.time()
-    total_groups = await db.total_chat_count()
-    done = 0
-    failed = ""
-    deleted = 0
+    success = failed = done = 0
+    start = time.time()
 
     async with lock:
-        async for group in groups:
-            pti, sh, ex = await junk_group(int(group['id']), b_msg)
-            if pti == False:
-                if sh == "deleted":
-                    deleted+=1
-                    failed += ex
-                    try:
-                        await bot.leave_chat(int(group['id']))
-                    except Exception as e:
-                        print(f"{e} > {group['id']}")
-            done += 1
-            if not done % 50:
-                try:
-                    await sts.edit(f"in progress:\n\nTotal Groups {total_groups}\nCompleted: {done} / {total_groups}\nDeleted: {deleted}")
-                except: pass
 
-    time_taken = datetime.timedelta(seconds=int(time.time()-start_time))
-    await sts.delete()
-    try:
-        await bot.send_message(message.chat.id, f"Completed:\nCompleted in {time_taken} seconds.\n\nTotal Groups {total_groups}\nCompleted: {done} / {total_groups}\nDeleted: {deleted}\n\nFiled Reson:- {failed}")    
-    except MessageTooLong:
-        with open('junk.txt', 'w+') as outfile:
-            outfile.write(failed)
-        await message.reply_document('junk.txt', caption=f"Completed:\nCompleted in {time_taken} seconds.\n\nTotal Groups {total_groups}\nCompleted: {done} / {total_groups}\nDeleted: {deleted}")
-        os.remove("junk.txt")
+        tasks = []
+
+        async for chat in cursor:
+
+            if temp.B_GROUPS_CANCEL:
+                temp.B_GROUPS_CANCEL = False
+                break
+
+            tasks.append(safe_group_send(int(chat["id"]), b_msg, False))
+
+            if len(tasks) >= batch_size:
+
+                results = await asyncio.gather(*tasks, return_exceptions=True)
+                tasks.clear()
+
+                for r in results:
+                    if r == "Success":
+                        success += 1
+                    else:
+                        failed += 1
+
+                done += len(results)
+
+                await asyncio.sleep(DELAY)
+
+                bar = progress_bar(done, total)
+
+                await status.edit(f"📣 Group Broadcast\n\n{bar}\n{done}/{total}")
+
+    elapsed = get_readable_time(time.time() - start)
+
+    await status.edit(
+        f"✅ Group Broadcast Done\n\n"
+        f"🕒 {elapsed}\n"
+        f"Success {success}\n"
+        f"Failed {failed}"
+    )
+
+
+# =====================================================
+# 🔥 JUNK USER CLEAN
+# =====================================================
+
+@Client.on_message(filters.command("clear_junk") & filters.user(ADMINS))
+async def remove_junk_users(bot, message):
+
+    if lock.locked():
+        return await message.reply("⚠️ Broadcast running...")
+
+    users = await db.get_all_users()
+    total = await db.total_users_count()
+
+    sts = await message.reply("Cleaning users...")
+
+    blocked = deleted = failed = done = 0
+    start = time.time()
+
+    async with lock:
+
+        async for user in users:
+            pti, sh = await clear_junk(int(user["id"]), message)
+
+            if not pti:
+                if sh == "Blocked": blocked += 1
+                elif sh == "Deleted": deleted += 1
+                else: failed += 1
+
+            done += 1
+
+            if done % 50 == 0:
+                await sts.edit(f"{done}/{total}")
+
+    elapsed = get_readable_time(time.time() - start)
+
+    await sts.edit(
+        f"✅ Clean Done\n\n"
+        f"Blocked {blocked}\nDeleted {deleted}\nFailed {failed}\n⏱ {elapsed}"
+    )
+
+
+# =====================================================
+# 🔥 JUNK GROUP CLEAN
+# =====================================================
+
+@Client.on_message(filters.command(["junk_group", "clear_junk_group"]) & filters.user(ADMINS))
+async def remove_junk_groups(bot, message):
+
+    if lock.locked():
+        return await message.reply("⚠️ Broadcast running...")
+
+    groups = await db.get_all_chats()
+    total = await db.total_chat_count()
+
+    sts = await message.reply("Cleaning groups...")
+
+    deleted = done = 0
+    start = time.time()
+
+    async with lock:
+
+        async for group in groups:
+
+            pti, sh, _ = await junk_group(int(group["id"]), message)
+
+            if not pti and sh == "deleted":
+                deleted += 1
+                try:
+                    await bot.leave_chat(int(group["id"]))
+                except:
+                    pass
+
+            done += 1
+
+            if done % 50 == 0:
+                await sts.edit(f"{done}/{total}")
+
+    elapsed = get_readable_time(time.time() - start)
+
+    await sts.edit(f"✅ Groups Cleaned {deleted}\n⏱ {elapsed}")
