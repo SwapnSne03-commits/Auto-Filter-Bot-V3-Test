@@ -2718,9 +2718,21 @@ async def advantage_spell_chok(client, message):
         movies = []
 
         if isinstance(raw, list):
-            for m in raw or []:
-                if hasattr(m, "imdb_id") and hasattr(m, "title"):
-                    movies.append(m)
+            for m in raw:
+
+                if isinstance(m, dict):
+                    mid = m.get("id")
+                    title = m.get("title")
+
+                elif hasattr(m, "imdb_id"):
+                    mid = m.imdb_id
+                    title = m.title
+
+                else:
+                    continue
+
+                if mid and title:
+                    movies.append(type("Movie", (), {"imdb_id": mid, "title": title}))
 
         movies = movies[:6]
 
@@ -2733,8 +2745,11 @@ async def advantage_spell_chok(client, message):
     # 🔥 no result → fallback
     # ===============================
     if not movies:
+        try:
+            await message.delete()
+        except:
+            pass
         return
-
     # ===============================
     # 🔥 build buttons safely
     # ===============================
