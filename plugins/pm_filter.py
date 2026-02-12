@@ -2717,22 +2717,29 @@ async def advantage_spell_chok(client, message):
         # 🔥 safest normalization (VERY IMPORTANT)
         movies = []
 
-        if isinstance(raw, list):
+        if isinstance(raw, (list, tuple)):
             for m in raw:
 
+                mid = None
+                title = None
+
+                # dict style
                 if isinstance(m, dict):
-                    mid = m.get("id")
+                    mid = m.get("id") or m.get("imdb_id")
                     title = m.get("title")
 
-                elif hasattr(m, "imdb_id"):
-                    mid = m.imdb_id
-                    title = m.title
-
+                # object style
                 else:
+                    mid = getattr(m, "imdb_id", None) or getattr(m, "id", None)
+                    title = getattr(m, "title", None)
+
+                if not mid or not title:
                     continue
 
-                if mid and title:
-                    movies.append(type("Movie", (), {"imdb_id": mid, "title": title}))
+                movies.append(type("Movie", (), {
+                    "imdb_id": str(mid),
+                    "title": str(title)
+                }))
 
         movies = movies[:6]
 
