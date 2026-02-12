@@ -2718,7 +2718,7 @@ async def advantage_spell_chok(client, message):
             return
 
         # save only small results
-        movies = movies[:6] if movies else []
+        movies = list(movies)[:6] if movies else []
 
         SPELL_CACHE[cache_key] = movies
 
