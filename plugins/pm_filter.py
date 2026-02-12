@@ -37,6 +37,18 @@ SPELL_CHECK = {}
 SPELL_CACHE = {}
 CACHE_LIMIT = 200
 
+def clean_query(text: str) -> str:
+    if not text:
+        return ""
+
+    # remove markdown/special chars
+    text = re.sub(r"[^a-zA-Z0-9\s]", " ", text)
+
+    # remove extra spaces
+    text = re.sub(r"\s+", " ", text)
+
+    return text.strip()
+
 def smart_match(query, titles):
 
     query_l = query.lower()
@@ -2672,7 +2684,7 @@ async def advantage_spell_chok(client, message):
     if not message.text:
         return
 
-    search = message.text.strip()
+    search = clean_query(message.text)
     chat_id = message.chat.id
     user_id = message.from_user.id if message.from_user else 0
 
