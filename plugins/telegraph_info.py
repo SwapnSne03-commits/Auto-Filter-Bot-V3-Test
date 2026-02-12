@@ -2,7 +2,7 @@ import os
 import asyncio
 import tempfile
 import aiofiles
-import pycountry
+import pycountry   # ✅ NEW (only addition)
 import time
 
 from pyrogram import Client, filters
@@ -11,23 +11,21 @@ from telegraph import Telegraph
 from pymediainfo import MediaInfo
 
 
-# ======================================
-# Telegraph init
-# ======================================
 telegraph = Telegraph()
 telegraph.create_account(short_name="FileInfoBot")
 
-
 # ======================================
 # 🔥 click cooldown cache
+# user_id : last_click_time
 # ======================================
 CLICK_CACHE = {}
 COOLDOWN = 20  # seconds
 
+# ======================================
+# 🔥 language formatter (fast + safe)
+# ======================================
 
-# ======================================
-# 🔥 language local names
-# ======================================
+
 LOCAL_NAMES = {
     "Bengali": "বাংলা",
     "Hindi": "हिन्दी",
@@ -45,9 +43,6 @@ LOCAL_NAMES = {
 }
 
 
-# ======================================
-# 🔥 language formatter (fast + safe)
-# ======================================
 def fmt(code):
     if not code:
         return "Unknown"
@@ -63,9 +58,7 @@ def fmt(code):
         if not lang:
             return code.upper()
 
-        # remove (macrolanguage)
         name = lang.name.replace(" (macrolanguage)", "").replace(" (Macrolanguage)", "")
-
         local = LOCAL_NAMES.get(name)
 
         if local:
@@ -76,9 +69,8 @@ def fmt(code):
     except:
         return code.upper()
 
-
 # ======================================
-# 🔥 CALLBACK
+# CALLBACK (unchanged logic)
 # ======================================
 @Client.on_callback_query(filters.regex("^trackinfo$"))
 async def telegraph_file_info(client, query):
@@ -88,15 +80,11 @@ async def telegraph_file_info(client, query):
 
     last = CLICK_CACHE.get(uid, 0)
 
-    # =========================
-    # cooldown protection
-    # =========================
+    # 🔥 cooldown check
     if now - last < COOLDOWN:
         return await query.answer("⏳ Please wait few seconds...", show_alert=False)
 
     CLICK_CACHE[uid] = now
-
-    # prevent memory grow
     if len(CLICK_CACHE) > 1000:
         CLICK_CACHE.clear()
 
@@ -105,9 +93,7 @@ async def telegraph_file_info(client, query):
     tmp = os.path.join(tempfile.gettempdir(), f"info_{query.id}.tmp")
 
     try:
-        # =================================
-        # 🔥 partial stream download (FAST)
-        # =================================
+        # 🔥 only few MB download (VERY FAST)
         async with aiofiles.open(tmp, "wb") as f:
             async for chunk in client.stream_media(query.message, limit=4):
                 await f.write(chunk)
@@ -124,50 +110,37 @@ async def telegraph_file_info(client, query):
                 video.append(f"{t.format} {t.width}x{t.height}")
 
             elif t.track_type == "Audio":
-                audios.append(fmt(t.language))
+                audios.append(fmt(t.language))   # ✅ only change
 
             elif t.track_type in ("Text", "Subtitle"):
-                subs.append(fmt(t.language))
-
-
-        # remove duplicate but keep order
-        audios = list(dict.fromkeys(audios))
-        subs = list(dict.fromkeys(subs))
+                subs.append(fmt(t.language))     # ✅ only change
 
 
         # =================================
-        # TELEGRAPH PAGE BUILD (clean UI)
+        # TELEGRAPH PAGE BUILD (same UI)
         # =================================
-        html = "<h2>📊 <b>File Tracks Information</b></h2><br>"
+        html = "<h3>📊 File Tracks Info</h3>"
 
-        # Video
         if video:
-            html += "<h3>🎬 <u><b>Video Track</b></u></h3>"
+            html += "<b>Video</b><br>"
             for v in video:
-                html += f"<blockquote>• <code>{v}</code></blockquote>"
+                html += f"• {v}<br>"
 
-        # Audio
-        html += f"<br><h3>🔊 <u><b>Audio Tracks ({len(audios)})</b></u></h3>"
         if audios:
-            for a in audios:
-                html += f"<blockquote>• <code>{a}</code></blockquote>"
-        else:
-            html += "<blockquote>• None</blockquote>"
+            html += "<br><b>Audio</b><br>"
+            for a in set(audios):
+                html += f"• {a}<br>"
 
-        # Subtitles
-        html += f"<br><h3>💬 <u><b>Subtitle Tracks ({len(subs)})</b></u></h3>"
         if subs:
-            for s in subs:
-                html += f"<blockquote>• <code>{s}</code></blockquote>"
-        else:
-            html += "<blockquote>• None</blockquote>"
+            html += "<br><b>Subtitles</b><br>"
+            for s in set(subs):
+                html += f"• {s}<br>"
 
 
         page = telegraph.create_page(
             title="File Info",
             html_content=html
         )
-
 
         await query.edit_message_reply_markup(
             reply_markup=InlineKeyboardMarkup([
