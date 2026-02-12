@@ -2757,6 +2757,8 @@ async def advantage_spell_chok(client, message):
     buttons = []
 
     for movie in movies:
+        if not hasattr(movie, "imdb_id"):
+            continue
         buttons.append([
             InlineKeyboardButton(
                 movie.title,
