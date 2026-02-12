@@ -82,6 +82,10 @@ SHORTENER_WEBSITE3 = environ.get("SHORTENER_WEBSITE3", "https://vplink.in")
 TWO_VERIFY_GAP = int(environ.get('TWO_VERIFY_GAP', "1200"))
 THREE_VERIFY_GAP = int(environ.get('THREE_VERIFY_GAP', "54000"))
 
+#Smart Select Mode
+SMART_SELECTION_MODE = environ.get("SMART_SELECTION_MODE", "false").lower() == "true"
+#_________________Swapno Adaption_______________
+
 MOVIE_UPDATE_NOTIFICATION = bool(environ.get("MOVIE_UPDATE_NOTIFICATION", False))
 NO_RESULTS_MSG = bool(environ.get("NO_RESULTS_MSG", True))
 MAX_B_TN = environ.get("MAX_B_TN", "8")
@@ -111,15 +115,88 @@ PAID_STREAM = bool(environ.get('PAID_STREAM', False))
 STREAM_MODE = bool(environ.get('STREAM_MODE', False))
 MAINTENANCE_MODE = bool(environ.get('MAINTENANCE_MODE', False)) 
 
-
+# ===== DAILY FILE LIMIT =====
+DAILY_LIMIT_ENABLED = os.getenv("DAILY_LIMIT_ENABLED", "true").lower() == "true" # daily file limit on/off
+DAILY_TOTAL_LIMIT = int(os.getenv("DAILY_TOTAL_LIMIT", "5")) # total dailty file 
+DAILY_LIMIT = DAILY_LIMIT_ENABLED
+LIMIT_LESS_USERS = [
+    int(x) for x in os.getenv("LIMIT_LESS_USERS", "7859995064").strip().split()
+]
 IGNORE_WORDS = (list(os.environ.get("IGNORE_WORDS").split(",")) if os.environ.get("IGNORE_WORDS") else []) #Remove Words While Searching Files
 IGNORE_WORDS= ["movies", "Movies", ",", "episode", "Episode", "episodes", "Episodes", "south indian", "south indian movie", "South Indian Movie", "south movie", "South Movie", "South Indian", "web-series", "hindi me bhejo", "gujrati", "combined", "!", "kro", "jaldi", "Audio", "audio", "movi", "language", "Language", "Hollywood", "All", "all", "bollywood", "Bollywood", "South", "south", "HD", "hd", "karo", "Karo", "fullepisode", "please", "plz", "Please", "Plz", "send", "link", "Link", "full", "Full", "dabbed", "dubbed", "season", "Season", "web", "series", "Web", "Series", "webseries", "WebSeries", "upload", "HD", "Hd", "bhejo", "ful", "Send", "Bhejo", "request", "Request", "#", "hindi", "Hindi", "Bengali", "bengali"]
+#Image Host 
+IMGBB_API_KEY = os.environ["IMGBB_API_KEY"]
 
 BAD_WORDS = ["Hdhub4u", "cinevood", "skymoviedHD", "4khdhub", "Toonworld4all", "TW4ALL", "ExtraFlix", "Hdhub", "Movies", "Movies4u", "movies4u", "Vegamovies", "extraflix", "Filmy4wap", "Filmu4cab", "Tamilmv", "CineVood", "Hub4u", "Hub4", "SkymoviesHD", "Skymovieshd", "telegram", "tg", "TG", "Telegram", "HdWebMovies", "mkvcinemas", "mkvCinemas", "mkvking", "5moviez", "hdm2", "mkvcinema", "1tamil", "1tamilmv", "1Tamil", "1tamilblaster", "1TamilBlaster", "Moviez", "moviez", "yts mx", "YTS", "YTS MX", "mkvCinem", "filmyzilla", "filmzilla", "CineVood", "BT MOVIES HD", "FILMSCLUB04", "XDMovies", "mp4movies", "mp4moviez", "MLWBD", "MLSBD", "mlsbd", "mlwbd", "FibWatch", "fibwatch", "Joya9tv", "joya9tv", "Cinedoze", "CineDoze", "cinedoze", "world4u", "SSRMovies", "SSRmovies", "5MovieRulz", "FilmyCab"] #remove words form file name 
 LANGUAGES = ["malayalam", "", "tamil", "", "english", "", "hindi", "", "telugu", "", "kannada", "", "gujarati", "", "marathi", "", "punjabi", "", "bengali", ""]
 QUALITIES = ["360P", "", "480P", "", "720P", "", "1080P", "", "1440P", "", "2160P", "", "4k", ""]
 SEASONS = ["s01" , "s02" , "s03" , "s04", "s05" , "s06" , "s07" , "s08" , "s09" , "s10" , "s11" , "s12"]
 
+#Smart Mode Buttons
+SMART_LANG_MAP = {
+    "malayalam": {
+        "label": "ᴍᴀʟᴀʏᴀʟᴀᴍ",
+        "aliases": ["malayalam", "mal"]
+    },
+    "tamil": {
+        "label": "ᴛᴀᴍɪʟ",
+        "aliases": ["tamil", "tam"]
+    },
+    "english": {
+        "label": "ᴇɴɢʟɪꜱʜ",
+        "aliases": ["english", "eng"]
+    },
+    "hindi": {
+        "label": "ʜɪɴᴅɪ",
+        "aliases": ["hindi", "hin"]
+    },
+    "telugu": {
+        "label": "ᴛᴇʟᴜɢᴜ",
+        "aliases": ["telugu", "tel"]
+    },
+    "kannada": {
+        "label": "ᴋᴀɴɴᴀᴅᴀ",
+        "aliases": ["kannada", "kan"]
+    },
+    "gujarati": {
+        "label": "ɢᴜᴊᴀʀᴀᴛɪ",
+        "aliases": ["gujarati", "guj"]
+    },
+    "marathi": {
+        "label": "ᴍᴀʀᴀᴛʜɪ",
+        "aliases": ["marathi", "mar"]
+    },
+    "punjabi": {
+        "label": "ᴘᴜɴᴊᴀʙɪ",
+        "aliases": ["punjabi", "pan"]
+    },
+    "bengali": {
+        "label": "ʙᴇɴɢᴀʟɪ",
+        "aliases": ["bengali", "bangla", "ben"]
+    },
+
+    # 🌏 Extra Asian Languages
+    "japanese": {
+        "label": "ᴊᴀᴘᴀɴᴇꜱᴇ",
+        "aliases": ["japanese", "jpn", "jap"]
+    },
+    "korean": {
+        "label": "ᴋᴏʀᴇᴀɴ",
+        "aliases": ["korean", "kor"]
+    },
+    "chinese": {
+        "label": "ᴄʜɪɴᴇꜱᴇ",
+        "aliases": ["chinese", "chi", "chn"]
+    }
+}
+
+SMART_QUALITY_REGEX = r"(2160p|1440p|1080p|720p|480p|360p)"
+
+SMART_SEASON_REGEX = [
+    r"\bs\d{1,2}e\d{1,2}\b",
+    r"\bs\d{1,2}\b",
+    r"\bseason\s*\d{1,2}\b"
+]
 
 NO_PORT = bool(environ.get('NO_PORT', False))
 APP_NAME = None

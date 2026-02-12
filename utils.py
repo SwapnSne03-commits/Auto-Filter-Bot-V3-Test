@@ -51,6 +51,32 @@ class temp(object):
     SHORT = {}
     IMDB_CAP = {}
     VERIFICATIONS = {}
+    DAILY_USAGE = {} 
+    ACTIVE_FILTER = {}
+
+def today_date():
+    return datetime.now().strftime("%Y-%m-%d")
+
+def check_daily_limit(user_id, limit):
+    today = today_date()
+    data = temp.DAILY_USAGE.get(user_id)
+
+    if not data or data["date"] != today:
+        temp.DAILY_USAGE[user_id] = {"date": today, "count": 0}
+        return True
+
+    return data["count"] < limit
+
+
+def increase_daily_count(user_id):
+    today = today_date()
+    data = temp.DAILY_USAGE.get(user_id)
+
+    if not data or data["date"] != today:
+        temp.DAILY_USAGE[user_id] = {"date": today, "count": 1}
+    else:
+        temp.DAILY_USAGE[user_id]["count"] += 1
+
 
 def get_main_buttons():
     return [
@@ -78,86 +104,133 @@ async def is_check_admin(bot, chat_id, user_id):
         return member.status in [enums.ChatMemberStatus.ADMINISTRATOR, enums.ChatMemberStatus.OWNER]
     except:
         return False
-    
-async def users_broadcast(user_id, message, is_pin):
-    try:
-        m = await message._client.copy_message(
-    chat_id=user_id,
-    from_chat_id=message.chat.id,
-    message_id=message.id,
-    reply_markup=InlineKeyboardMarkup(
+
+# =====================================================
+# 🔥 FAST + SAFE + NO FREEZE VERSION
+# =====================================================
+
+SEARCH_BTN = InlineKeyboardMarkup(
+    [
         [
-            [
-                InlineKeyboardButton(
-                    "🔍 ᴄʟɪᴄᴋ ʜᴇʀᴇ ᴛᴏ sᴇᴀʀᴄʜ",
-                    url="https://t.me/Graduate_Request_Pro"
-                )
-            ]
+            InlineKeyboardButton(
+                "🔍 ᴄʟɪᴄᴋ ʜᴇʀᴇ ᴛᴏ sᴇᴀʀᴄʜ",
+                url="https://t.me/Graduate_Request_Pro"
+            )
         ]
-    )
-        )
-        #await asyncio.sleep(0.4) 
-        if is_pin:
-            await m.pin(both_sides=True)
-        return True, "Success"
-    except FloodWait as e:
-         # 🔥 FIX 1: FloodWait safe handling
-        await asyncio.sleep(e.value + 1)
-        return await users_broadcast(user_id, message, is_pin)
+    ]
+)
 
-    except InputUserDeactivated:
-        await db.delete_user(int(user_id))
-        LOGGER.info(f"{user_id} - Removed (Deleted account)")
-        return False, "Deleted"
 
-    except UserIsBlocked:
-        await db.delete_user(user_id)
-        LOGGER.info(f"{user_id} - Blocked the bot")
-        return False, "Blocked"
+async def users_broadcast(user_id, message, is_pin):
 
-    except PeerIdInvalid:
-        await db.delete_user(int(user_id))
-        LOGGER.info(f"{user_id} - PeerIdInvalid")
-        return False, "Error"
+    MAX_RETRY = 2
 
-    except Exception as e:
-        LOGGER.error(f"Broadcast error for {user_id}: {e}")
-        return False, "Error"
+    for attempt in range(MAX_RETRY):
 
-    finally:
-        # 🔥 FIX 2 (MOST IMPORTANT)
-        # 🔑 Event loop release → bot responsive থাকবে
-        await asyncio.sleep(0.3)
+        try:
+            m = await message._client.copy_message(
+                chat_id=user_id,
+                from_chat_id=message.chat.id,
+                message_id=message.id,
+                reply_markup=SEARCH_BTN   # reused (faster)
+            )
+
+            if is_pin:
+                try:
+                    await m.pin(both_sides=True)
+                except:
+                    pass
+
+            return True, "Success"
+
+
+        # ===============================
+        # FloodWait → safe retry
+        # ===============================
+        except FloodWait as e:
+            await asyncio.sleep(e.value)
+            continue
+
+
+        # ===============================
+        # user deleted
+        # ===============================
+        except InputUserDeactivated:
+            await db.delete_user(int(user_id))
+            LOGGER.info(f"{user_id} - Deleted")
+            return False, "Deleted"
+
+
+        # ===============================
+        # blocked
+        # ===============================
+        except UserIsBlocked:
+            await db.delete_user(int(user_id))
+            LOGGER.info(f"{user_id} - Blocked")
+            return False, "Blocked"
+
+
+        # ===============================
+        # invalid peer
+        # ===============================
+        except PeerIdInvalid:
+            await db.delete_user(int(user_id))
+            LOGGER.info(f"{user_id} - Invalid")
+            return False, "Error"
+
+
+        # ===============================
+        # unknown error
+        # ===============================
+        except Exception as e:
+            LOGGER.error(f"{user_id} broadcast error: {e}")
+            await asyncio.sleep(1)
+
+    await asyncio.sleep(0)
+    return False, "Error"
 
 async def groups_broadcast(chat_id, message, is_pin):
-    try:
-        m = await message._client.copy_message(
-    chat_id=user_id,
-    from_chat_id=message.chat.id,
-    message_id=message.id,
-    reply_markup=InlineKeyboardMarkup(
-        [
-            [
-                InlineKeyboardButton(
-                    "🔍 ᴄʟɪᴄᴋ ʜᴇʀᴇ ᴛᴏ sᴇᴀʀᴄʜ",
-                    url="https://t.me/Graduate_Request_Pro"
-                )
-            ]
-        ]
-    )
-        )
-        if is_pin:
-            try:
-                await m.pin()
-            except:
-                pass
-        return "Success"
-    except FloodWait as e:
-        await asyncio.sleep(e.x)
-        return await groups_broadcast(chat_id, message)
-    except Exception as e:
-        await db.delete_chat(chat_id)
-        return "Error"
+
+    MAX_RETRY = 2
+
+    for _ in range(MAX_RETRY):
+
+        try:
+            m = await message._client.copy_message(
+                chat_id=chat_id,   # ✅ fixed
+                from_chat_id=message.chat.id,
+                message_id=message.id,
+                reply_markup=SEARCH_BTN   # ✅ reused
+            )
+
+            if is_pin:
+                try:
+                    await m.pin()
+                except:
+                    pass
+
+            return "Success"
+
+
+        # =========================
+        # FloodWait safe retry
+        # =========================
+        except FloodWait as e:
+            await asyncio.sleep(e.value)
+            continue
+
+
+        # =========================
+        # group removed / invalid
+        # =========================
+        except Exception as e:
+            LOGGER.error(f"Group {chat_id} error: {e}")
+            await db.delete_chat(chat_id)
+            return "Error"
+
+
+    await asyncio.sleep(0)
+    return False, "Error"
 
 async def junk_group(chat_id, message):
     try:

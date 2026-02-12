@@ -141,14 +141,57 @@ async def next_page(bot, query):
         if not search:
             await query.answer(script.OLD_ALRT_TXT.format(query.from_user.first_name),show_alert=True)
             return
-        files, n_offset, total = await get_search_results(query.message.chat.id, search, offset=offset, filter=True)
+        active = temp.ACTIVE_FILTER.get(key)
+        settings = await get_settings(query.message.chat.id)
+        per_page = 10 if settings.get("max_btn") else int(MAX_B_TN)
+        #active = temp.ACTIVE_FILTER.get(key)
+
+        if active:
+            # 🔹 FILTERED PAGINATION MODE
+            all_files = temp.GETALL.get(key, [])
+
+            if active["type"] == "quality":
+                data = [
+                    f for f in all_files
+                    if active["value"].lower() in (f.file_name or "").lower()
+                ]
+
+            elif active["type"] == "season":
+                data = [
+                    f for f in all_files
+                    if active["value"].lower() in (f.file_name or "").lower()
+                ]
+
+            elif active["type"] == "language":
+                aliases = SMART_LANG_MAP.get(active["value"], {}).get("aliases", [])
+                data = [
+                    f for f in all_files
+                    if any(a in (f.file_name or "").lower() for a in aliases)
+                ]
+
+            total = len(data)
+            files = data[offset: offset + per_page]
+
+            if total > offset + per_page:
+                n_offset = offset + per_page
+            else:
+                n_offset = 0
+
+        else:
+            # 🔹 NORMAL HOMEPAGE PAGINATION MODE
+            files, n_offset, total = await get_search_results(
+                query.message.chat.id, search, offset=offset, filter=True
+            )
+
+            # normalize n_offset
         try:
             n_offset = int(n_offset)
         except:
             n_offset = 0
+
         if not files:
             return
-        temp.GETALL[key] = files
+        #temp.GETALL[key] = files
         temp.SHORT[query.from_user.id] = query.message.chat.id
         settings = await get_settings(query.message.chat.id)
         if settings.get('button'):
@@ -263,439 +306,1048 @@ async def next_page(bot, query):
     except Exception as e:
         LOGGER.error(f"Error In Next Funtion - {e}")
 
-@Client.on_callback_query(filters.regex(r"^qualities#"))
-async def qualities_cb_handler(client: Client, query: CallbackQuery):
+# ================= OLD QUALITY CALLBACK =================
+async def old_qualities_cb(client: Client, query: CallbackQuery):
     try:
         try:
-            if int(query.from_user.id) not in [query.message.reply_to_message.from_user.id, 0]:
+            if int(query.from_user.id) not in [
+                query.message.reply_to_message.from_user.id, 0
+            ]:
                 return await query.answer(
-                    f"⚠️ ʜᴇʟʟᴏ {query.from_user.first_name},\nᴛʜɪꜱ ɪꜱ ɴᴏᴛ ʏᴏᴜʀ ᴍᴏᴠɪᴇ ʀᴇǫᴜᴇꜱᴛ,\nʀᴇǫᴜᴇꜱᴛ ʏᴏᴜʀ'ꜱ...",
+                    f"⚠️ ʜᴇʟʟᴏ {query.from_user.first_name},\n"
+                    f"ᴛʜɪꜱ ɪꜱ ɴᴏᴛ ʏᴏᴜʀ ᴍᴏᴠɪᴇ ʀᴇǫᴜᴇꜱᴛ,\n"
+                    f"ʀᴇǫᴜᴇꜱᴛ ʏᴏᴜʀ'ꜱ...",
                     show_alert=True,
                 )
         except:
             pass
+
         _, key, offset = query.data.split("#")
         search = FRESH.get(key)
+        search = search.replace(" ", "_")
         offset = int(offset)
-        search = search.replace(' ', '_')
+
         btn = []
-        for i in range(0, len(QUALITIES)-1, 2):
+        for i in range(0, len(QUALITIES) - 1, 2):
             btn.append([
                 InlineKeyboardButton(
                     text=QUALITIES[i].title(),
                     callback_data=f"fq#{QUALITIES[i].lower()}#{key}#{offset}"
                 ),
                 InlineKeyboardButton(
-                    text=QUALITIES[i+1].title(),
-                    callback_data=f"fq#{QUALITIES[i+1].lower()}#{key}#{offset}"
+                    text=QUALITIES[i + 1].title(),
+                    callback_data=f"fq#{QUALITIES[i + 1].lower()}#{key}#{offset}"
                 ),
             ])
-        btn.insert(
-            0,
-            [
-                InlineKeyboardButton(
-                    text="⇊ ꜱᴇʟᴇᴄᴛ ǫᴜᴀʟɪᴛʏ ⇊", callback_data="ident"
-                )
-            ],
+
+        btn.insert(0, [
+            InlineKeyboardButton(
+                text="⇊ ꜱᴇʟᴇᴄᴛ ǫᴜᴀʟɪᴛʏ ⇊",
+                callback_data="ident"
+            )
+        ])
+
+        btn.append([
+            InlineKeyboardButton(
+                text="↭ ʙᴀᴄᴋ ᴛᴏ ꜰɪʟᴇs ↭",
+                callback_data=f"fq#homepage#{key}#0"
+            )
+        ])
+
+        await query.edit_message_reply_markup(
+            InlineKeyboardMarkup(btn)
         )
-        req = query.from_user.id
-        offset = 0
-        btn.append([InlineKeyboardButton(text="↭ ʙᴀᴄᴋ ᴛᴏ ꜰɪʟᴇs ↭", callback_data=f"fq#homepage#{key}#{offset}")])
-        await query.edit_message_reply_markup(InlineKeyboardMarkup(btn))
+
     except Exception as e:
-        LOGGER.error(f"Error In Quality Callback Handler - {e}")
+        LOGGER.error(f"Error In Old Quality Callback - {e}")
+
+
+# ================= SMART QUALITY CALLBACK =================
+# ================= SMART QUALITY CALLBACK =================
+async def smart_qualities_cb(client: Client, query: CallbackQuery):
+    try:
+        _, key, offset = query.data.split("#")
+        offset = int(offset)
+
+        # 🔐 STRICT OWNERSHIP CHECK (ADD HERE)
+        owner_id = temp.OWNER.get(key)
+
+        if owner_id is None:
+             return await query.answer(
+                "❌ Session expired, please search again",
+                show_alert=True
+            )
+
+        if query.from_user.id != owner_id:
+             return await query.answer(
+                "🚫 ɴᴏᴛ ʏᴏᴜʀ ʀᴇǫᴜᴇsᴛ ʙᴜᴅᴅʏ !!",
+                show_alert=True
+			 )
+        if key not in temp.SMART_FILTERS:
+            return await query.answer(
+                "❌ Session expired, please search again",
+                show_alert=True
+            )
+
+        qualities = temp.SMART_FILTERS[key].get("qualities", [])
+        all_files = temp.GETALL.get(key, [])
+
+        if not qualities:
+            return await query.answer(
+                "❌ No quality available",
+                show_alert=True
+            )
+
+        # 🔹 Only button view (no filter yet)
+        btn = []
+        for i in range(0, len(qualities), 2):
+            row = [
+                InlineKeyboardButton(
+                    qualities[i].upper(),
+                    callback_data=f"fq#{qualities[i]}#{key}#0"
+                )
+            ]
+            if i + 1 < len(qualities):
+                row.append(
+                    InlineKeyboardButton(
+                        qualities[i + 1].upper(),
+                        callback_data=f"fq#{qualities[i + 1]}#{key}#0"
+                    )
+                )
+            btn.append(row)
+
+        btn.insert(0, [
+            InlineKeyboardButton("⇊ ꜱᴇʟᴇᴄᴛ ǫᴜᴀʟɪᴛʏ ⇊", callback_data="ident")
+        ])
+
+        btn.append([
+            InlineKeyboardButton("⋞ ʙᴀᴄᴋ ᴛᴏ ꜰɪʟᴇs", callback_data=f"fq#homepage#{key}#0")
+        ])
+
+        await query.edit_message_reply_markup(
+            InlineKeyboardMarkup(btn)
+        )
+
+    except Exception as e:
+        LOGGER.error(f"Error In Smart Quality Callback - {e}")
+
+# ================= QUALITY ROUTER =================
+@Client.on_callback_query(filters.regex(r"^qualities#"))
+async def qualities_router(client: Client, query: CallbackQuery):
+    if SMART_SELECTION_MODE:
+        return await smart_qualities_cb(client, query)
+    return await old_qualities_cb(client, query)
 
 @Client.on_callback_query(filters.regex(r"^fq#"))
 async def filter_qualities_cb_handler(client: Client, query: CallbackQuery):
     try:
-        _, qual, key, offset = query.data.split("#")
-        offset = int(offset)
-        curr_time = datetime.now(pytz.timezone('Asia/Kolkata')).time()
-        search = FRESH.get(key)
-        search = search.replace("_", " ")
-        baal = qual in search
-        if baal:
-            search = search.replace(qual, "")
-        else:
-            search = search
-        req = query.from_user.id
-        chat_id = query.message.chat.id
-        message = query.message
-        try:
-            if int(query.from_user.id) not in [query.message.reply_to_message.from_user.id, 0]:
-                return await query.answer(
-                    f"⚠️ ʜᴇʟʟᴏ {query.from_user.first_name},\nᴛʜɪꜱ ɪꜱ ɴᴏᴛ ʏᴏᴜʀ ᴍᴏᴠɪᴇ ʀᴇǫᴜᴇꜱᴛ,\nʀᴇǫᴜᴇꜱᴛ ʏᴏᴜʀ'ꜱ...",
-                    show_alert=True,
-                )
-        except:
-            pass
-        if qual != "homepage":
-            search = f"{search} {qual}" 
-        BUTTONS[key] = search   
-        files, n_offset, total_results = await get_search_results(chat_id, search, offset=offset, filter=True)
-        if not files:
-            await query.answer("🚫 ɴᴏ ꜰɪʟᴇꜱ ᴡᴇʀᴇ ꜰᴏᴜɴᴅ 🚫", show_alert=1)
-            return
-        temp.GETALL[key] = files
-        settings = await get_settings(message.chat.id)
-        if settings.get('button'):
-            btn = [
-                [
-                    InlineKeyboardButton(
-                        text=f"{silent_size(file.file_size)}| {extract_tag(file.file_name)} {clean_filename(file.file_name)}", callback_data=f'file#{file.file_id}'
-                    ),
-                ]
-                for file in files
-            ]
-            btn.insert(0, 
-                [ 
-                    InlineKeyboardButton("ᴘɪxᴇʟ", callback_data=f"qualities#{key}#0"),
-                    InlineKeyboardButton("ʟᴀɴɢᴜᴀɢᴇ", callback_data=f"languages#{key}#0"),
-                    InlineKeyboardButton("ꜱᴇᴀꜱᴏɴ",  callback_data=f"seasons#{key}#0")
-                ]
-            )
-            
+        _, qual, key, _ = query.data.split("#")
+        offset = 0
 
-        else:
-            btn = []
-            btn.insert(0, 
-                [
-                    InlineKeyboardButton("ᴘɪxᴇʟ", callback_data=f"qualities#{key}#0"),
-                    InlineKeyboardButton("ʟᴀɴɢᴜᴀɢᴇ", callback_data=f"languages#{key}#0"),
-                    InlineKeyboardButton("ꜱᴇᴀꜱᴏɴ",  callback_data=f"seasons#{key}#0")
-                ]
+         # 🔐 STRICT OWNERSHIP CHECK (ADD HERE)
+        owner_id = temp.OWNER.get(key)
+
+        if owner_id is None:
+             return await query.answer(
+                "❌ Session expired, please search again",
+                show_alert=True
             )
-            
+
+        if query.from_user.id != owner_id:
+             return await query.answer(
+                "🚫 ɴᴏᴛ ʏᴏᴜʀ ʀᴇǫᴜᴇsᴛ ʙᴜᴅᴅʏ !!",
+                show_alert=True
+			 )
+
+        message = query.message
+        chat_id = message.chat.id
+        req = query.from_user.id
+
+        # 🔐 Ownership check
+       # try:
+           # if int(query.from_user.id) not in [message.reply_to_message.from_user.id, 0]:
+               # return await query.answer(
+                 #   f"⚠️ Hello {query.from_user.first_name}, this is not your request.",
+                   # show_alert=True,
+               # )
+        #except:
+            #pass
+
+        search = FRESH.get(key, "").replace("_", " ")
+        BUTTONS[key] = search
+        # ================= SAVE ACTIVE FILTER STATE =================
+        if not hasattr(temp, "ACTIVE_FILTER"):
+            temp.ACTIVE_FILTER = {}
+
+        if qual == "homepage":
+            # homepage এ গেলে filter clear
+            temp.ACTIVE_FILTER.pop(key, None)
+        else:
+            # quality filter active
+            temp.ACTIVE_FILTER[key] = {
+                "type": "quality",
+                "value": qual
+            }
+# ============================================================
+        # ================= SMART MODE =================
+        if SMART_SELECTION_MODE:
+            offset = 0   # ⬅️ IMPORTANT
+            all_files = temp.GETALL.get(key, [])
+
+            # 🔁 BACK TO MAIN FILE LIST
+            if qual == "homepage":
+                files = all_files
+
+                # 🔄 restore pagination state
+                state = temp.MAIN_STATE.get(key, {})
+                per_page = state.get("per_page", 10)
+                total_results = state.get("total_results", len(all_files))
+
+                files = files[offset: offset + per_page]
+
+                if total_results > offset + per_page:
+                    n_offset = offset + per_page
+                else:
+                    n_offset = ""
+            # 🔍 FILTER MODE (quality selected)
+            else:
+                offset = 0
+                # 1️⃣ সব ফাইল থেকে filter করো
+                filtered_files = [
+                    f for f in all_files
+                    if qual.lower() in (f.file_name or "").lower()
+                ]
+
+                total_results = len(filtered_files)
+
+                settings = await get_settings(chat_id)
+                per_page = 10 if settings.get("max_btn") else int(MAX_B_TN)
+
+                # 2️⃣ filter করলে সবসময় first page থেকে শুরু
+                offset = 0
+                files = filtered_files[:per_page]
+
+                # ⭐⭐⭐ EXACTLY HERE ⭐⭐⭐
+                temp.PAGE_STATE[key] = {
+                    "total_results": total_results,
+                    "per_page": per_page,
+                    "current_offset": offset
+	            }
+                # 3️⃣ pagination decide করো
+                if total_results > per_page:
+                    n_offset = per_page
+                else:
+                    n_offset = ""   # 👈 এইখানেই "no more page available" trigger হবে   # ❌ no pagination in filter mode
+
+            if not files:
+                # 🔁 homepage এ গেলে popup না দেখাও
+                if SMART_SELECTION_MODE and qual == "homepage":
+                    files = all_files
+                else:
+                    return await query.answer(
+                        "🚫 ɴᴏ ꜰɪʟᴇꜱ ᴡᴇʀᴇ ꜰᴏᴜɴᴅ 🚫",
+                        show_alert=True
+					)
+
+        # ================= OLD MODE =================
+        else:
+            if qual != "homepage":
+                search = f"{search} {qual}"
+
+            files, n_offset, total_results = await get_search_results(
+                chat_id,
+                search,
+                offset=offset,
+                filter=True
+            )
+
+            if not files:
+                return await query.answer(
+                    "🚫 ɴᴏ ꜰɪʟᴇꜱ ᴡᴇʀᴇ ꜰᴏᴜɴᴅ 🚫",
+                    show_alert=True
+                )
+
+
+        # ================= BUILD FILE BUTTONS =================
+        settings = await get_settings(chat_id)
+
+        btn = [
+            [
+                InlineKeyboardButton(
+                    text=f"{silent_size(f.file_size)} | {extract_tag(f.file_name)} {clean_filename(f.file_name)}",
+                    callback_data=f"file#{f.file_id}"
+                )
+            ]
+            for f in files
+        ]
+
+        # 🔝 Top filter buttons
+        btn.insert(0, [
+            InlineKeyboardButton("ᴘɪxᴇʟ", callback_data=f"qualities#{key}#0"),
+            InlineKeyboardButton("ʟᴀɴɢᴜᴀɢᴇ", callback_data=f"languages#{key}#0"),
+            InlineKeyboardButton("ꜱᴇᴀꜱᴏɴ", callback_data=f"seasons#{key}#0"),
+        ])
+
+        # 🔽 Pagination (old mode OR restored homepage)
         if n_offset != "":
             try:
-                if settings['max_btn']:
-                    btn.append(
-                        [InlineKeyboardButton("ᴘᴀɢᴇ", callback_data="pages"), InlineKeyboardButton(text=f"1/{math.ceil(int(total_results)/10)}",callback_data="pages"), InlineKeyboardButton(text="ɴᴇxᴛ ⋟",callback_data=f"next_{req}_{key}_{n_offset}")]
+                per_page = 10 if settings.get("max_btn") else int(MAX_B_TN)
+                current_page = (offset // per_page) + 1
+                total_pages = math.ceil(total_results / per_page)
+                btn.append([
+                    InlineKeyboardButton("ᴘᴀɢᴇ", callback_data="pages"),
+                    InlineKeyboardButton(
+                        text=f"{current_page}/{total_pages}",
+                        callback_data="pages"
+                    ),
+                    InlineKeyboardButton(
+                        "ɴᴇxᴛ ⋟",
+                        callback_data=f"next_{req}_{key}_{n_offset}"
                     )
-    
-                else:
-                    btn.append(
-                        [InlineKeyboardButton("ᴘᴀɢᴇ", callback_data="pages"), InlineKeyboardButton(text=f"1/{math.ceil(int(total_results)/int(MAX_B_TN))}",callback_data="pages"), InlineKeyboardButton(text="ɴᴇxᴛ ⋟",callback_data=f"next_{req}_{key}_{n_offset}")]
-                    )
-            except KeyError:
-                await save_group_settings(query.message.chat.id, 'max_btn', True)
-                btn.append(
-                    [InlineKeyboardButton("ᴘᴀɢᴇ", callback_data="pages"), InlineKeyboardButton(text=f"1/{math.ceil(int(total_results)/10)}",callback_data="pages"), InlineKeyboardButton(text="ɴᴇxᴛ ⋟",callback_data=f"next_{req}_{key}_{n_offset}")]
-                )
-        else:
-            n_offset = 0
-            btn.append(
-                [InlineKeyboardButton(text="↭ ɴᴏ ᴍᴏʀᴇ ᴘᴀɢᴇꜱ ᴀᴠᴀɪʟᴀʙʟᴇ ↭",callback_data="pages")]
-            )               
-        if not settings.get('button'):
-            cur_time = datetime.now(pytz.timezone('Asia/Kolkata')).time()
-            time_difference = timedelta(hours=cur_time.hour, minutes=cur_time.minute, seconds=(cur_time.second+(cur_time.microsecond/1000000))) - timedelta(hours=curr_time.hour, minutes=curr_time.minute, seconds=(curr_time.second+(curr_time.microsecond/1000000)))
-            remaining_seconds = "{:.2f}".format(time_difference.total_seconds())
-            cap = await get_cap(settings, remaining_seconds, files, query, total_results, search, offset)
-            try:
-                await query.message.edit_text(text=cap, reply_markup=InlineKeyboardMarkup(btn), disable_web_page_preview=True)
-            except MessageNotModified:
+                ])
+            except:
                 pass
         else:
-            try:
+            # ℹ️ single page info
+            btn.append([
+                InlineKeyboardButton(
+                    text="↭ ɴᴏ ᴍᴏʀᴇ ᴘᴀɢᴇꜱ ᴀᴠᴀɪʟᴀʙʟᴇ ↭",
+                    callback_data="pages"
+                )
+            ])
+
+        # ================= SEND UPDATE =================
+        try:
+            if settings.get("button"):
                 await query.edit_message_reply_markup(
                     reply_markup=InlineKeyboardMarkup(btn)
                 )
-            except MessageNotModified:
-                pass
-        await query.answer()
-    except Exception as e:
-        LOGGER.error(f"Error In Quality - {e}")
+            else:
+                cap = await get_cap(
+                    settings,
+                    "0",
+                    files,
+                    query,
+                    total_results,
+                    search,
+                    offset
+                )
+                await query.message.edit_text(
+                    text=cap,
+                    reply_markup=InlineKeyboardMarkup(btn),
+                    disable_web_page_preview=True,
+                    parse_mode=enums.ParseMode.HTML
+                )
+        except MessageNotModified:
+            pass
 
-@Client.on_callback_query(filters.regex(r"^languages#"))
-async def languages_cb_handler(client: Client, query: CallbackQuery):
+        await query.answer()
+
+    except Exception as e:
+        LOGGER.error(f"Error In Quality Filter - {e}")
+# ================= OLD LANGUAGE CALLBACK =================
+# ================= OLD LANGUAGE CALLBACK =================
+async def old_languages_cb(client: Client, query: CallbackQuery):
     try:
         try:
-            if int(query.from_user.id) not in [query.message.reply_to_message.from_user.id, 0]:
+            if int(query.from_user.id) not in [
+                query.message.reply_to_message.from_user.id, 0
+            ]:
                 return await query.answer(
-                    f"⚠️ ʜᴇʟʟᴏ {query.from_user.first_name},\nᴛʜɪꜱ ɪꜱ ɴᴏᴛ ʏᴏᴜʀ ᴍᴏᴠɪᴇ ʀᴇǫᴜᴇꜱᴛ,\nʀᴇǫᴜᴇꜱᴛ ʏᴏᴜʀ'ꜱ...",
+                    f"⚠️ ʜᴇʟʟᴏ {query.from_user.first_name},\n"
+                    f"ᴛʜɪꜱ ɪꜱ ɴᴏᴛ ʏᴏᴜʀ ᴍᴏᴠɪᴇ ʀᴇǫᴜᴇꜱᴛ,\n"
+                    f"ʀᴇǫᴜᴇꜱᴛ ʏᴏᴜʀ'ꜱ...",
                     show_alert=True,
                 )
         except:
             pass
+
         _, key, offset = query.data.split("#")
         search = FRESH.get(key)
-        search = search.replace(' ', '_')
+        if not search:
+            return await query.answer(
+                "❌ Session expired, please search again",
+                show_alert=True
+            )
+
         offset = int(offset)
+
         btn = []
-        for i in range(0, len(LANGUAGES)-1, 2):
+        for i in range(0, len(LANGUAGES) - 1, 2):
             btn.append([
                 InlineKeyboardButton(
                     text=LANGUAGES[i].title(),
                     callback_data=f"fl#{LANGUAGES[i].lower()}#{key}#{offset}"
                 ),
                 InlineKeyboardButton(
-                    text=LANGUAGES[i+1].title(),
-                    callback_data=f"fl#{LANGUAGES[i+1].lower()}#{key}#{offset}"
+                    text=LANGUAGES[i + 1].title(),
+                    callback_data=f"fl#{LANGUAGES[i + 1].lower()}#{key}#{offset}"
                 ),
             ])
-        btn.insert(
-            0,
-            [
-                InlineKeyboardButton(
-                    text="⇊ ꜱᴇʟᴇᴄᴛ ʟᴀɴɢᴜᴀɢᴇ ⇊", callback_data="ident"
-                )
-            ],
+
+        btn.insert(0, [
+            InlineKeyboardButton(
+                text="⇊ ꜱᴇʟᴇᴄᴛ ʟᴀɴɢᴜᴀɢᴇ ⇊",
+                callback_data="ident"
+            )
+        ])
+
+        btn.append([
+            InlineKeyboardButton(
+                text="⋞ ʙᴀᴄᴋ ᴛᴏ ꜰɪʟᴇs",
+                callback_data=f"fl#homepage#{key}#0"
+            )
+        ])
+
+        await query.edit_message_reply_markup(
+            InlineKeyboardMarkup(btn)
         )
-        req = query.from_user.id
-        offset = 0
-        btn.append([InlineKeyboardButton(text="↭ ʙᴀᴄᴋ ᴛᴏ ꜰɪʟᴇs ↭", callback_data=f"fl#homepage#{key}#{offset}")])
-        await query.edit_message_reply_markup(InlineKeyboardMarkup(btn))
+
     except Exception as e:
-        LOGGER.error(f"Error In Language Cb Handaler - {e}")
-    
+        LOGGER.error(f"Error In Old Language Callback - {e}")
+
+
+# ================= SMART LANGUAGE CALLBACK =================
+async def smart_languages_cb(client: Client, query: CallbackQuery):
+    try:
+        _, key, offset = query.data.split("#")
+        offset = int(offset)
+
+        # 🔐 STRICT OWNERSHIP CHECK (ADD HERE)
+        owner_id = temp.OWNER.get(key)
+
+        if owner_id is None:
+             return await query.answer(
+                "❌ Session expired, please search again",
+                show_alert=True
+            )
+
+        if query.from_user.id != owner_id:
+             return await query.answer(
+                "🚫 ɴᴏᴛ ʏᴏᴜʀ ʀᴇǫᴜᴇsᴛ ʙᴜᴅᴅʏ !!",
+                show_alert=True
+			 )
+        if key not in temp.SMART_FILTERS:
+            return await query.answer(
+                "❌ Session expired, please search again",
+                show_alert=True
+            )
+
+        languages = temp.SMART_FILTERS[key].get("languages", [])
+
+        if not languages:
+            return await query.answer(
+                "❌ No language available",
+                show_alert=True
+            )
+
+        btn = []
+        for i in range(0, len(languages), 2):
+            row = [
+                InlineKeyboardButton(
+                    SMART_LANG_MAP[languages[i]]["label"],
+                    callback_data=f"fl#{languages[i]}#{key}#{offset}"
+                )
+            ]
+            if i + 1 < len(languages):
+                row.append(
+                    InlineKeyboardButton(
+                        SMART_LANG_MAP[languages[i + 1]]["label"],
+                        callback_data=f"fl#{languages[i + 1]}#{key}#{offset}"
+                    )
+                )
+            btn.append(row)
+
+        btn.insert(0, [
+            InlineKeyboardButton(
+                text="⇊ ꜱᴇʟᴇᴄᴛ ʟᴀɴɢᴜᴀɢᴇ ⇊",
+                callback_data="ident"
+            )
+        ])
+
+        btn.append([
+            InlineKeyboardButton(
+                text="⋞ ʙᴀᴄᴋ ᴛᴏ ꜰɪʟᴇs",
+                callback_data=f"fl#homepage#{key}#0"
+            )
+        ])
+
+        await query.edit_message_reply_markup(
+            InlineKeyboardMarkup(btn)
+        )
+
+    except Exception as e:
+        LOGGER.error(f"Error In Smart Language Callback - {e}")
+
+
+# ================= LANGUAGE ROUTER =================
+@Client.on_callback_query(filters.regex(r"^languages#"))
+async def languages_router(client: Client, query: CallbackQuery):
+    if SMART_SELECTION_MODE:
+        return await smart_languages_cb(client, query)
+    return await old_languages_cb(client, query)
 
 @Client.on_callback_query(filters.regex(r"^fl#"))
-async def filter_languages_cb_handler(client: Client, query: CallbackQuery):
+async def filter_language_cb_handler(client: Client, query: CallbackQuery):
     try:
-        _, lang, key, offset = query.data.split("#")
-        offset = int(offset)
-        curr_time = datetime.now(pytz.timezone('Asia/Kolkata')).time()
-        search = FRESH.get(key)
-        search = search.replace("_", " ")
-        baal = lang in search
-        if baal:
-            search = search.replace(lang, "")
-        else:
-            search = search
-        req = query.from_user.id
-        chat_id = query.message.chat.id
+        _, lang, key, _ = query.data.split("#")
+        offset = 0
+
+        # 🔐 STRICT OWNERSHIP CHECK (ADD HERE)
+        owner_id = temp.OWNER.get(key)
+
+        if owner_id is None:
+             return await query.answer(
+                "❌ Session expired, please search again",
+                show_alert=True
+            )
+
+        if query.from_user.id != owner_id:
+             return await query.answer(
+                "🚫 ɴᴏᴛ ʏᴏᴜʀ ʀᴇǫᴜᴇsᴛ ʙᴜᴅᴅʏ !!",
+                show_alert=True
+			 )
+
         message = query.message
-        try:
-            if int(query.from_user.id) not in [query.message.reply_to_message.from_user.id, 0]:
-                return await query.answer(
-                    f"⚠️ ʜᴇʟʟᴏ {query.from_user.first_name},\nᴛʜɪꜱ ɪꜱ ɴᴏᴛ ʏᴏᴜʀ ᴍᴏᴠɪᴇ ʀᴇǫᴜᴇꜱᴛ,\nʀᴇǫᴜᴇꜱᴛ ʏᴏᴜʀ'ꜱ...",
-                    show_alert=True,
-                )
-        except:
-            pass
-        if lang != "homepage":
-            search = f"{search} {lang}"
-        BUTTONS[key] = search
-        files, n_offset, total_results = await get_search_results(chat_id, search, offset=offset, filter=True)
-        if not files:
-            await query.answer("🚫 ɴᴏ ꜰɪʟᴇꜱ ᴡᴇʀᴇ ꜰᴏᴜɴᴅ 🚫", show_alert=1)
-            return
-        temp.GETALL[key] = files
-        settings = await get_settings(message.chat.id)
-        if settings.get('button'):
-            btn = [
-                [
-                    InlineKeyboardButton(
-                        text=f"{silent_size(file.file_size)}| {extract_tag(file.file_name)} {clean_filename(file.file_name)}", callback_data=f'file#{file.file_id}'
-                    ),
-                ]
-                for file in files
-            ]
-            btn.insert(0, 
-                [
-                    InlineKeyboardButton("ᴘɪxᴇʟ", callback_data=f"qualities#{key}#0"),
-                    InlineKeyboardButton("ʟᴀɴɢᴜᴀɢᴇ", callback_data=f"languages#{key}#0"),
-                    InlineKeyboardButton("ꜱᴇᴀꜱᴏɴ",  callback_data=f"seasons#{key}#0")
-                ]
-            )
-            
+        chat_id = message.chat.id
+        req = query.from_user.id
+
+        # 🔐 Ownership check
+        #try:
+            #if int(query.from_user.id) not in [message.reply_to_message.from_user.id, 0]:
+                #return await query.answer(
+                    #f"⚠️ Hello {query.from_user.first_name}, this is not your request.",
+                   # show_alert=True,
+                #)
+       # except:
+           # pass
+        # ================= SAVE ACTIVE FILTER STATE =================
+        if not hasattr(temp, "ACTIVE_FILTER"):
+            temp.ACTIVE_FILTER = {}
+
+        if lang == "homepage":
+            temp.ACTIVE_FILTER.pop(key, None)
         else:
-            btn = []
-            btn.insert(0, 
-                [
-                    InlineKeyboardButton("ᴘɪxᴇʟ", callback_data=f"qualities#{key}#0"),
-                    InlineKeyboardButton("ʟᴀɴɢᴜᴀɢᴇ", callback_data=f"languages#{key}#0"),
-                    InlineKeyboardButton("ꜱᴇᴀꜱᴏɴ",  callback_data=f"seasons#{key}#0")
-                ]
-            )
+            temp.ACTIVE_FILTER[key] = {
+                "type": "language",
+                "value": lang
+			}
+        search = FRESH.get(key, "").replace("_", " ")
+        BUTTONS[key] = search
+
+        # ================= SMART MODE =================
+        if SMART_SELECTION_MODE:
+            offset = 0   # ⬅️ IMPORTANT
+            all_files = temp.GETALL.get(key, [])
+
+            # 🔁 BACK TO MAIN FILE LIST
+            if lang == "homepage":
+                files = all_files
+
+                # 🔄 restore pagination state
+                state = temp.MAIN_STATE.get(key, {})
+                per_page = state.get("per_page", 10)
+                total_results = state.get("total_results", len(all_files))
+                #offset = state.get("current_offset", 0)
+
+                files = files[offset: offset + per_page]
+
+                if total_results > offset + per_page:
+                    n_offset = offset + per_page
+                else:
+                    n_offset = ""
+            # 🔍 FILTER MODE (quality selected)
+            else:
+                offset = 0
+                aliases = SMART_LANG_MAP.get(lang, {}).get("aliases", [])
+                # 1️⃣ সব ফাইল থেকে filter করো
+                filtered_files = [
+                    f for f in all_files
+                    if any(alias in (f.file_name or "").lower() for alias in aliases)
+				]
+
+                total_results = len(filtered_files)
+
+                settings = await get_settings(chat_id)
+                per_page = 10 if settings.get("max_btn") else int(MAX_B_TN)
+
+                # 2️⃣ filter করলে সবসময় first page থেকে শুরু
+                offset = 0
+                files = filtered_files[:per_page]
+
+                # ⭐⭐⭐ EXACTLY HERE ⭐⭐⭐
+                temp.PAGE_STATE[key] = {
+                    "total_results": total_results,
+                    "per_page": per_page,
+                    "current_offset": offset
+				}
+                # 3️⃣ pagination decide করো
+                if total_results > per_page:
+                    n_offset = per_page
+                else:
+                    n_offset = ""   # 👈 এইখানেই "no more page available" trigger হবে   # ❌ no pagination in filter mode
+            if not files:
+                # 🔁 homepage এ গেলে popup না দেখাও
+                if SMART_SELECTION_MODE and lang == "homepage":
+                    files = all_files
+                else:
+                    return await query.answer(
+                        "🚫 ɴᴏ ꜰɪʟᴇꜱ ᴡᴇʀᴇ ꜰᴏᴜɴᴅ 🚫",
+                        show_alert=True
+					)
             
+   # ❌ no pagination in filter mode
+
+            #if not files:
+                #return await query.answer(
+                    #"🚫 ɴᴏ ꜰɪʟᴇꜱ ᴡᴇʀᴇ ꜰᴏᴜɴᴅ 🚫",
+                    #show_alert=True
+                #)
+
+        # ================= OLD MODE =================
+        else:
+            if lang != "homepage":
+                search = f"{search} {lang}"
+
+            files, n_offset, total_results = await get_search_results(
+                chat_id,
+                search,
+                offset=offset,
+                filter=True
+            )
+
+            if not files:
+                return await query.answer(
+                    "🚫 ɴᴏ ꜰɪʟᴇꜱ ᴡᴇʀᴇ ꜰᴏᴜɴᴅ 🚫",
+                    show_alert=True
+                )
+
+
+        # ================= BUILD FILE BUTTONS =================
+        settings = await get_settings(chat_id)
+
+        btn = [
+            [
+                InlineKeyboardButton(
+                    text=f"{silent_size(f.file_size)} | {extract_tag(f.file_name)} {clean_filename(f.file_name)}",
+                    callback_data=f"file#{f.file_id}"
+                )
+            ]
+            for f in files
+        ]
+
+        # 🔝 Top filter buttons
+        btn.insert(0, [
+            InlineKeyboardButton("ᴘɪxᴇʟ", callback_data=f"qualities#{key}#0"),
+            InlineKeyboardButton("ʟᴀɴɢᴜᴀɢᴇ", callback_data=f"languages#{key}#0"),
+            InlineKeyboardButton("ꜱᴇᴀꜱᴏɴ", callback_data=f"seasons#{key}#0"),
+        ])
+
+        # 🔽 Pagination (ONLY old mode OR restored homepage)
+        # 🔽 Pagination
         if n_offset != "":
             try:
-                if settings['max_btn']:
-                    btn.append(
-                        [InlineKeyboardButton("ᴘᴀɢᴇ", callback_data="pages"), InlineKeyboardButton(text=f"1/{math.ceil(int(total_results)/10)}",callback_data="pages"), InlineKeyboardButton(text="ɴᴇxᴛ ⋟",callback_data=f"next_{req}_{key}_{n_offset}")]
-                    )
-    
-                else:
-                    btn.append(
-                        [InlineKeyboardButton("ᴘᴀɢᴇ", callback_data="pages"), InlineKeyboardButton(text=f"1/{math.ceil(int(total_results)/int(MAX_B_TN))}",callback_data="pages"), InlineKeyboardButton(text="ɴᴇxᴛ ⋟",callback_data=f"next_{req}_{key}_{n_offset}")]
-                    )
-            except KeyError:
-                await save_group_settings(query.message.chat.id, 'max_btn', True)
-                btn.append(
-                    [InlineKeyboardButton("ᴘᴀɢᴇ", callback_data="pages"), InlineKeyboardButton(text=f"1/{math.ceil(int(total_results)/10)}",callback_data="pages"), InlineKeyboardButton(text="ɴᴇxᴛ ⋟",callback_data=f"next_{req}_{key}_{n_offset}")]
-                )
-        else:
-            n_offset = 0
-            btn.append(
-                [InlineKeyboardButton(text="↭ ɴᴏ ᴍᴏʀᴇ ᴘᴀɢᴇꜱ ᴀᴠᴀɪʟᴀʙʟᴇ ↭",callback_data="pages")]
-            )    
+                per_page = 10 if settings.get("max_btn") else int(MAX_B_TN)
 
-        if not settings.get('button'):
-            cur_time = datetime.now(pytz.timezone('Asia/Kolkata')).time()
-            time_difference = timedelta(hours=cur_time.hour, minutes=cur_time.minute, seconds=(cur_time.second+(cur_time.microsecond/1000000))) - timedelta(hours=curr_time.hour, minutes=curr_time.minute, seconds=(curr_time.second+(curr_time.microsecond/1000000)))
-            remaining_seconds = "{:.2f}".format(time_difference.total_seconds())
-            cap = await get_cap(settings, remaining_seconds, files, query, total_results, search, offset)
-            try:
-                await query.message.edit_text(text=cap, reply_markup=InlineKeyboardMarkup(btn), disable_web_page_preview=True, parse_mode=enums.ParseMode.HTML)
-            except MessageNotModified:
+                current_page = (offset // per_page) + 1
+                total_pages = math.ceil(total_results / per_page)
+
+                btn.append([
+                    InlineKeyboardButton("ᴘᴀɢᴇ", callback_data="pages"),
+                    InlineKeyboardButton(
+                        text=f"{current_page}/{total_pages}",
+                        callback_data="pages"
+                    ),
+                    InlineKeyboardButton(
+                        "ɴᴇxᴛ ⋟",
+                        callback_data=f"next_{req}_{key}_{n_offset}"
+                    )
+                ])
+            except:
                 pass
         else:
-            try:
+            btn.append([
+                InlineKeyboardButton(
+                    text="↭ ɴᴏ ᴍᴏʀᴇ ᴘᴀɢᴇꜱ ᴀᴠᴀɪʟᴀʙʟᴇ ↭",
+                    callback_data="pages"
+                )
+            ])
+        # ================= SEND UPDATE =================
+        try:
+            if settings.get("button"):
                 await query.edit_message_reply_markup(
                     reply_markup=InlineKeyboardMarkup(btn)
                 )
-            except MessageNotModified:
-                pass
+            else:
+                cap = await get_cap(
+                    settings,
+                    "0",
+                    files,
+                    query,
+                    total_results,
+                    search,
+                    offset
+                )
+                await query.message.edit_text(
+                    text=cap,
+                    reply_markup=InlineKeyboardMarkup(btn),
+                    disable_web_page_preview=True,
+                    parse_mode=enums.ParseMode.HTML
+                )
+        except MessageNotModified:
+            pass
+
         await query.answer()
+
     except Exception as e:
-        LOGGER.error(f"Error In Language - {e}")
-        
-@Client.on_callback_query(filters.regex(r"^seasons#"))
-async def season_cb_handler(client: Client, query: CallbackQuery):
+        LOGGER.error(f"Error In Language Filter - {e}")
+
+# ================= OLD SEASON CALLBACK =================
+async def old_seasons_cb(client: Client, query: CallbackQuery):
     try:
         try:
-            if int(query.from_user.id) not in [query.message.reply_to_message.from_user.id, 0]:
+            if int(query.from_user.id) not in [
+                query.message.reply_to_message.from_user.id, 0
+            ]:
                 return await query.answer(
-                    f"⚠️ ʜᴇʟʟᴏ {query.from_user.first_name},\nᴛʜɪꜱ ɪꜱ ɴᴏᴛ ʏᴏᴜʀ ᴍᴏᴠɪᴇ ʀᴇǫᴜᴇꜱᴛ,\nʀᴇǫᴜᴇꜱᴛ ʏᴏᴜʀ'ꜱ...",
+                    f"⚠️ ʜᴇʟʟᴏ {query.from_user.first_name},\n"
+                    f"ᴛʜɪꜱ ɪꜱ ɴᴏᴛ ʏᴏᴜʀ ᴍᴏᴠɪᴇ ʀᴇǫᴜᴇꜱᴛ,\n"
+                    f"ʀᴇǫᴜᴇꜱᴛ ʏᴏᴜʀ'ꜱ...",
                     show_alert=True,
                 )
         except:
             pass
+
         _, key, offset = query.data.split("#")
         search = FRESH.get(key)
-        search = search.replace(' ', '_')
+        search = search.replace(" ", "_")
         offset = int(offset)
+
         btn = []
-        for i in range(0, len(SEASONS)-1, 2):
+        for i in range(0, len(SEASONS) - 1, 2):
             btn.append([
                 InlineKeyboardButton(
                     text=SEASONS[i].title(),
                     callback_data=f"fs#{SEASONS[i].lower()}#{key}#{offset}"
                 ),
                 InlineKeyboardButton(
-                    text=SEASONS[i+1].title(),
-                    callback_data=f"fs#{SEASONS[i+1].lower()}#{key}#{offset}"
+                    text=SEASONS[i + 1].title(),
+                    callback_data=f"fs#{SEASONS[i + 1].lower()}#{key}#{offset}"
                 ),
             ])
-        btn.insert(
-            0,
-            [
-                InlineKeyboardButton(
-                    text="⇊ ꜱᴇʟᴇᴄᴛ Sᴇᴀsᴏɴ ⇊", callback_data="ident"
-                )
-            ],
+
+        btn.insert(0, [
+            InlineKeyboardButton(
+                text="⇊ ꜱᴇʟᴇᴄᴛ sᴇᴀsᴏɴ ⇊",
+                callback_data="ident"
+            )
+        ])
+
+        btn.append([
+            InlineKeyboardButton(
+                text="⋞ ʙᴀᴄᴋ ᴛᴏ ꜰɪʟᴇs",
+                callback_data=f"fl#homepage#{key}#0"
+            )
+        ])
+
+        await query.edit_message_reply_markup(
+            InlineKeyboardMarkup(btn)
         )
-        req = query.from_user.id
-        offset = 0
-        btn.append([InlineKeyboardButton(text="↭ ʙᴀᴄᴋ ᴛᴏ ꜰɪʟᴇs ↭", callback_data=f"fl#homepage#{key}#{offset}")])
-        await query.edit_message_reply_markup(InlineKeyboardMarkup(btn))
+
     except Exception as e:
-        LOGGER.error(f"Error In Season Cb Handaler - {e}")
+        LOGGER.error(f"Error In Old Season Callback - {e}")
+
+
+# ================= SMART SEASON CALLBACK =================
+# ================= SMART SEASON CALLBACK =================
+async def smart_seasons_cb(client: Client, query: CallbackQuery):
+    try:
+        _, key, offset = query.data.split("#")
+        offset = int(offset)
+
+        # 🔐 STRICT OWNERSHIP CHECK (ADD HERE)
+        owner_id = temp.OWNER.get(key)
+
+        if owner_id is None:
+             return await query.answer(
+                "❌ Session expired, please search again",
+                show_alert=True
+            )
+
+        if query.from_user.id != owner_id:
+             return await query.answer(
+                "🚫 ɴᴏᴛ ʏᴏᴜʀ ʀᴇǫᴜᴇsᴛ ʙᴜᴅᴅʏ !!",
+                show_alert=True
+			 )
+        if key not in temp.SMART_FILTERS:
+            return await query.answer(
+                "❌ Session expired, please search again",
+                show_alert=True
+            )
+
+        data = temp.SMART_FILTERS[key].get("seasons", [])
+
+        if not data:
+            return await query.answer(
+                "❌ No season available",
+                show_alert=True
+            )
+
+        btn = []
+        for i in range(0, len(data), 2):
+            row = [
+                InlineKeyboardButton(
+                    data[i],
+                    callback_data=f"fs#{data[i].lower()}#{key}#{offset}"
+                )
+            ]
+            if i + 1 < len(data):
+                row.append(
+                    InlineKeyboardButton(
+                        data[i + 1],
+                        callback_data=f"fs#{data[i + 1].lower()}#{key}#{offset}"
+                    )
+                )
+            btn.append(row)
+
+        btn.insert(0, [
+            InlineKeyboardButton(
+                "⇊ ꜱᴇʟᴇᴄᴛ sᴇᴀꜱᴏɴ ⇊",
+                callback_data="ident"
+            )
+        ])
+
+        btn.append([
+            InlineKeyboardButton(
+                "⋞ ʙᴀᴄᴋ ᴛᴏ ꜰɪʟᴇs",
+                callback_data=f"fl#homepage#{key}#0"
+            )
+        ])
+
+        await query.edit_message_reply_markup(
+            InlineKeyboardMarkup(btn)
+        )
+
+    except Exception as e:
+        LOGGER.error(f"Error In Smart Season Callback - {e}")
+
+
+# ================= SEASON ROUTER =================
+@Client.on_callback_query(filters.regex(r"^seasons#"))
+async def seasons_router(client: Client, query: CallbackQuery):
+    if SMART_SELECTION_MODE:
+        return await smart_seasons_cb(client, query)
+    return await old_seasons_cb(client, query)
 
 
 @Client.on_callback_query(filters.regex(r"^fs#"))
 async def filter_season_cb_handler(client: Client, query: CallbackQuery):
     try:
-        _, seas, key, offset = query.data.split("#")
-        offset = int(offset)
-        curr_time = datetime.now(pytz.timezone('Asia/Kolkata')).time()
-        search = FRESH.get(key)
-        search = search.replace("_", " ")
-        baal = seas in search
-        if baal:
-            search = search.replace(seas, "")
-        else:
-            search = search
-        req = query.from_user.id
-        chat_id = query.message.chat.id
+        _, seas, key, _ = query.data.split("#")
+        offset = 0
+
+        # 🔐 STRICT OWNERSHIP CHECK (ADD HERE)
+        # 🔐 STRICT OWNERSHIP CHECK (SAFE)
+        owner_id = temp.OWNER.get(key)
+
+        if owner_id is None:
+             return await query.answer(
+                "❌ Session expired, please search again",
+                show_alert=True
+            )
+
+        if query.from_user.id != owner_id:
+             return await query.answer(
+                "🚫 ɴᴏᴛ ʏᴏᴜʀ ʀᴇǫᴜᴇsᴛ ʙᴜᴅᴅʏ !!",
+                show_alert=True
+	        )
+
         message = query.message
-        try:
-            if int(query.from_user.id) not in [query.message.reply_to_message.from_user.id, 0]:
-                return await query.answer(
-                    f"⚠️ ʜᴇʟʟᴏ {query.from_user.first_name},\nᴛʜɪꜱ ɪꜱ ɴᴏᴛ ʏᴏᴜʀ ᴍᴏᴠɪᴇ ʀᴇǫᴜᴇꜱᴛ,\nʀᴇǫᴜᴇꜱᴛ ʏᴏᴜʀ'ꜱ...",
-                    show_alert=True,
-                )
-        except:
-            pass
-        if seas != "homepage":
-            search = f"{search} {seas}"
-        BUTTONS[key] = search
-        files, n_offset, total_results = await get_search_results(chat_id, search, offset=offset, filter=True)
-        if not files:
-            await query.answer("🚫 ɴᴏ ꜰɪʟᴇꜱ ᴡᴇʀᴇ ꜰᴏᴜɴᴅ 🚫", show_alert=1)
-            return
-        temp.GETALL[key] = files
-        settings = await get_settings(message.chat.id)
-        if settings.get('button'):
-            btn = [
-                [
-                    InlineKeyboardButton(
-                        text=f"{silent_size(file.file_size)}| {extract_tag(file.file_name)} {clean_filename(file.file_name)}", callback_data=f'file#{file.file_id}'
-                    ),
-                ]
-                for file in files
-            ]
-            btn.insert(0, 
-                [
-                    InlineKeyboardButton("ᴘɪxᴇʟ", callback_data=f"qualities#{key}#0"),
-                    InlineKeyboardButton("ʟᴀɴɢᴜᴀɢᴇ", callback_data=f"languages#{key}#0"),
-                    InlineKeyboardButton("ꜱᴇᴀꜱᴏɴ",  callback_data=f"seasons#{key}#0")
-                ]
-            )
-            
+        chat_id = message.chat.id
+        req = query.from_user.id
+
+        # 🔐 Ownership check
+        #try:
+            #if int(query.from_user.id) not in [
+                #message.reply_to_message.from_user.id, 0
+            #]:
+                #return await query.answer(
+                    #f"⚠️ Hello {query.from_user.first_name}, this is not your request.",
+                    #show_alert=True,
+                #)
+        #except:
+            #pass
+
+        # ================= SAVE ACTIVE FILTER STATE =================
+        if not hasattr(temp, "ACTIVE_FILTER"):
+            temp.ACTIVE_FILTER = {}
+
+        if seas == "homepage":
+            temp.ACTIVE_FILTER.pop(key, None)
         else:
-            btn = []
-            btn.insert(0, 
-                [
-                    InlineKeyboardButton("ᴘɪxᴇʟ", callback_data=f"qualities#{key}#0"),
-                    InlineKeyboardButton("ʟᴀɴɢᴜᴀɢᴇ", callback_data=f"languages#{key}#0"),
-                    InlineKeyboardButton("ꜱᴇᴀꜱᴏɴ",  callback_data=f"seasons#{key}#0")
+            temp.ACTIVE_FILTER[key] = {
+                "type": "season",
+                "value": seas
+            }
+# ============================================================
+        search = FRESH.get(key, "").replace("_", " ")
+        BUTTONS[key] = search
+
+        # ================= SMART MODE =================
+        if SMART_SELECTION_MODE:
+            offset = 0   # ⬅️ IMPORTANT
+            all_files = temp.GETALL.get(key, [])
+            settings = await get_settings(chat_id)
+            # 🔁 BACK TO MAIN FILE LIST
+            if seas == "homepage":
+                files = all_files
+
+                # ✅ restore pagination state
+                state = temp.MAIN_STATE.get(key, {})
+                per_page = state.get("per_page", 10)
+                total_results = state.get("total_results", len(all_files))
+                #offset = state.get("current_offset", 0)
+
+                files = files[offset: offset + per_page]
+
+                if total_results > offset + per_page:
+                    n_offset = offset + per_page
+                else:
+                    n_offset = ""
+            # 🔍 FILTER MODE (season selected)
+            else:
+                offset = 0
+                filtered_files = [
+                    f for f in all_files
+                    if seas.lower() in (f.file_name or "").lower()
                 ]
+
+                total_results = len(filtered_files)
+
+                per_page = 10 if settings.get("max_btn") else int(MAX_B_TN)
+
+                offset = 0
+                files = filtered_files[:per_page]
+
+                temp.PAGE_STATE[key] = {
+                    "total_results": total_results,
+                    "per_page": per_page,
+                    "current_offset": offset
+				}
+                if total_results > per_page:
+                    n_offset = per_page
+                else:
+                    n_offset = ""   # ❌ no pagination in filter mode
+
+            if not files:
+                # 🔁 homepage এ গেলে popup না দেখাও
+                if SMART_SELECTION_MODE and seas == "homepage":
+                    files = all_files
+                else:
+                    return await query.answer(
+                        "🚫 ɴᴏ ꜰɪʟᴇꜱ ᴡᴇʀᴇ ꜰᴏᴜɴᴅ 🚫",
+                        show_alert=True
+		            )
+
+        # ================= OLD MODE =================
+        else:
+            if seas != "homepage":
+                search = f"{search} {seas}"
+
+            files, n_offset, total_results = await get_search_results(
+                chat_id,
+                search,
+                offset=offset,
+                filter=True
             )
-            
+
+            if not files:
+                return await query.answer(
+                    "🚫 ɴᴏ ꜰɪʟᴇꜱ ᴡᴇʀᴇ ꜰᴏᴜɴᴅ 🚫",
+                    show_alert=True
+                )
+
+        # ================= BUILD RESULT BUTTONS =================
+        settings = await get_settings(chat_id)
+
+        btn = [
+            [
+                InlineKeyboardButton(
+                    text=f"{silent_size(f.file_size)} | "
+                         f"{extract_tag(f.file_name)} "
+                         f"{clean_filename(f.file_name)}",
+                    callback_data=f"file#{f.file_id}"
+                )
+            ]
+            for f in files
+        ]
+
+        # 🔝 Top filter buttons
+        btn.insert(0, [
+            InlineKeyboardButton("ᴘɪxᴇʟ", callback_data=f"qualities#{key}#0"),
+            InlineKeyboardButton("ʟᴀɴɢᴜᴀɢᴇ", callback_data=f"languages#{key}#0"),
+            InlineKeyboardButton("ꜱᴇᴀꜱᴏɴ", callback_data=f"seasons#{key}#0"),
+        ])
+
+        # 🔽 Pagination handling (ONLY old mode)
+        # 🔽 Pagination
         if n_offset != "":
             try:
-                if settings['max_btn']:
-                    btn.append(
-                        [InlineKeyboardButton("ᴘᴀɢᴇ", callback_data="pages"), InlineKeyboardButton(text=f"1/{math.ceil(int(total_results)/10)}",callback_data="pages"), InlineKeyboardButton(text="ɴᴇxᴛ ⋟",callback_data=f"next_{req}_{key}_{n_offset}")]
-                    )
+                per_page = 10 if settings.get("max_btn") else int(MAX_B_TN)
 
-                else:
-                    btn.append(
-                        [InlineKeyboardButton("ᴘᴀɢᴇ", callback_data="pages"), InlineKeyboardButton(text=f"1/{math.ceil(int(total_results)/int(MAX_B_TN))}",callback_data="pages"), InlineKeyboardButton(text="ɴᴇxᴛ ⋟",callback_data=f"next_{req}_{key}_{n_offset}")]
-                    )
-            except KeyError:
-                await save_group_settings(query.message.chat.id, 'max_btn', True)
-                btn.append(
-                    [InlineKeyboardButton("ᴘᴀɢᴇ", callback_data="pages"), InlineKeyboardButton(text=f"1/{math.ceil(int(total_results)/10)}",callback_data="pages"), InlineKeyboardButton(text="ɴᴇxᴛ ⋟",callback_data=f"next_{req}_{key}_{n_offset}")]
-                )
-        else:
-            n_offset = 0
-            btn.append(
-                [InlineKeyboardButton(text="↭ ɴᴏ ᴍᴏʀᴇ ᴘᴀɢᴇꜱ ᴀᴠᴀɪʟᴀʙʟᴇ ↭",callback_data="pages")]
-            )    
+                current_page = (offset // per_page) + 1
+                total_pages = math.ceil(total_results / per_page)
 
-        if not settings.get('button'):
-            cur_time = datetime.now(pytz.timezone('Asia/Kolkata')).time()
-            time_difference = timedelta(hours=cur_time.hour, minutes=cur_time.minute, seconds=(cur_time.second+(cur_time.microsecond/1000000))) - timedelta(hours=curr_time.hour, minutes=curr_time.minute, seconds=(curr_time.second+(curr_time.microsecond/1000000)))
-            remaining_seconds = "{:.2f}".format(time_difference.total_seconds())
-            cap = await get_cap(settings, remaining_seconds, files, query, total_results, search, offset)
-            try:
-                await query.message.edit_text(text=cap, reply_markup=InlineKeyboardMarkup(btn), disable_web_page_preview=True, parse_mode=enums.ParseMode.HTML)
-            except MessageNotModified:
+                btn.append([
+                    InlineKeyboardButton("ᴘᴀɢᴇ", callback_data="pages"),
+                    InlineKeyboardButton(
+                        text=f"{current_page}/{total_pages}",
+                        callback_data="pages"
+                    ),
+                    InlineKeyboardButton(
+                        "ɴᴇxᴛ ⋟",
+                        callback_data=f"next_{req}_{key}_{n_offset}"
+                    )
+                ])
+            except:
                 pass
         else:
-            try:
+            btn.append([
+                InlineKeyboardButton(
+                    text="↭ ɴᴏ ᴍᴏʀᴇ ᴘᴀɢᴇꜱ ᴀᴠᴀɪʟᴀʙʟᴇ ↭",
+                    callback_data="pages"
+                )
+            ])
+
+        # ================= SEND UPDATE =================
+        try:
+            if settings.get("button"):
                 await query.edit_message_reply_markup(
                     reply_markup=InlineKeyboardMarkup(btn)
                 )
-            except MessageNotModified:
-                pass
+            else:
+                cap = await get_cap(
+                    settings,
+                    "0",
+                    files,
+                    query,
+                    total_results,
+                    search,
+                    offset
+                )
+                await query.message.edit_text(
+                    text=cap,
+                    reply_markup=InlineKeyboardMarkup(btn),
+                    disable_web_page_preview=True,
+                    parse_mode=enums.ParseMode.HTML
+                )
+        except MessageNotModified:
+            pass
+
         await query.answer()
+
     except Exception as e:
-        LOGGER.error(f"Error In Season - {e}")
+        LOGGER.error(f"Error In Season Filter - {e}")
 
 @Client.on_callback_query(filters.regex(r"^spol"))
 async def advantage_spoll_choker(bot, query):
@@ -1619,6 +2271,11 @@ async def cb_handler(client: Client, query: CallbackQuery):
         
 async def auto_filter(client, msg, spoll=False):
     curr_time = datetime.now(pytz.timezone('Asia/Kolkata')).time()
+    # ================= SMART MODE INIT =================
+    if SMART_SELECTION_MODE:
+        if not hasattr(temp, "SMART_FILTERS"):
+            temp.SMART_FILTERS = {}
+    # ==================================================
     if not spoll:
         message = msg
         if message.text.startswith("/"): return
@@ -1633,13 +2290,96 @@ async def auto_filter(client, msg, spoll=False):
             search = re.sub(r'\s+', ' ', search).strip()
             m=await message.reply_text(f'<b>Wait {message.from_user.mention} Searching Your Query: <i>{search}...</i></b>', reply_to_message_id=message.id)
             files, offset, total_results = await get_search_results(message.chat.id ,search, offset=0, filter=True)
+            uid = message.from_user.id if message.from_user else 0
+            key = f"{message.chat.id}-{message.id}"
+            if not hasattr(temp, "OWNER"):
+                temp.OWNER = {}
+            temp.OWNER[key] = uid
             settings = await get_settings(message.chat.id)
+
+            if not hasattr(temp, "PAGE_STATE"):
+                temp.PAGE_STATE = {}
+
+            per_page = 10 if settings.get("max_btn") else int(MAX_B_TN)
+
+            # ✅ MAIN STATE (never change, original search)
+            if not hasattr(temp, "MAIN_STATE"):
+                temp.MAIN_STATE = {}
+
+            temp.MAIN_STATE[key] = {
+                "total_results": total_results,
+                "per_page": per_page
+            }
+
+            # ✅ CURRENT STATE (can change by filter)
+            temp.PAGE_STATE[key] = {
+                "total_results": total_results,
+                "per_page": per_page,
+                "current_offset": 0
+            }
+            # ================= SMART MODE DETECTION =================
+            # ================= SMART MODE: COLLECT ALL FILES =================
+            if SMART_SELECTION_MODE:
+                smart_languages = set()
+                smart_seasons = set()
+                smart_qualities = set()
+
+                # 🔹 start with first page files
+                all_files = list(files)
+
+                # 🔹 collect remaining pages
+                next_offset = offset
+                while next_offset:
+                    more_files, next_offset, _ = await get_search_results(
+                        message.chat.id,
+                        search,
+                        offset=next_offset,
+                        filter=True
+                    )
+                    if not more_files:
+                        break
+                    all_files.extend(more_files)
+
+                # 🔹 analyze ALL files (not only 1st page)
+                for file in all_files:
+                    name = (file.file_name or "").lower()
+
+                    # 🔤 Language detection
+                    for lang_key, data in SMART_LANG_MAP.items():
+                        for alias in data["aliases"]:
+                            if re.search(rf"(^|[.\s_-]){alias}([.\s_-]|$)", name):
+                                smart_languages.add(lang_key)
+                                break
+
+                    # 📺 Season detection
+                    for pattern in SMART_SEASON_REGEX:
+                        match = re.search(pattern, name)
+                        if match:
+                            num = re.search(r"\d{1,2}", match.group())
+                            if num:
+                                smart_seasons.add(f"S{int(num.group()):02d}")
+                            break
+
+                    # 🎞 Quality detection
+                    q = re.search(SMART_QUALITY_REGEX, name)
+                    if q:
+                        smart_qualities.add(q.group())
+
+
+                # 🔹 store EVERYTHING for smart filters
+                temp.GETALL[key] = all_files
+                temp.SMART_FILTERS[key] = {
+                    "languages": sorted(smart_languages),
+                    "seasons": sorted(smart_seasons),
+                    "qualities": sorted(smart_qualities)
+				    }
+            # ========================================================
             if not files:
                 if settings["spell_check"]:
-                    ai_sts = await m.edit('🤖 ᴘʟᴇᴀꜱᴇ ᴡᴀɪᴛ, ᴀɪ ɪꜱ ᴄʜᴇᴄᴋɪɴɢ ʏᴏᴜʀ ꜱᴘᴇʟʟɪɴɢ...')
+                    ai_sts = await m.edit('<b>Fixing Spelling With AI</b>🕵️')
                     is_misspelled = await ai_spell_check(chat_id = message.chat.id,wrong_name=search)
                     if is_misspelled:
-                        await ai_sts.edit(f'<b>✅Aɪ Sᴜɢɢᴇsᴛᴇᴅ ᴍᴇ<code> {is_misspelled}</code> \nSᴏ Iᴍ Sᴇᴀʀᴄʜɪɴɢ ғᴏʀ <code>{is_misspelled}</code></b>')
+                        await ai_sts.edit(f'<b>🕵️ I Get Correct Spelling -<code> {is_misspelled}</code>\n✅ Now I am Searching With This -<code> {is_misspelled}</b>')
                         await asyncio.sleep(2)
                         message.text = is_misspelled
                         await ai_sts.delete()
@@ -1651,12 +2391,16 @@ async def auto_filter(client, msg, spoll=False):
     else:
         message = msg.message.reply_to_message
         search, files, offset, total_results = spoll
-        m=await message.reply_text(f'<b>Wᴀɪᴛ {message.from_user.mention} Sᴇᴀʀᴄʜɪɴɢ Yᴏᴜʀ Qᴜᴇʀʏ :<i>{search}...</i></b>', reply_to_message_id=message.id)
+        m=await message.reply_text(f'<b>✅ Wᴀɪᴛ {message.from_user.mention}\nAᴍ Sᴇᴀʀᴄʜɪɴɢ Yᴏᴜʀ Qᴜᴇʀʏ :<i>{search}...</i></b>', reply_to_message_id=message.id)
         settings = await get_settings(message.chat.id)
         await msg.message.delete()
     key = f"{message.chat.id}-{message.id}"
     FRESH[key] = search
-    temp.GETALL[key] = files
+    if SMART_SELECTION_MODE:
+        # already stored full result earlier, do nothing
+        pass
+    else:
+        temp.GETALL[key] = files
     temp.SHORT[message.from_user.id] = message.chat.id
     if settings.get('button'):
         btn = [
@@ -1759,9 +2503,9 @@ async def auto_filter(client, msg, spoll=False):
                 cap += f"\n\n<b>{file_num}. <a href='https://telegram.me/{temp.U_NAME}?start=file_{message.chat.id}_{file.file_id}'>{get_size(file.file_size)} | {clean_filename(file.file_name)}</a></b>"
     else:
         if settings.get('button'):
-            cap = f"<b><blockquote>Hᴇʏ,{message.from_user.mention}</blockquote>\n\n📂 Hᴇʀᴇ I Fᴏᴜɴᴅ Fᴏʀ Yᴏᴜʀ Sᴇᴀʀᴄʜ <code>{search}</code></b>\n\n"
+            cap = f"<b><blockquote>Hᴇʏ, {message.from_user.mention}</blockquote>\nʜᴇʀᴇ ɪ ꜰᴏᴜɴᴅ ꜰᴏʀ ʏᴏᴜʀ sᴇᴀʀᴄʜ - <code>{search}</code>\n\n 🚧 ᴛʜɪꜱ ᴍᴇꜱꜱᴀɢᴇ ᴡɪʟʟ ʙᴇ ᴀᴜᴛᴏ ᴅᴇʟᴇᴛᴇ ᴀғᴛᴇʀ ғᴇᴡ ᴍɪɴᴜᴛᴇs.</b>"
         else:
-            cap = f"<b><blockquote>Hᴇʏ,{message.from_user.mention}</blockquote>\n\n📂 Hᴇʀᴇ I Fᴏᴜɴᴅ Fᴏʀ Yᴏᴜʀ Sᴇᴀʀᴄʜ <code>{search}</code></b>\n\n"            
+            cap = f"<b><blockquote>Hᴇʏ, {message.from_user.mention}</blockquote>\nʜᴇʀᴇ ɪ ꜰᴏᴜɴᴅ ꜰᴏʀ ʏᴏᴜʀ sᴇᴀʀᴄʜ - <code>{search}</code>\n\n🚧 ᴛʜɪꜱ ᴍᴇꜱꜱᴀɢᴇ ᴡɪʟʟ ʙᴇ ᴀᴜᴛᴏ ᴅᴇʟᴇᴛᴇ ᴀғᴛᴇʀ ғᴇᴡ ᴍɪɴᴜᴛᴇs.</b>"            
             for file_num, file in enumerate(files, start=1):
                 cap += f"<b>{file_num}. <a href='https://telegram.me/{temp.U_NAME}?start=file_{message.chat.id}_{file.file_id}'>{get_size(file.file_size)} | {clean_filename(file.file_name)}\n\n</a></b>"                
     try:
@@ -1901,7 +2645,7 @@ async def advantage_spell_chok(client, message):
         for movie in movies
     ]
     buttons.append(
-        [InlineKeyboardButton(text="🚫 ᴄʟᴏsᴇ 🚫", callback_data='close_data')]
+        [InlineKeyboardButton(text="ᴄʟᴏsᴇ ❌", callback_data='close_data')]
     )
     d = await message.reply_text(text=script.CUDNT_FND.format(message.from_user.mention), reply_markup=InlineKeyboardMarkup(buttons), reply_to_message_id=message.id)
     await asyncio.sleep(60)
