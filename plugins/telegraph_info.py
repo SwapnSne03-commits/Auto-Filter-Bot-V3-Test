@@ -121,31 +121,29 @@ async def telegraph_file_info(client, query):
         # =================================
         # TELEGRAPH PAGE BUILD (same UI)
         # =================================
-        html = "<h2>📊 <b>File Tracks Information</b></h2><hr>"
+        html = "📊 <b>File Tracks Information</b><hr><br>"
 
         if video:
-            html += "<h3>🎬 <u><b>Video Track</b></u></h3>"
+            html += "🎬 <u><b>Video Track</b></u>"
             for v in video:
                 html += f"<blockquote>• <code>{v}</code></blockquote>"
 
         if audios:
-            html += f"<br><h3>🔊 <u><b>Audio Tracks ({len(audios)})</b></u></h3>"
+            html += f"<br>🔊 <u><b>Audio Tracks ({len(audios)})</b></u>"
             for a in dict.fromkeys(audios):
                 html += f"<blockquote>• <code>{a}</code></blockquote>"
 
         if subs:
-            html += f"<br><h3>💬 <u><b>Subtitle Tracks ({len(subs)})</b></u></h3>"
+            html += f"<br>💬 <u><b>Subtitle Tracks ({len(subs)})</b></u>"
             for s in dict.fromkeys(subs):
                 html += f"<blockquote>• <code>{s}</code></blockquote>"
 
             html += """
-            <br><hr>
-            <center>
-            <i><small>
+            <br>
+            <i>
             🔺 Provided By
             <b><a href="https://t.me/Graduate_Movies">GraDuate Movies</a></b> 🔺
-            </small></i>
-            </center>
+            </i>
             """
         page = telegraph.create_page(
             title="File Info",
@@ -154,7 +152,7 @@ async def telegraph_file_info(client, query):
 
         await query.edit_message_reply_markup(
             reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("📊 View File Info", url=page["url"])]
+                [InlineKeyboardButton("📊 View FILE Info", url=page["url"])]
             ])
         )
 
