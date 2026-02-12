@@ -2320,6 +2320,8 @@ async def auto_filter(client, msg, spoll=False):
     # ==================================================
     if not spoll:
         message = msg
+        if not message or not isinstance(message.text, str):
+            return
         if message.text.startswith("/"): return
         if re.findall("((^\/|^,|^!|^\.|^[\U0001F600-\U000E007F]).*)", message.text):
             return
@@ -2682,16 +2684,13 @@ async def ai_spell_check(chat_id, wrong_name):
 
 async def advantage_spell_chok(client, message):
 
-    if not message.text:
+    # 🔒 absolute safety
+    if not message.text or not isinstance(message.text, str):
         return
 
     search = clean_query(message.text)
-    chat_id = message.chat.id
     user_id = message.from_user.id if message.from_user else 0
 
-    # ===============================
-    # 🔥 light clean query (same logic, cheaper)
-    # ===============================
     query = re.sub(
         r"\b(movie|send|file|new|latest|with|subtitle|pls|please|bro|full)\b",
         "",
@@ -2702,23 +2701,28 @@ async def advantage_spell_chok(client, message):
     if not query:
         return
 
-    # ===============================
-    # 🔥 SMALL CACHE (prevent repeat heavy calls)
-    # ===============================
     cache_key = query.lower()
 
-    if cache_key in SPELL_CACHE:
-        movies = SPELL_CACHE[cache_key]
-    else:
+    # ===============================
+    # 🔥 CACHE
+    # ===============================
+    movies = SPELL_CACHE.get(cache_key)
+
+    if movies is None:
         try:
-            # ❌ bulk=True removed (heavy)
-            # ✅ lightweight search
-            movies = await get_poster(query, bulk=False)
-        except Exception:
+            raw = await get_poster(query, bulk=False)
+        except:
             return
 
-        # save only small results
-        movies = list(movies)[:6] if movies else []
+        # 🔥 safest normalization (VERY IMPORTANT)
+        movies = []
+
+        if isinstance(raw, list):
+            for m in raw or []:
+                if hasattr(m, "imdb_id") and hasattr(m, "title"):
+                    movies.append(m)
+
+        movies = movies[:6]
 
         SPELL_CACHE[cache_key] = movies
 
@@ -2726,62 +2730,29 @@ async def advantage_spell_chok(client, message):
             SPELL_CACHE.clear()
 
     # ===============================
-    # 🔥 no result → google fallback
+    # 🔥 no result → fallback
     # ===============================
     if not movies:
-        google = query.replace(" ", "+")
-        btn = [[
-            InlineKeyboardButton(
-                "🔍 Check Spelling on Google",
-                url=f"https://www.google.com/search?q={google}"
-            )
-        ]]
-
-        k = await message.reply_text(
-            script.I_CUDNT.format(query),
-            reply_markup=InlineKeyboardMarkup(btn)
-        )
-
-        await asyncio.sleep(25)  # reduced from 60 (RAM safe)
-
-        try:
-            await k.delete()
-            await message.delete()
-        except:
-            pass
         return
 
     # ===============================
-    # 🔥 build minimal buttons (max 6 only)
+    # 🔥 build buttons safely
     # ===============================
-    buttons = []
+    buttons = [
+        [InlineKeyboardButton(m.title, callback_data=f"spol#{m.imdb_id}#{user_id}")]
+        for m in movies
+    ]
+    if not buttons:
+        return
+    buttons.append([
+        InlineKeyboardButton("ᴄʟᴏsᴇ ʟɪsᴛ", callback_data=f"spellclose_secure_x9#{user_id}")
+    ])
 
-    for movie in movies:
-        if not hasattr(movie, "imdb_id"):
-            continue
-        buttons.append([
-            InlineKeyboardButton(
-                movie.title,
-                callback_data=f"spol#{movie.imdb_id}#{user_id}"
-            )
-        ])
-
-    buttons.append([InlineKeyboardButton("ᴄʟᴏsᴇ ʟɪsᴛ", callback_data=f"spellclose_secure_x9#{user_id}")])
-
-    msg = await message.reply_text(
+    await message.reply_text(
         script.CUDNT_FND.format(message.from_user.mention),
         reply_markup=InlineKeyboardMarkup(buttons),
         reply_to_message_id=message.id
-    )
-
-    # shorter sleep → lower memory
-    await asyncio.sleep(25)
-
-    try:
-        await msg.delete()
-        await message.delete()
-    except:
-        pass
+		)
 
 @Client.on_callback_query(filters.regex("^spellclose_secure_x9#"))
 async def secure_spell_close_handler(client, query):
