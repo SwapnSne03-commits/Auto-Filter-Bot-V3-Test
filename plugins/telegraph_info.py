@@ -28,10 +28,12 @@ COOLDOWN = 20  # seconds
 
 LOCAL_NAMES = {
     "Bengali": "বাংলা",
+    "Bangla": "বাংলা",
     "Hindi": "हिन्दी",
     "Tamil": "தமிழ்",
     "Telugu": "తెలుగు",
     "Punjabi": "ਪੰਜਾਬੀ",
+    "Panjabi": "ਪੰਜਾਬੀ",
     "Malayalam": "മലയാളം",
     "Kannada": "ಕನ್ನಡ",
     "Urdu": "اردو",
@@ -88,7 +90,7 @@ async def telegraph_file_info(client, query):
     if len(CLICK_CACHE) > 1000:
         CLICK_CACHE.clear()
 
-    await query.answer("🔍 Scanning file...")
+    await query.answer("🔍 𝗦𝗰𝗮𝗻𝗻𝗶𝗻𝗴 𝗙𝗶𝗹𝗲, 𝗣𝗹𝘇 𝗪𝗮𝗶𝘁...")
 
     tmp = os.path.join(tempfile.gettempdir(), f"info_{query.id}.tmp")
 
@@ -119,24 +121,32 @@ async def telegraph_file_info(client, query):
         # =================================
         # TELEGRAPH PAGE BUILD (same UI)
         # =================================
-        html = "<h3>📊 File Tracks Info</h3>"
+        html = "<h2>📊 <b>File Tracks Information</b></h2><hr>"
 
         if video:
-            html += "<b>Video</b><br>"
+            html += "<h3>🎬 <u><b>Video Track</b></u></h3>"
             for v in video:
-                html += f"• {v}<br>"
+                html += f"<blockquote>• <code>{v}</code></blockquote>"
 
         if audios:
-            html += "<br><b>Audio</b><br>"
-            for a in set(audios):
-                html += f"• {a}<br>"
+            html += f"<br><h3>🔊 <u><b>Audio Tracks ({len(audios)})</b></u></h3>"
+            for a in dict.fromkeys(audios):
+                html += f"<blockquote>• <code>{a}</code></blockquote>"
 
         if subs:
-            html += "<br><b>Subtitles</b><br>"
-            for s in set(subs):
-                html += f"• {s}<br>"
+            html += f"<br><h3>💬 <u><b>Subtitle Tracks ({len(subs)})</b></u></h3>"
+            for s in dict.fromkeys(subs):
+                html += f"<blockquote>• <code>{s}</code></blockquote>"
 
-
+            html += """
+            <br><hr>
+            <center>
+            <i><small>
+            🔺 Provided By
+            <b><a href="https://t.me/Graduate_Movies">GraDuate Movies</a></b> 🔺
+            </small></i>
+            </center>
+            """
         page = telegraph.create_page(
             title="File Info",
             html_content=html
