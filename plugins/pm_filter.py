@@ -34,7 +34,37 @@ BUTTON = {}
 BUTTONS = {}
 FRESH = {}
 SPELL_CHECK = {}
+SPELL_CACHE = {}
+CACHE_LIMIT = 200
 
+def smart_match(query, titles):
+
+    query_l = query.lower()
+
+    # 1️⃣ exact
+    for t in titles:
+        if t.lower() == query_l:
+            return t
+
+    # 2️⃣ startswith
+    for t in titles:
+        if t.lower().startswith(query_l):
+            return t
+
+    # 3️⃣ contains
+    for t in titles:
+        if query_l in t.lower():
+            return t
+
+    # 4️⃣ very light fuzzy (only few items)
+    try:
+        best = process.extractOne(query, titles)
+        if best and best[1] >= 70:
+            return best[0]
+    except:
+        pass
+
+    return None
 
 @Client.on_message(filters.group & filters.text & filters.incoming)
 async def give_filter(client, message):
@@ -2576,81 +2606,181 @@ async def auto_filter(client, msg, spoll=False):
         pass
 		
 async def ai_spell_check(chat_id, wrong_name):
+
+    if not wrong_name:
+        return None
+
+    # 🔒 skip obvious season patterns (as before)
     if re.search(r'\bS\d{1,2}\b|\bSeason\s*\d+', wrong_name, re.I):
         return None
-    async def search_movie(wrong_name):
+
+    query = wrong_name.strip().lower()
+
+    # ===============================
+    # 🔥 CACHE CHECK (ultra important)
+    # ===============================
+    if query in SPELL_CACHE:
+        return SPELL_CACHE[query]
+
+    try:
         search_results = imdb.search_movie(wrong_name)
-        movie_list = [movie.title for movie in search_results.titles]
-        return movie_list
-    movie_list = await search_movie(wrong_name)
-    if not movie_list:
-        return
-    for _ in range(5):
-        closest_match = process.extractOne(wrong_name, movie_list)
-        if not closest_match or closest_match[1] <= 80:
-            return 
-        movie = closest_match[0]
-        result = await get_search_results(chat_id=chat_id, query=movie)
+        titles = [movie.title for movie in search_results.titles][:8]  # limit to 8 (lightweight)
+    except Exception:
+        return None
 
-        # 🔒 SAFETY GUARD (MOST IMPORTANT)
-        if not result or len(result) != 3:
-            movie_list.remove(movie)
-            continue
+    if not titles:
+        return None
 
-        files, offset, total_results = result
+    # ===============================
+    # 🔥 Smart lightweight match
+    # ===============================
+    best_match = smart_match(wrong_name, titles)
 
-        if files:
-            return movie
+    if not best_match:
+        SPELL_CACHE[query] = None
+        return None
 
-        movie_list.remove(movie)
+    # ===============================
+    # 🔍 Confirm file exists in DB
+    # ===============================
+    try:
+        result = await get_search_results(chat_id=chat_id, query=best_match)
+    except Exception:
+        SPELL_CACHE[query] = None
+        return None
 
+    if not result or len(result) != 3:
+        SPELL_CACHE[query] = None
+        return None
+
+    files, offset, total_results = result
+
+    if files:
+        SPELL_CACHE[query] = best_match
+
+        # 🔥 prevent memory overflow
+        if len(SPELL_CACHE) > CACHE_LIMIT:
+            SPELL_CACHE.clear()
+
+        return best_match
+
+    SPELL_CACHE[query] = None
     return None
+
 async def advantage_spell_chok(client, message):
-    mv_id = message.id
-    search = message.text
+
+    if not message.text:
+        return
+
+    search = message.text.strip()
     chat_id = message.chat.id
-    settings = await get_settings(chat_id)
+    user_id = message.from_user.id if message.from_user else 0
+
+    # ===============================
+    # 🔥 light clean query (same logic, cheaper)
+    # ===============================
     query = re.sub(
-        r"\b(pl(i|e)*?(s|z+|ease|se|ese|(e+)s(e)?)|((send|snd|giv(e)?|gib)(\sme)?)|movie(s)?|new|latest|br((o|u)h?)*|^h(e|a)?(l)*(o)*|mal(ayalam)?|t(h)?amil|file|that|find|und(o)*|kit(t(i|y)?)?o(w)?|thar(u)?(o)*w?|kittum(o)*|aya(k)*(um(o)*)?|full\smovie|any(one)|with\ssubtitle(s)?)",
-        "", message.text, flags=re.IGNORECASE)
-    query = query.strip() + " movie"
-    try:
-        movies = await get_poster(search, bulk=True)
-    except:
-        k = await message.reply(script.I_CUDNT.format(message.from_user.mention))
-        await asyncio.sleep(60)
-        await k.delete()
-        try:
-            await message.delete()
-        except:
-            pass
+        r"\b(movie|send|file|new|latest|with|subtitle|pls|please|bro|full)\b",
+        "",
+        search,
+        flags=re.IGNORECASE
+    ).strip()
+
+    if not query:
         return
+
+    # ===============================
+    # 🔥 SMALL CACHE (prevent repeat heavy calls)
+    # ===============================
+    cache_key = query.lower()
+
+    if cache_key in SPELL_CACHE:
+        movies = SPELL_CACHE[cache_key]
+    else:
+        try:
+            # ❌ bulk=True removed (heavy)
+            # ✅ lightweight search
+            movies = await get_poster(query, bulk=False)
+        except Exception:
+            return
+
+        # save only small results
+        movies = movies[:6] if movies else []
+
+        SPELL_CACHE[cache_key] = movies
+
+        if len(SPELL_CACHE) > CACHE_LIMIT:
+            SPELL_CACHE.clear()
+
+    # ===============================
+    # 🔥 no result → google fallback
+    # ===============================
     if not movies:
-        google = search.replace(" ", "+")
-        button = [[
-            InlineKeyboardButton("🔍 Cʜᴇᴄᴋ Sᴘᴇʟʟɪɴɢ Oɴ Gᴏᴏɢʟᴇ 🔍", url=f"https://www.google.com/search?q={google}")
+        google = query.replace(" ", "+")
+        btn = [[
+            InlineKeyboardButton(
+                "🔍 Check Spelling on Google",
+                url=f"https://www.google.com/search?q={google}"
+            )
         ]]
-        k = await message.reply_text(text=script.I_CUDNT.format(search), reply_markup=InlineKeyboardMarkup(button))
-        await asyncio.sleep(60)
-        await k.delete()
+
+        k = await message.reply_text(
+            script.I_CUDNT.format(query),
+            reply_markup=InlineKeyboardMarkup(btn)
+        )
+
+        await asyncio.sleep(25)  # reduced from 60 (RAM safe)
+
         try:
+            await k.delete()
             await message.delete()
         except:
             pass
         return
-    user = message.from_user.id if message.from_user else 0
-    buttons = [[
-        InlineKeyboardButton(text=movie.title, callback_data=f"spol#{movie.imdb_id}#{user}")
-    ]
-        for movie in movies
-    ]
-    buttons.append(
-        [InlineKeyboardButton(text="ᴄʟᴏsᴇ ❌", callback_data='close_data')]
+
+    # ===============================
+    # 🔥 build minimal buttons (max 6 only)
+    # ===============================
+    buttons = []
+
+    for movie in movies:
+        buttons.append([
+            InlineKeyboardButton(
+                movie.title,
+                callback_data=f"spol#{movie.imdb_id}#{user_id}"
+            )
+        ])
+
+    buttons.append([InlineKeyboardButton("ᴄʟᴏsᴇ ʟɪsᴛ", callback_data=f"spellclose_secure_x9#{user_id}")])
+
+    msg = await message.reply_text(
+        script.CUDNT_FND.format(message.from_user.mention),
+        reply_markup=InlineKeyboardMarkup(buttons),
+        reply_to_message_id=message.id
     )
-    d = await message.reply_text(text=script.CUDNT_FND.format(message.from_user.mention), reply_markup=InlineKeyboardMarkup(buttons), reply_to_message_id=message.id)
-    await asyncio.sleep(60)
-    await d.delete()
+
+    # shorter sleep → lower memory
+    await asyncio.sleep(25)
+
     try:
+        await msg.delete()
         await message.delete()
+    except:
+        pass
+
+@Client.on_callback_query(filters.regex("^spellclose_secure_x9#"))
+async def secure_spell_close_handler(client, query):
+
+    try:
+        _, owner = query.data.split("#")
+        owner = int(owner)
+    except:
+        return
+
+    if query.from_user.id != owner:
+        return await query.answer("Not for you ❌", show_alert=False)
+
+    try:
+        await query.message.delete()
     except:
         pass
