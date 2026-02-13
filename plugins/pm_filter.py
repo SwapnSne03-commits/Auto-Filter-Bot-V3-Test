@@ -35,6 +35,7 @@ BUTTONS = {}
 FRESH = {}
 SPELL_CHECK = {}
 SPELL_CACHE = {}
+POSTER_CACHE = {}         # for advantage_spell_chok (movies list)
 CACHE_LIMIT = 200
 
 def clean_query(text: str) -> str:
@@ -2698,7 +2699,7 @@ async def advantage_spell_chok(client, message):
     # ===============================
     # 🔥 CACHE
     # ===============================
-    movies = SPELL_CACHE.get(cache_key)
+    movies = POSTER_CACHE.get(cache_key)
 
     if movies is None:
         try:
@@ -2738,10 +2739,10 @@ async def advantage_spell_chok(client, message):
         movies = movies[:6]
 
         if movies:
-            SPELL_CACHE[cache_key] = movies
+            POSTER_CACHE[cache_key] = movies
 
-        if len(SPELL_CACHE) > CACHE_LIMIT:
-            SPELL_CACHE.clear()
+        if len(POSTER_CACHE) > CACHE_LIMIT:
+            POSTER_CACHE.clear()
 
     # ===============================
     # 🔥 no result → fallback
