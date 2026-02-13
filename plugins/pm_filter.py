@@ -1404,7 +1404,7 @@ async def advantage_spoll_choker(bot, query):
     files, offset, total_results = await get_search_results(query.message.chat.id, movie, offset=0, filter=True)
     if files:
         k = (movie, files, offset, total_results)
-        await auto_filter(bot, query, k)
+        await auto_filter(bot, query.message, k)
     else:
         reqstr1 = query.from_user.id if query.from_user else 0
         reqstr = await bot.get_users(reqstr1)
@@ -2625,62 +2625,49 @@ async def ai_spell_check(chat_id, wrong_name):
     if not wrong_name:
         return None
 
-    # 🔒 skip obvious season patterns (as before)
     if re.search(r'\bS\d{1,2}\b|\bSeason\s*\d+', wrong_name, re.I):
         return None
 
     query = wrong_name.strip().lower()
 
-    # ===============================
-    # 🔥 CACHE CHECK (ultra important)
-    # ===============================
-    if query in SPELL_CACHE:
-        return SPELL_CACHE[query]
+    # ✅ cache only success
+    cached = SPELL_CACHE.get(query)
+    if cached:
+        return cached
 
     try:
         search_results = imdb.search_movie(wrong_name)
-        titles = [movie.title for movie in search_results.titles][:8]  # limit to 8 (lightweight)
-    except Exception:
+        titles = [m.title for m in search_results.titles][:8]
+    except:
         return None
 
     if not titles:
         return None
 
-    # ===============================
-    # 🔥 Smart lightweight match
-    # ===============================
     best_match = smart_match(wrong_name, titles)
-
     if not best_match:
-        SPELL_CACHE[query] = None
         return None
 
-    # ===============================
-    # 🔍 Confirm file exists in DB
-    # ===============================
     try:
         result = await get_search_results(chat_id=chat_id, query=best_match)
-    except Exception:
-        SPELL_CACHE[query] = None
+    except:
         return None
 
     if not result or len(result) != 3:
-        SPELL_CACHE[query] = None
         return None
 
-    files, offset, total_results = result
+    files, _, _ = result
 
-    if files:
-        SPELL_CACHE[query] = best_match
+    if not files:
+        return None
 
-        # 🔥 prevent memory overflow
-        if len(SPELL_CACHE) > CACHE_LIMIT:
-            SPELL_CACHE.clear()
+    # ✅ only success cache
+    SPELL_CACHE[query] = best_match
 
-        return best_match
+    if len(SPELL_CACHE) > CACHE_LIMIT:
+        SPELL_CACHE.clear()
 
-    SPELL_CACHE[query] = None
-    return None
+    return best_match
 
 async def advantage_spell_chok(client, message):
 
