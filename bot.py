@@ -98,6 +98,7 @@ async def SilentXBotz_start():
     
 if __name__ == '__main__':
     loop = asyncio.get_event_loop()
+    loop.create_task(auto_memory_cleaner())  # ✅ HERE
     try:
         loop.run_until_complete(SilentXBotz_start())
     except KeyboardInterrupt:
