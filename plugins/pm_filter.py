@@ -2427,9 +2427,13 @@ async def auto_filter(client, msg, spoll=False):
                     if is_misspelled:
                         await ai_sts.edit(f'<b>🕵️ I Get Correct Spelling -<code> {is_misspelled}</code>\n✅ Now I am Searching With This -<code> {is_misspelled}</b>')
                         await asyncio.sleep(2)
-                        message.text = is_misspelled
                         await ai_sts.delete()
-                        return await auto_filter(client, message)
+                        files, offset, total_results = await get_search_results(message.chat.id, is_misspelled, offset=0, filter=True)
+
+                        if files:
+                            return await auto_filter(client, message, (is_misspelled, files, offset, total_results))
+
+                        return await advantage_spell_chok(client, message)
                     await ai_sts.delete()
                     return await advantage_spell_chok(client, message)
         else:
