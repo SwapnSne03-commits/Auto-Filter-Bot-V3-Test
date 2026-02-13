@@ -2440,11 +2440,16 @@ async def auto_filter(client, msg, spoll=False):
         else:
             return
     else:
-        message = msg.message.reply_to_message
+        message = msg  # 🔥 FIX: msg is already Message
+
         search, files, offset, total_results = spoll
-        m=await message.reply_text(f'<b>✅ Wᴀɪᴛ {message.from_user.mention}\nAᴍ Sᴇᴀʀᴄʜɪɴɢ Yᴏᴜʀ Qᴜᴇʀʏ :<i>{search}...</i></b>', reply_to_message_id=message.id)
+
+        m = await message.reply_text(
+            f'<b>✅ Wᴀɪᴛ {message.from_user.mention}\nAᴍ Sᴇᴀʀᴄʜɪɴɢ Yᴏᴜʀ Qᴜᴇʀʏ :<i>{search}...</i></b>',
+            reply_to_message_id=message.id
+        )
+
         settings = await get_settings(message.chat.id)
-        await msg.message.delete()
     key = f"{message.chat.id}-{message.id}"
     FRESH[key] = search
     if SMART_SELECTION_MODE:
