@@ -19,6 +19,7 @@ import pyrogram.utils
 from PIL import Image
 import threading, requests
 from logging_helper import LOGGER
+from plugins.pm_filter import auto_memory_cleaner
 
 botStartTime = time.time()
 
