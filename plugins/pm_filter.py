@@ -2312,6 +2312,10 @@ async def cb_handler(client: Client, query: CallbackQuery):
 			
         
 async def auto_filter(client, msg, spoll=False):
+    message = msg   # 🔥 MUST (very important)
+
+    if not message or not isinstance(getattr(message, "text", None), str):
+        return
     curr_time = datetime.now(pytz.timezone('Asia/Kolkata')).time()
     # ================= SMART MODE INIT =================
     if SMART_SELECTION_MODE:
@@ -2319,9 +2323,6 @@ async def auto_filter(client, msg, spoll=False):
             temp.SMART_FILTERS = {}
     # ==================================================
     if not spoll:
-        message = msg
-        if not message or not isinstance(message.text, str):
-            return
         if message.text.startswith("/"): return
         if re.findall("((^\/|^,|^!|^\.|^[\U0001F600-\U000E007F]).*)", message.text):
             return
