@@ -2745,7 +2745,8 @@ async def advantage_spell_chok(client, message):
 
         movies = movies[:6]
 
-        SPELL_CACHE[cache_key] = movies
+        if movies:
+            SPELL_CACHE[cache_key] = movies
 
         if len(SPELL_CACHE) > CACHE_LIMIT:
             SPELL_CACHE.clear()
@@ -2772,11 +2773,27 @@ async def advantage_spell_chok(client, message):
         InlineKeyboardButton("ᴄʟᴏsᴇ ʟɪsᴛ", callback_data=f"spellclose_secure_x9#{user_id}")
     ])
 
-    await message.reply_text(
+    msg = await message.reply_text(
         script.CUDNT_FND.format(message.from_user.mention),
         reply_markup=InlineKeyboardMarkup(buttons),
         reply_to_message_id=message.id
-		)
+    )
+
+    # ✅ auto delete after 25s (non blocking)
+    asyncio.create_task(auto_delete_spell(msg, message))
+
+async def auto_delete_spell(bot_msg, user_msg, delay=25):
+    await asyncio.sleep(delay)
+
+    try:
+        await bot_msg.delete()
+    except:
+        pass
+
+    try:
+        await user_msg.delete()
+    except:
+        pass
 
 @Client.on_callback_query(filters.regex("^spellclose_secure_x9#"))
 async def secure_spell_close_handler(client, query):
@@ -2792,5 +2809,10 @@ async def secure_spell_close_handler(client, query):
 
     try:
         await query.message.delete()
+    except:
+        pass
+    try:
+        if query.message.reply_to_message:
+            await query.message.reply_to_message.delete()
     except:
         pass
