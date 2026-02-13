@@ -40,16 +40,16 @@ CACHE_LIMIT = 200
 
 async def auto_memory_cleaner():
     while True:
-        await asyncio.sleep(900)  # 15 min
-
-        SPELL_CACHE.clear()
-        POSTER_CACHE.clear()
-
-        if hasattr(temp, "GETALL"):
-            temp.GETALL.clear()
-
-        if hasattr(temp, "SMART_FILTERS"):
-            temp.SMART_FILTERS.clear()
+        await asyncio.sleep(900)
+        try:
+            SPELL_CACHE.clear()
+            POSTER_CACHE.clear()
+            if hasattr(temp, "GETALL"):
+                temp.GETALL.clear()
+            if hasattr(temp, "SMART_FILTERS"):
+                temp.SMART_FILTERS.clear()
+        except:
+            pass
 
 def clean_query(text: str) -> str:
     if not text:
