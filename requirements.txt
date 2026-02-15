@@ -33,3 +33,4 @@ python-magic
 langdetect
 pycountry
 telegraph
+flask
