@@ -483,9 +483,7 @@ async def start(client, message):
             SILENTX_CAPTION = settings.get('caption', CUSTOM_FILE_CAPTION)
             if SILENTX_CAPTION:
                 try:
-                    original_caption = files1.caption
-                    fallback_caption = original_caption if original_caption else title
-                    f_caption = SILENTX_CAPTION.format(file_name=title or "",file_size=size or "",file_caption=fallback_caption)
+                    f_caption=SILENTX_CAPTION.format(file_name= '' if title is None else title, file_size='' if size is None else size, file_caption='')
                     f_caption = clean_special_words(f_caption)
                 except:
                     return
@@ -522,7 +520,11 @@ async def start(client, message):
     SILENTX_CAPTION = settings.get('caption', CUSTOM_FILE_CAPTION)
     if SILENTX_CAPTION:
         try:
-            f_caption=SILENTX_CAPTION.format(file_name= '' if title is None else title, file_size='' if size is None else size, file_caption='' if f_caption is None else f_caption)
+            original_caption = files.caption
+            fallback_caption = original_caption if original_caption else title
+
+            f_caption = SILENTX_CAPTION.format(file_name=title or "",file_size=size or "",file_caption=fallback_caption)
+
             # 🔥 REMOVE SPECIAL WORDS FROM FINAL CAPTION
             f_caption = clean_special_words(f_caption)
         except Exception as e:
