@@ -127,27 +127,13 @@ async def get_search_results(chat_id, query, file_type=None, max_results=10, off
             settings = await get_settings(int(chat_id))
             max_results = 10 if settings.get('max_btn') else int(MAX_B_TN)
 
-    #query = query.strip()
-    #if not query:
-        #raw_pattern = '.'
-    #elif ' ' not in query:
-        #raw_pattern = r"(\b|[\.\+\-_])" + query + r"(\b|[\.\+\-_])"
-    #else:
-        #raw_pattern = query.replace(" ", r".*[\s\.\+\-_()\[\]]")
-    query = query.strip().lower()
-
+    query = query.strip()
     if not query:
         raw_pattern = '.'
+    elif ' ' not in query:
+        raw_pattern = r"(\b|[\.\+\-_])" + query + r"(\b|[\.\+\-_])"
     else:
-        words = query.split()
-        pattern_parts = []
-
-        for word in words:
-            # number হলেও word boundary exact match
-            pattern_parts.append(r"\b" + re.escape(word) + r"\b")
-
-        # AND condition match (সব শব্দ থাকতে হবে)
-        raw_pattern = r"(?=.*" + r")(?=.*".join(pattern_parts) + r").*"
+        raw_pattern = query.replace(" ", r".*[\s\.\+\-_()\[\]]")
 
     try:
         regex = re.compile(raw_pattern, flags=re.IGNORECASE)
