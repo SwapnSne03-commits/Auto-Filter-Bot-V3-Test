@@ -67,8 +67,9 @@ def clean_caption_before_save(text):
     text = re.sub(r'<(?!/?(b|i|u|code|strong|em)\b)[^>]+>', '', text)
 
     # 🔥 clean extra spaces
-    text = re.sub(r'\s+', ' ', text).strip()
-
+    text = re.sub(r'[ \t]+', ' ', text)
+    text = re.sub(r'\n{3,}', '\n\n', text)
+    text = text.strip()
     return text
 
 async def save_file(media):
