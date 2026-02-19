@@ -423,8 +423,8 @@ async def start(client, message):
                 ]
             else:
                 btn = [
-                    [InlineKeyboardButton('𝖴𝗉𝖽𝖺𝗍𝖾 𝖢𝗁𝖺𝗇𝗇𝖾𝗅', url=UPDATE_CHANNEL_LNK)],
-                    [InlineKeyboardButton("📊 𝗩𝗶𝗲𝘄 𝗔𝘂𝗱𝗶𝗼/𝗦𝘂𝗯𝘁𝗶𝘁𝗲𝗹 𝗜𝗻𝗳𝗼", callback_data="trackinfo")]
+                    [InlineKeyboardButton('📌 ᴊᴏɪɴ ᴜᴘᴅᴀᴛᴇ ᴄʜᴀɴɴᴇʟ', url=UPDATE_CHANNEL_LNK)],
+                    [InlineKeyboardButton("📑 ᴠɪᴇᴡ ᴀᴜᴅɪᴏ/sᴜʙᴛɪᴛᴇʟ ᴅᴇᴛᴀɪʟs", callback_data="trackinfo")]
                 ]
             msg = await client.send_cached_media(
                 chat_id=message.from_user.id,
@@ -464,8 +464,8 @@ async def start(client, message):
                 ]
             else:
                 btn = [
-                    [InlineKeyboardButton('𝖴𝗉𝖽𝖺𝗍𝖾 𝖢𝗁𝖺𝗇𝗇𝖾𝗅', url=UPDATE_CHANNEL_LNK)],
-                    [InlineKeyboardButton("📊 𝗩𝗶𝗲𝘄 𝗔𝘂𝗱𝗶𝗼/𝗦𝘂𝗯𝘁𝗶𝘁𝗲𝗹 𝗜𝗻𝗳𝗼", callback_data="trackinfo")]
+                    [InlineKeyboardButton('📌 ᴊᴏɪɴ ᴜᴘᴅᴀᴛᴇ ᴄʜᴀɴɴᴇʟ', url=UPDATE_CHANNEL_LNK)],
+                    [InlineKeyboardButton("📑 ᴠɪᴇᴡ ᴀᴜᴅɪᴏ/sᴜʙᴛɪᴛᴇʟ ᴅᴇᴛᴀɪʟs", callback_data="trackinfo")]
                 ]
             msg = await client.send_cached_media(
                 chat_id=message.from_user.id,
@@ -541,8 +541,8 @@ async def start(client, message):
         ]
     else:
         btn = [
-            [InlineKeyboardButton('𝖴𝗉𝖽𝖺𝗍𝖾 𝖢𝗁𝖺𝗇𝗇𝖾𝗅', url=UPDATE_CHANNEL_LNK)],
-            [InlineKeyboardButton("📊 𝗩𝗶𝗲𝘄 𝗔𝘂𝗱𝗶𝗼/𝗦𝘂𝗯𝘁𝗶𝘁𝗲𝗹 𝗜𝗻𝗳𝗼", callback_data="trackinfo")]
+            [InlineKeyboardButton('📌 ᴊᴏɪɴ ᴜᴘᴅᴀᴛᴇ ᴄʜᴀɴɴᴇʟ', url=UPDATE_CHANNEL_LNK)],
+            [InlineKeyboardButton("📑 ᴠɪᴇᴡ ᴀᴜᴅɪᴏ/sᴜʙᴛɪᴛᴇʟ ᴅᴇᴛᴀɪʟs", callback_data="trackinfo")]
         ]
     msg = await client.send_cached_media(
         chat_id=message.from_user.id,
