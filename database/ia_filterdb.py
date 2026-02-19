@@ -51,7 +51,26 @@ class Media2(Document):
 
 async def check_db_size(silentdb):
     return (await silentdb.command("dbstats"))['dataSize']
-    
+
+def clean_caption_before_save(text):
+    if not text:
+        return None
+
+    # 🔥 remove <a ...> but keep inner text (any attributes, any quotes)
+    text = re.sub(r'<a\s+[^>]*>', '', text, flags=re.IGNORECASE)
+    text = re.sub(r'</a>', '', text, flags=re.IGNORECASE)
+
+    # 🔥 remove @mentions
+    text = re.sub(r'@\w+', '', text)
+
+    # 🔥 optional: remove unwanted html except safe tags
+    text = re.sub(r'<(?!/?(b|i|u|code|strong|em)\b)[^>]+>', '', text)
+
+    # 🔥 clean extra spaces
+    text = re.sub(r'\s+', ' ', text).strip()
+
+    return text
+
 async def save_file(media):
     file_id, file_ref = unpack_new_file_id(media.file_id)
     file_name = re.sub(r"[_\-\.#+$%^&*()!~`,;:\"'?/<>\[\]{}=|\\]", " ", str(media.file_name))
@@ -82,7 +101,7 @@ async def save_file(media):
             file_size=media.file_size,
             file_type=media.file_type,
             mime_type=media.mime_type,
-            caption=media.caption.html if media.caption else None,
+            caption=clean_caption_before_save(media.caption.html) if media.caption else None,
         )
     except ValidationError as e:
         LOGGER.error(f'Validation Error While Saving File: {e}')
@@ -108,14 +127,27 @@ async def get_search_results(chat_id, query, file_type=None, max_results=10, off
             settings = await get_settings(int(chat_id))
             max_results = 10 if settings.get('max_btn') else int(MAX_B_TN)
 
-    query = query.strip()
+    #query = query.strip()
+    #if not query:
+        #raw_pattern = '.'
+    #elif ' ' not in query:
+        #raw_pattern = r"(\b|[\.\+\-_])" + query + r"(\b|[\.\+\-_])"
+    #else:
+        #raw_pattern = query.replace(" ", r".*[\s\.\+\-_()\[\]]")
+    query = query.strip().lower()
+
     if not query:
         raw_pattern = '.'
-    elif ' ' not in query:
-        raw_pattern = r"(\b|[\.\+\-_])" + query + r"(\b|[\.\+\-_])"
     else:
-        raw_pattern = query.replace(" ", r".*[\s\.\+\-_()\[\]]")
+        words = query.split()
 
+        patterns = []
+        for word in words:
+            patterns.append(
+                r"(?=.*(\b|[\.\+\-_])" + re.escape(word) + r"(\b|[\.\+\-_]))"
+            )
+
+        raw_pattern = "".join(patterns) + r".*"
     try:
         regex = re.compile(raw_pattern, flags=re.IGNORECASE)
     except:
