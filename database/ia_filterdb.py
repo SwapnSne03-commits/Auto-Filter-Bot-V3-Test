@@ -140,14 +140,15 @@ async def get_search_results(chat_id, query, file_type=None, max_results=10, off
         raw_pattern = '.'
     else:
         words = query.split()
+        pattern_parts = []
 
-        patterns = []
         for word in words:
-            patterns.append(
-                r"(?=.*(\b|[\.\+\-_])" + re.escape(word) + r"(\b|[\.\+\-_]))"
-            )
+            # number হলেও word boundary exact match
+            pattern_parts.append(r"\b" + re.escape(word) + r"\b")
 
-        raw_pattern = "".join(patterns) + r".*"
+        # AND condition match (সব শব্দ থাকতে হবে)
+        raw_pattern = r"(?=.*" + r")(?=.*".join(pattern_parts) + r").*"
+
     try:
         regex = re.compile(raw_pattern, flags=re.IGNORECASE)
     except:
