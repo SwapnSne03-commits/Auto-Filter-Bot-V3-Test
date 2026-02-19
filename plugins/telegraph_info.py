@@ -84,13 +84,13 @@ async def telegraph_file_info(client, query):
 
     # 🔥 cooldown check
     if now - last < COOLDOWN:
-        return await query.answer("⏳ Please wait few seconds...", show_alert=False)
+        return await query.answer("⏳ ʜᴏʟᴅ ᴏɴ, ɪ'ᴍ ᴀʟʀᴇᴀᴅʏ sᴄᴀɴɴɪɴɢ...", show_alert=False)
 
     CLICK_CACHE[uid] = now
     if len(CLICK_CACHE) > 1000:
         CLICK_CACHE.clear()
 
-    await query.answer("🔍 𝗦𝗰𝗮𝗻𝗻𝗶𝗻𝗴 𝗙𝗶𝗹𝗲, 𝗣𝗹𝘇 𝗪𝗮𝗶𝘁...")
+    await query.answer("🔍 sᴄᴀɴɴɪɴɢ ʏᴏᴜʀ ғɪʟᴇ, ᴘʟᴢ ᴡᴀɪᴛ...")
 
     tmp = os.path.join(tempfile.gettempdir(), f"info_{query.id}.tmp")
 
@@ -142,7 +142,7 @@ async def telegraph_file_info(client, query):
             <br>
             <i>
             🔺 Provided By
-            <b><a href="https://t.me/Graduate_Movies">GraDuate Movies</a></b> 🔺
+            <b><a href="https://t.me/Graduate_Movies">Graduate Movies</a></b> 🔺
             </i>
             """
         page = telegraph.create_page(
@@ -152,7 +152,7 @@ async def telegraph_file_info(client, query):
 
         await query.edit_message_reply_markup(
             reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("📊 View FILE Info", url=page["url"])]
+                [InlineKeyboardButton("ᴠɪᴇᴡ ғɪʟᴇ ᴅᴇᴛᴀɪʟs 📑", url=page["url"])]
             ])
         )
 
