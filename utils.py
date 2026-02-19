@@ -53,6 +53,7 @@ class temp(object):
     VERIFICATIONS = {}
     DAILY_USAGE = {} 
     ACTIVE_FILTER = {}
+    OWNER = {}   # ✅ এটা add করো
 
 def today_date():
     return datetime.now().strftime("%Y-%m-%d")
