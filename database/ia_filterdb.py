@@ -74,26 +74,27 @@ def clean_caption_before_save(text):
 
 async def save_file(media):
     file_id, file_ref = unpack_new_file_id(media.file_id)
-    file_name = re.sub(r"[_\-\.#+$%^&*()!~`,;:\"'?/<>\[\]{}=|\\]", " ", str(media.file_name))
-    file_name = re.sub(r"\s+", " ", file_name).strip()    
+
+    # Clean filename
+    file_name = re.sub(
+        r"[_\-\.#+$%^&*()!~`,;:\"'?/<>\[\]{}=|\\]",
+        " ",
+        str(media.file_name)
+    )
+    file_name = re.sub(r"\s+", " ", file_name).strip()
+
     primary_db_size = await check_db_size(db)
     db_change_limit_bytes = DB_CHANGE_LIMIT * 1024 * 1024
-    use_secondary = False
+
     saveMedia = Media
-    exists_in_primary = await Media.count_documents({'file_id': file_id}, limit=1)
-    if exists_in_primary:
-        LOGGER.info(f'{file_name} Is Already Saved In Primary Database!')
-        return False, 0
-        
+    use_secondary = False
+
+    # Switch to secondary DB if needed
     if MULTIPLE_DB and primary_db_size >= db_change_limit_bytes:
         LOGGER.info("Primary Database Is Low On Space. Switching To Secondary DB.")
         saveMedia = Media2
         use_secondary = True
-        exists_in_secondary = await Media2.count_documents({'file_id': file_id}, limit=1)
-        if exists_in_secondary:
-            LOGGER.info(f'{file_name} Is Already Saved In Secondary Database!')
-            return False, 0
-            
+
     try:
         file = saveMedia(
             file_id=file_id,
@@ -104,21 +105,32 @@ async def save_file(media):
             mime_type=media.mime_type,
             caption=clean_caption_before_save(media.caption.html) if media.caption else None,
         )
+
+        await file.commit()
+
+        LOGGER.info(
+            f'{file_name} Saved Successfully In {"Secondary" if use_secondary else "Primary"} Database'
+        )
+
+        return True, 1
+
+    except DuplicateKeyError:
+        LOGGER.info(
+            f'{file_name} Already Exists In {"Secondary" if use_secondary else "Primary"} Database'
+        )
+        return False, 0
+
     except ValidationError as e:
         LOGGER.error(f'Validation Error While Saving File: {e}')
         return False, 2
-    else:
-        try:
-            await file.commit()
-        except DuplicateKeyError:
-            LOGGER.error(f'{file_name} Is Already Saved In {"Secondary" if use_secondary else "Primary"} Database')
-            return False, 0
-        else:
-            LOGGER.info(f'{file_name} Saved Successfully In {"Secondary" if use_secondary else "Primary"} Database')
-            return True, 1
+
+    except Exception as e:
+        LOGGER.error(f'Unexpected Error In save_file: {e}')
+        return False, 3
             
 
 async def get_search_results(chat_id, query, file_type=None, max_results=10, offset=0, filter=False):
+
     if chat_id is not None:
         settings = await get_settings(int(chat_id))
         try:
@@ -129,41 +141,67 @@ async def get_search_results(chat_id, query, file_type=None, max_results=10, off
             max_results = 10 if settings.get('max_btn') else int(MAX_B_TN)
 
     query = query.strip()
+
     if not query:
         raw_pattern = '.'
+
     elif ' ' not in query:
-        raw_pattern = r"(\b|[\.\+\-_])" + query + r"(\b|[\.\+\-_])"
+        raw_pattern = r"(\b|[\.\+\-_])" + re.escape(query) + r"(\b|[\.\+\-_])"
+
     else:
-        raw_pattern = query.replace(" ", r".*[\s\.\+\-_()\[\]]")
+        parts = query.split()
+        new_parts = []
+        for part in parts:
+            new_parts.append(r"(\b|[\.\+\-_])" + re.escape(part) + r"(\b|[\.\+\-_])")
+
+        raw_pattern = r".*[\s\.\+\-_()\[\]]".join(new_parts)
 
     try:
         regex = re.compile(raw_pattern, flags=re.IGNORECASE)
     except:
-        return []
+        return [], 0, 0
+
     if USE_CAPTION_FILTER:
         filter = {'$or': [{'file_name': regex}, {'caption': regex}]}
     else:
         filter = {'file_name': regex}
+
     if file_type:
         filter['file_type'] = file_type
-    total_results = await Media.count_documents(filter)
-    if MULTIPLE_DB:
-        total_results += await Media2.count_documents(filter)
+
+    # Ensure even max_results before query
     if max_results % 2 != 0:
-        logger.info(f"Since max_results Is An Odd Number ({max_results}), Bot Will Use {max_results + 1} As max_results To Make It Even.")
         max_results += 1
+
+    # PRIMARY DB QUERY
     cursor1 = Media.find(filter).sort('$natural', -1).skip(offset).limit(max_results)
     files1 = await cursor1.to_list(length=max_results)
+
+    # COUNT OPTIMIZATION
+    if offset == 0 and len(files1) < max_results:
+        total_results = len(files1)
+    else:
+        total_results = await Media.count_documents(filter)
+        if MULTIPLE_DB:
+            total_results += await Media2.count_documents(filter)
+
+    # SECONDARY DB (only if needed)
     if MULTIPLE_DB:
         remaining_results = max_results - len(files1)
-        cursor2 = Media2.find(filter).sort('$natural', -1).skip(offset).limit(remaining_results)
-        files2 = await cursor2.to_list(length=remaining_results)
-        files = files1 + files2
+
+        if remaining_results > 0:
+            cursor2 = Media2.find(filter).sort('$natural', -1).limit(remaining_results)
+            files2 = await cursor2.to_list(length=remaining_results)
+            files = files1 + files2
+        else:
+            files = files1
     else:
         files = files1
+
     next_offset = offset + len(files)
     if next_offset >= total_results:
         next_offset = ''
+
     return files, next_offset, total_results
     
 async def get_bad_files(query, file_type=None):
