@@ -151,8 +151,21 @@ async def get_search_results(chat_id, query, file_type=None, max_results=10, off
     else:
         parts = query.split()
         new_parts = []
+
         for part in parts:
-            new_parts.append(r"(\b|[\.\+\-_])" + re.escape(part) + r"(\b|[\.\+\-_])")
+
+            # যদি s05 / s2 টাইপ হয়
+            season_match = re.fullmatch(r"s(\d{1,2})", part.lower())
+
+            if season_match:
+                season_num = season_match.group(1)
+
+                # s05 / s5 / s05e01 / s05 e02 match করবে
+                pattern = r"s0?" + re.escape(season_num) + r"(?:\b|e\d+\b|\s*e\d+\b)"
+                new_parts.append(pattern)
+
+            else:
+                new_parts.append(r"(\b|[\.\+\-_])" + re.escape(part) + r"(\b|[\.\+\-_])")
 
         raw_pattern = r".*[\s\.\+\-_()\[\]]".join(new_parts)
 
