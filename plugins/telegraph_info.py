@@ -97,7 +97,9 @@ async def telegraph_file_info(client, query):
     try:
         # 🔥 only few MB download (VERY FAST)
         async with aiofiles.open(tmp, "wb") as f:
-            async for chunk in client.stream_media(query.message, limit=4):
+            file_msg = query.message.reply_to_message or query.message
+
+            async for chunk in client.stream_media(file_msg, limit=4):
                 await f.write(chunk)
 
         media = await asyncio.to_thread(MediaInfo.parse, tmp)
