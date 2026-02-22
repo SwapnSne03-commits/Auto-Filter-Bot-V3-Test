@@ -109,10 +109,61 @@ async def telegraph_file_info(client, query):
         for t in media.tracks:
 
             if t.track_type == "Video":
-                video.append(f"{t.format} {t.width}x{t.height}")
+                vcodec = t.format or ""
+                vres = f"{t.width}x{t.height}" if t.width and t.height else ""
+                vbit = f"{int(t.bit_rate)//1000}kbps" if t.bit_rate else ""
+
+                video_label = " ".join(filter(None, [vcodec, vres, vbit]))
+                video.append(video_label)
 
             elif t.track_type == "Audio":
-                audios.append(fmt(t.language))   # ✅ only change
+
+                lang = fmt(t.language)
+
+                #codec = t.format or ""
+                codec = (t.format or "").replace("E-AC-3", "DDP").replace("AC-3", "DD")
+                channels = t.channel_s or t.channels or ""
+                bitrate = ""
+
+                # 🔹 Channel formatting
+                if channels:
+                    try:
+                        ch = float(channels)
+                        if ch == 6:
+                            channels = "5.1"
+                        elif ch == 2:
+                            channels = "2.0"
+                        else:
+                            channels = str(channels)
+                    except:
+                        pass
+
+                # 🔹 Bitrate formatting
+                if t.bit_rate:
+                    try:
+                        kbps = int(t.bit_rate) // 1000
+                        bitrate = f"{kbps}kbps"
+                    except:
+                        pass
+
+                # 🔹 Build label safely
+                label = lang
+
+                details = []
+
+                if codec:
+                    if channels:
+                        details.append(f"{codec}{channels}")
+                    else:
+                        details.append(codec)
+
+                if bitrate:
+                    details.append(bitrate)
+
+                if details:
+                    label = f"{lang} ~ {' - '.join(details)}"
+
+                audios.append(label)   # ✅ only change
 
             elif t.track_type in ("Text", "Subtitle"):
                 subs.append(fmt(t.language))     # ✅ only change
@@ -121,7 +172,7 @@ async def telegraph_file_info(client, query):
         # =================================
         # TELEGRAPH PAGE BUILD (same UI)
         # =================================
-        html = "📊 <b>File Tracks Information</b><hr><br>"
+        html = "🔻 <b>File Tracks Information</b><hr><br> 🔻"
 
         if video:
             html += "🎬 <u><b>Video Track</b></u>"
@@ -146,7 +197,7 @@ async def telegraph_file_info(client, query):
             </i>
             """
         page = telegraph.create_page(
-            title="File Info",
+            title="File Information",
             html_content=html
         )
 
