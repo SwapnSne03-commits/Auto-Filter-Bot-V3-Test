@@ -174,7 +174,7 @@ async def telegraph_file_info(client, query):
         # =================================
         # TELEGRAPH PAGE BUILD (same UI)
         # =================================
-        html = "🔻 <b>File Tracks Information</b><hr><br> 🔻"
+        html = "🔻 <b>All Tracks Details</b><hr><br> 🔻"
 
         if video:
             html += "🎬 <u><b>Video Track</b></u>"
