@@ -1407,30 +1407,76 @@ async def filter_season_cb_handler(client: Client, query: CallbackQuery):
 
 @Client.on_callback_query(filters.regex(r"^spol"))
 async def advantage_spoll_choker(bot, query):
+
     _, id, user = query.data.split('#')
+
     if int(user) != 0 and query.from_user.id != int(user):
-        return await query.answer(script.ALRT_TXT.format(query.from_user.first_name), show_alert=True)
+        return await query.answer(
+            script.ALRT_TXT.format(query.from_user.first_name),
+            show_alert=True
+        )
+
     movies = await get_poster(id, id=True)
     movie = clean_query(movies.get("title", ""))
+
     await query.answer(script.TOP_ALRT_MSG)
-    files, offset, total_results = await get_search_results(query.message.chat.id, movie, offset=0, filter=True)
+
+    chat_id = query.message.chat.id
+    spell_msg = query.message          # 🔥 save spelling list message
+    user_msg = query.message.reply_to_message
+
+    # 🔥 delete spelling list
+    try:
+        await spell_msg.delete()
+    except:
+        pass
+
+    try:
+        if user_msg:
+            await user_msg.delete()
+    except:
+        pass
+
+    files, offset, total_results = await get_search_results(
+        chat_id,
+        movie,
+        offset=0,
+        filter=True
+    )
+
     if files:
-        k = (movie, files, offset, total_results)
-        user_msg = query.message.reply_to_message
         if not user_msg:
             return await query.answer("Request expired ❌", show_alert=True)
 
+        k = (movie, files, offset, total_results)
         await auto_filter(bot, user_msg, k)
+
     else:
         reqstr1 = query.from_user.id if query.from_user else 0
         reqstr = await bot.get_users(reqstr1)
+
         if NO_RESULTS_MSG:
-            await bot.send_message(chat_id=BIN_CHANNEL,text=script.NORSLTS.format(reqstr.id, reqstr.mention, movie))
+            await bot.send_message(
+                chat_id=BIN_CHANNEL,
+                text=script.NORSLTS.format(reqstr.id, reqstr.mention, movie)
+            )
+
+        # ❗ এখানে edit না করে নতুন message send করাই safe
         contact_admin_button = InlineKeyboardMarkup(
-            [[InlineKeyboardButton("🔰 Cʟɪᴄᴋ Hᴇʀᴇ & Rᴇǫᴜᴇsᴛ Tᴏ Aᴅᴍɪɴ🔰", url=SUPPORT_GRP)]])
-        k = await query.message.edit(script.MVE_NT_FND,reply_markup=contact_admin_button)
+            [[InlineKeyboardButton(
+                "🔰 Cʟɪᴄᴋ Hᴇʀᴇ & Rᴇǫᴜᴇsᴛ Tᴏ Aᴅᴍɪɴ🔰",
+                url=SUPPORT_GRP
+            )]]
+        )
+
+        msg = await bot.send_message(
+            chat_id=chat_id,
+            text=script.MVE_NT_FND,
+            reply_markup=contact_admin_button
+        )
+
         await asyncio.sleep(10)
-        await k.delete()
+        await msg.delete()
                 
 @Client.on_callback_query()
 async def cb_handler(client: Client, query: CallbackQuery):
