@@ -2,7 +2,7 @@ from pyrogram import Client, filters, enums
 from pyrogram.types import ChatJoinRequest
 from database.users_chats_db import db
 from info import ADMINS
-from setting import get_settings
+from settings import get_settings
 
 @Client.on_chat_join_request()
 async def join_reqs(client, message: ChatJoinRequest):
