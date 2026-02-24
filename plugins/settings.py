@@ -405,22 +405,38 @@ async def cancel_req_fsub(client, query):
         pass
 
 
-@Client.on_message(filters.command("clean_req_duplicates") & filters.user(ADMINS))
-async def clean_req_duplicates(client, message):
+@Client.on_message(filters.command("cleanfsubdup") & filters.user(ADMINS))
+async def clean_all_fsub_duplicates(client, message):
 
     grp_id = message.chat.id
 
     settings = await get_settings(grp_id)
+
+    # 🔹 Request FSUB Clean
     req = settings.get("req_fsub_id") or []
-
     if not isinstance(req, list):
-        return await message.reply("Nothing To Clean")
+        req = [req] if req else []
 
-    clean = list(dict.fromkeys(req))
+    clean_req = list(dict.fromkeys(req))
+    req_removed = len(req) - len(clean_req)
 
-    await save_group_settings(grp_id, "req_fsub_id", clean)
+    # 🔹 Direct FSUB Clean
+    direct = settings.get("fsub_id") or []
+    if not isinstance(direct, list):
+        direct = [direct] if direct else []
 
-    await message.reply("✅ Duplicate Request Channels Cleaned")
+    clean_direct = list(dict.fromkeys(direct))
+    direct_removed = len(direct) - len(clean_direct)
+
+    # 🔹 Save Back
+    await save_group_settings(grp_id, "req_fsub_id", clean_req)
+    await save_group_settings(grp_id, "fsub_id", clean_direct)
+
+    await message.reply(
+        "✅ FSUB Duplicate Cleaned Successfully\n\n"
+        f"📨 Request Channels Removed: {req_removed}\n"
+        f"🚫 Direct Channels Removed: {direct_removed}"
+    )
 
 @Client.on_message(filters.private & filters.text)
 async def capture_req_channel(client, message):
