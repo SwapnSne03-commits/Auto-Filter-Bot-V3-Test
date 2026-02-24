@@ -1,5 +1,5 @@
 import motor.motor_asyncio
-from datetime import datetime
+import datetime
 from info import *  
 from datetime import timedelta
 import time
@@ -38,7 +38,7 @@ class Database:
 
         await collection.update_one(
             {'id': id},
-            {'$set': {'created_at': datetime.utcnow()}},
+            {'$set': {'created_at': datetime.datetime.utcnow()}},
             upsert=True
         )
 
@@ -357,7 +357,7 @@ class Database:
     # Premium expired reminder ( This Code Modified By @BOT_OWNER26)
     async def get_expiring_soon(self, label, delta):
         reminder_key = f"reminder_{label}_sent"
-        now = datetime.utcnow()
+        now = datetime.datetime.utcnow()
         target_time = now + delta
         window = timedelta(seconds=30)
 
