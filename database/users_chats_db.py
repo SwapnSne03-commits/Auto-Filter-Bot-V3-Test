@@ -43,11 +43,12 @@ class Database:
 
         total_deleted = 0
 
-        collections = await self.db.request.list_collection_names()
+        collections = await self.db.request.database.list_collection_names()
 
         for name in collections:
-            result = await self.db.request[name].delete_many({})
-            total_deleted += result.deleted_count
+            if name.startswith("request."):
+                result = await self.db.request.database[name].delete_many({})
+                total_deleted += result.deleted_count
 
         return total_deleted
 
