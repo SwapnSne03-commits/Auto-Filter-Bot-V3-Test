@@ -321,19 +321,27 @@ async def caption_settings(client, query):
 async def set_req_fsub_ui(client, query):
     _, grp_id = query.data.split("#")
 
+    if not hasattr(client, "REQ_FSUB_TEMP"):
+        client.REQ_FSUB_TEMP = {}
+
+    client.REQ_FSUB_TEMP[query.from_user.id] = grp_id
+
     await query.message.edit(
         "📌 Send Request Join Channel ID\nExample: -100xxxxxxxxxx"
     )
 
-    client.temp_req_group = grp_id
-
 @Client.on_message(filters.private & filters.text)
 async def capture_req_channel(client, message):
 
-    if not hasattr(client, "temp_req_group"):
+    if not hasattr(client, "REQ_FSUB_TEMP"):
         return
 
-    grp_id = client.temp_req_group
+    user_id = message.from_user.id
+
+    if user_id not in client.REQ_FSUB_TEMP:
+        return
+
+    grp_id = client.REQ_FSUB_TEMP[user_id]
     channel_id = message.text.strip()
 
     try:
@@ -343,9 +351,10 @@ async def capture_req_channel(client, message):
 
     await save_group_settings(int(grp_id), "req_fsub_id", channel_id)
 
-    del client.temp_req_group
+    del client.REQ_FSUB_TEMP[user_id]
 
     await message.reply("✅ Request Join Channel Saved Successfully")
+
 
 @Client.on_callback_query(filters.regex(r'^remove_req_fsub_ui'))
 async def remove_req_fsub_ui(client, query):
