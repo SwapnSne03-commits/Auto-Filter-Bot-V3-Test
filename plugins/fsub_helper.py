@@ -13,7 +13,7 @@ async def is_req_subscribed(bot, message, chnl):
 
     user_id = message.from_user.id
 
-    # 🔹 1️⃣ Check real membership first (strict)
+    # 1️⃣ Real membership check
     try:
         member = await bot.get_chat_member(chnl, user_id)
 
@@ -30,7 +30,7 @@ async def is_req_subscribed(bot, message, chnl):
     except Exception:
         return False
 
-    # 🔹 2️⃣ Then check DB bypass
+    # 2️⃣ Pending request bypass
     if await db.find_join_req(user_id, chnl):
         return True
 
