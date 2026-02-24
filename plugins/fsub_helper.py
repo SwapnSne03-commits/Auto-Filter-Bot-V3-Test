@@ -61,33 +61,47 @@ async def is_subscribed(bot, user_id, channel_id):
         return False
     
 async def get_channel_details(client, chat_id, is_req_channel=False):
+
     current_time = time.time()
-    if chat_id in CHANNEL_CACHE:
-        cached_data = CHANNEL_CACHE[chat_id]
+
+    cache_key = f"{chat_id}_{is_req_channel}"
+
+    if cache_key in CHANNEL_CACHE:
+        cached_data = CHANNEL_CACHE[cache_key]
         if current_time - cached_data['timestamp'] < CACHE_TTL:
             return cached_data
+
     try:
         chat = await client.get_chat(chat_id)
         title = chat.title or "Update Channel"
     except Exception as e:
         LOGGER.error(f"Error fetching chat {chat_id}: {e}")
         title = "Update Channel"
-    try:
-        if is_req_channel:
-             invite_link_obj = await client.create_chat_invite_link(chat_id, creates_join_request=True)
-        else:
-             invite_link_obj = await client.create_chat_invite_link(chat_id)
 
+    try:
+        invite_link_obj = await client.create_chat_invite_link(
+            chat_id,
+            creates_join_request=is_req_channel
+        )
         invite_link = invite_link_obj.invite_link
+
     except ChatAdminRequired:
         LOGGER.error(f"Bot Needs Admin Rights In Channel {chat_id}")
         invite_link = None
+
     except Exception as e:
         LOGGER.error(f"Error Creating Invite Link For {chat_id}: {e}")
         invite_link = None
-    data = {'title': title, 'invite_link': invite_link, 'timestamp': current_time}
+
+    data = {
+        'title': title,
+        'invite_link': invite_link,
+        'timestamp': current_time
+    }
+
     if invite_link:
-        CHANNEL_CACHE[chat_id] = data
+        CHANNEL_CACHE[cache_key] = data
+
     return data
 
 async def check_force_subscription(client, user_id, chnl, is_req_channel, is_subscribed, is_req_subscribed, message):
