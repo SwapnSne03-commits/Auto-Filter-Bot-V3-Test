@@ -2,7 +2,8 @@ import motor.motor_asyncio
 from datetime import datetime
 from info import *  
 from datetime import timedelta
-import time, datetime, pytz
+import time
+import pytz
 from pymongo.errors import DuplicateKeyError
 from pymongo import MongoClient
 
@@ -35,20 +36,21 @@ class Database:
             expireAfterSeconds=604800  # 7 days
         )
 
-        await collection.insert_one({
-            'id': id,
-            'created_at': datetime.utcnow()
-        })
+        await collection.update_one(
+            {'id': id},
+            {'$set': {'created_at': datetime.utcnow()}},
+            upsert=True
+        )
 
     async def del_join_req(self):
 
         total_deleted = 0
 
-        collections = await self.db.request.database.list_collection_names()
+        collections = await self.db.list_collection_names()
 
         for name in collections:
             if name.startswith("request."):
-                result = await self.db.request.database[name].delete_many({})
+                result = await self.db[name].delete_many({})
                 total_deleted += result.deleted_count
 
         return total_deleted
