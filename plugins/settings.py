@@ -576,6 +576,7 @@ async def set_fsub_ui(client, query):
         LOGGER.error(e)
         await query.message.reply(f"ᴇʀʀᴏʀ: {e}")
 
+
 @Client.on_callback_query(filters.regex(r'^confirm_remove_fsub'))
 async def confirm_remove_fsub(client, query):
 
@@ -596,7 +597,16 @@ async def confirm_remove_fsub(client, query):
 
     await query.answer("Removed Successfully ✅", show_alert=True)
 
-    await fsub_settings(client, query)
+    # 🔥 rebuild settings UI instead of calling fsub_settings
+    btn = await group_setting_buttons(grp_id)
+    silentx = await client.get_chat(grp_id)
+    text = await get_main_settings_text(grp_id, silentx.title)
+
+    await query.message.edit(
+        text=text,
+        reply_markup=InlineKeyboardMarkup(btn),
+        parse_mode=enums.ParseMode.HTML
+    )
 
 @Client.on_callback_query(filters.regex(r'^changelog'))
 async def change_log(client, query):
