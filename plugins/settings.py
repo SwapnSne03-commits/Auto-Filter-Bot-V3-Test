@@ -441,22 +441,21 @@ async def capture_req_channel(client, message):
 async def confirm_remove_req(client, query):
 
     _, grp_id, channel_id = query.data.split("#")
+
     channel_id = int(channel_id)
 
     settings = await get_settings(int(grp_id))
     req_fsubs = settings.get("req_fsub_id", [])
 
     if not isinstance(req_fsubs, list):
-        req_fsubs = [req_fsubs] if req_fsubs else []
+        req_fsubs = [req_fsubs]
 
     if channel_id in req_fsubs:
         req_fsubs.remove(channel_id)
 
     await save_group_settings(int(grp_id), "req_fsub_id", req_fsubs)
 
-    await query.answer("Channel Removed Successfully ✅", show_alert=True)
-
-    await fsub_settings(client, query)
+    await query.answer("Removed Successfully ✅", show_alert=True)
 
 @Client.on_callback_query(filters.regex(r'^removelog'))
 async def remove_log(client, query):
