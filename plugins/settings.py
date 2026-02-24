@@ -387,60 +387,104 @@ async def set_req_fsub_ui(client, query):
         reply_markup=InlineKeyboardMarkup(btn)
     )
 
-@Client.on_callback_query(filters.regex(r'^cancel_req_fsub$'))
+from pyrogram.errors import MessageNotModified
+
+@Client.on_callback_query(filters.regex(r'^cancel_req_fsub'))
 async def cancel_req_fsub(client, query):
 
-    if hasattr(client, "REQ_FSUB_TEMP"):
-        client.REQ_FSUB_TEMP.pop(query.from_user.id, None)
+    user_id = query.from_user.id
 
-    await query.message.edit("❌ Request FSUB Setup Cancelled")
+    if hasattr(client, "REQ_FSUB_TEMP"):
+        client.REQ_FSUB_TEMP.pop(user_id, None)
+
+    try:
+        await query.message.edit_text("❌ Request FSUB Setup Cancelled")
+    except MessageNotModified:
+        pass
+    except:
+        pass
+
+
+@Client.on_message(filters.command("clean_req_duplicates") & filters.user(ADMINS))
+async def clean_req_duplicates(client, message):
+
+    grp_id = message.chat.id
+
+    settings = await get_settings(grp_id)
+    req = settings.get("req_fsub_id") or []
+
+    if not isinstance(req, list):
+        return await message.reply("Nothing To Clean")
+
+    clean = list(dict.fromkeys(req))
+
+    await save_group_settings(grp_id, "req_fsub_id", clean)
+
+    await message.reply("✅ Duplicate Request Channels Cleaned")
 
 @Client.on_message(filters.private & filters.text)
 async def capture_req_channel(client, message):
 
+    # 🔹 Must be in setting mode
     if not hasattr(client, "REQ_FSUB_TEMP"):
         return
 
     user_id = message.from_user.id
 
-    # 🔴 only work if user is in setting mode
     if user_id not in client.REQ_FSUB_TEMP:
         return
 
     grp_id = client.REQ_FSUB_TEMP[user_id]
     text = message.text.strip()
 
+    # 🔹 Cancel Support
     if text.lower() == "cancel":
-        del client.REQ_FSUB_TEMP[user_id]
-        return await message.reply("❌ Cancelled")
+        client.REQ_FSUB_TEMP.pop(user_id, None)
+        return await message.reply("❌ Request FSUB Setup Cancelled")
 
+    # 🔹 Validate Channel ID
     try:
         channel_id = int(text)
+        if not str(channel_id).startswith("-100"):
+            raise ValueError
     except:
-        return await message.reply("Invalid Channel ID ❌")
+        return await message.reply("❌ Invalid Channel ID Format")
 
+    # 🔹 Check Bot Access (Very Important)
+    try:
+        chat = await client.get_chat(channel_id)
+        title = chat.title
+    except:
+        return await message.reply("❌ Bot Can't Access This Channel")
+
+    # 🔹 Load Existing Settings
     settings = await get_settings(int(grp_id))
-    req_fsub_id = settings.get("req_fsub_id")
+    existing = settings.get("req_fsub_id") or []
 
-    # 🔹 convert to list
-    if not req_fsub_id:
-        req_fsub_id = []
-    elif not isinstance(req_fsub_id, list):
-        req_fsub_id = [req_fsub_id]
+    if not isinstance(existing, list):
+        existing = [existing]
 
-    # 🔹 prevent duplicate
-    if channel_id in req_fsub_id:
-        del client.REQ_FSUB_TEMP[user_id]
-        return await message.reply("⚠️ Channel already added")
+    # 🔹 Duplicate Safe
+    if channel_id in existing:
+        client.REQ_FSUB_TEMP.pop(user_id, None)
+        return await message.reply("⚠️ Channel Already Added")
 
-    req_fsub_id.append(channel_id)
+    # 🔹 Append Clean
+    existing.append(channel_id)
 
-    await save_group_settings(int(grp_id), "req_fsub_id", req_fsub_id)
+    # 🔹 Remove Duplicates Safety Layer
+    existing = list(dict.fromkeys(existing))
 
-    del client.REQ_FSUB_TEMP[user_id]
+    # 🔹 Save
+    await save_group_settings(int(grp_id), "req_fsub_id", existing)
 
-    await message.reply("✅ Request Join Channel Added Successfully")
+    # 🔹 Clear Temp
+    client.REQ_FSUB_TEMP.pop(user_id, None)
 
+    await message.reply(
+        f"✅ Request Join Channel Added Successfully\n\n"
+        f"Channel: {title}"
+    )
 
 @Client.on_callback_query(filters.regex(r'^confirm_remove_req'))
 async def confirm_remove_req(client, query):
