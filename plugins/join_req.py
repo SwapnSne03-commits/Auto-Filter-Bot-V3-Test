@@ -9,23 +9,30 @@ async def join_reqs(client, message: ChatJoinRequest):
 
     try:
         channel_id = message.chat.id
+        user_id = message.from_user.id
 
-        # 🔹 সব group settings check করতে হবে
-        groups = await db.get_all_groups()  # তোমার db function অনুযায়ী adjust করো
+        groups = await db.get_all_groups()
 
         for grp in groups:
             settings = await get_settings(grp["group_id"])
-            req_channel = settings.get("req_fsub_id")
+            req_channels = settings.get("req_fsub_id")
 
-            if req_channel and req_channel == channel_id:
+            if not req_channels:
+                continue
 
-                if not await db.find_join_req(message.from_user.id, channel_id):
-                    await db.add_join_req(message.from_user.id, channel_id)
+            if not isinstance(req_channels, list):
+                req_channels = [req_channels]
 
-                break
+            if channel_id in req_channels:
+
+                # 🔹 prevent duplicate insert
+                if not await db.find_join_req(user_id, channel_id):
+                    await db.add_join_req(user_id, channel_id)
+
+                return  # stop after first match
 
     except Exception as e:
-        print(f"Join Req Error: {e}")
+        LOGGER.error(f"Join Req Error: {e}")
 
 @Client.on_message(filters.command("delreq") & filters.private & filters.user(ADMINS))
 async def del_requests(client, message):
