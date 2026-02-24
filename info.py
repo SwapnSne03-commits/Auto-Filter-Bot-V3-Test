@@ -14,6 +14,25 @@ def is_enabled(value, default):
     else:
         return default
 
+def parse_channel_list(env_value):
+    if not env_value:
+        return []
+    channels = []
+    for ch in env_value.split():
+        ch = ch.strip()
+        if id_pattern.search(ch):
+            channels.append(int(ch))
+    return channels
+
+# 🔒 Permanent Direct Join Channels
+GLOBAL_FSUB_CHANNELS = parse_channel_list(
+    os.environ.get("GLOBAL_FSUB_CHANNELS", "")
+)
+
+# 🔒 Permanent Request Join Channels
+GLOBAL_REQ_FSUB_CHANNELS = parse_channel_list(
+    os.environ.get("GLOBAL_REQ_FSUB_CHANNELS", "")
+)
 
 SESSION = environ.get('SESSION', 'media_search')
 API_ID = int(environ.get('API_ID', ''))
@@ -58,7 +77,7 @@ OWNER_LNK = environ.get('OWNER_LNK', 'https://t.me/yours_swap_bot')
 UPDATE_CHANNEL_LNK = environ.get('UPDATE_CHANNEL_LNK', 'https://t.me/Graduate_Movies')
 SUPPORT_GRP = environ.get('SUPPORT_GRP', 'https://t.me/Gm_Support_chat')
 
-AUTH_CHANNEL = environ.get("AUTH_CHANNEL", "-1002612579654") # add multiple channels here, separated by single space
+AUTH_CHANNEL = environ.get("AUTH_CHANNEL", "") # add multiple channels here, separated by single space
 #AUTH_REQ_CHANNEL = environ.get('AUTH_REQ_CHANNEL', '-1002738200399') # add multiple channels here, separated by single space
 
 IS_VERIFY = is_enabled('IS_VERIFY', False)
