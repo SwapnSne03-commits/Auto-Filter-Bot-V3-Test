@@ -467,6 +467,47 @@ async def remove_log(client, query):
     await query.answer("ʟᴏɢ ᴄʜᴀɴɴᴇʟ ʀᴇᴍᴏᴠᴇᴅ!", show_alert=True)
     await log_settings(client, query)
 
+@Client.on_callback_query(filters.regex(r'^remove_fsub_ui'))
+async def remove_fsub_ui(client, query):
+
+    _, grp_id = query.data.split("#")
+    grp_id = int(grp_id)
+
+    settings = await get_settings(grp_id)
+    fsub_ids = settings.get("fsub_id", [])
+
+    if not fsub_ids:
+        return await query.answer("No Direct Fsub Set ❌", show_alert=True)
+
+    if not isinstance(fsub_ids, list):
+        fsub_ids = [fsub_ids]
+
+    btn = []
+
+    for ch_id in fsub_ids:
+        try:
+            chat = await client.get_chat(ch_id)
+            title = chat.title
+            title = title[:30] + "..." if len(title) > 30 else title
+        except:
+            title = "Unknown Channel"
+
+        btn.append([
+            InlineKeyboardButton(
+                f"❌ {title}",
+                callback_data=f"confirm_remove_fsub#{grp_id}#{ch_id}"
+            )
+        ])
+
+    btn.append([
+        InlineKeyboardButton("⬅ Back", callback_data=f"fsub_setgs#{grp_id}")
+    ])
+
+    await query.message.edit(
+        "Select Channel To Remove 👇",
+        reply_markup=InlineKeyboardMarkup(btn)
+    )
+
 @Client.on_callback_query(filters.regex(r'^set_fsub_ui'))
 async def set_fsub_ui(client, query):
     _, grp_id = query.data.split("#")
@@ -530,15 +571,27 @@ async def set_fsub_ui(client, query):
         LOGGER.error(e)
         await query.message.reply(f"ᴇʀʀᴏʀ: {e}")
 
-@Client.on_callback_query(filters.regex(r'^remove_fsub_ui'))
-async def remove_fsub_ui(client, query):
-     _, grp_id = query.data.split("#")
-     user_id = query.from_user.id if query.from_user else None
-     if not await is_check_admin(client, int(grp_id), user_id):
-        return await query.answer("ɴᴇᴇᴅ ᴛᴏ ʙᴇ ᴀᴅᴍɪɴ ᴛᴏ ᴜꜱᴇ ᴛʜɪꜱ ✅.", show_alert=True)
-     await delete_group_setting(int(grp_id), 'fsub_id')
-     await query.answer("ꜰꜱᴜʙ ʀᴇᴍᴏᴠᴇᴅ!", show_alert=True)
-     await fsub_settings(client, query)
+@Client.on_callback_query(filters.regex(r'^confirm_remove_fsub'))
+async def confirm_remove_fsub(client, query):
+
+    _, grp_id, ch_id = query.data.split("#")
+    grp_id = int(grp_id)
+    ch_id = int(ch_id)
+
+    settings = await get_settings(grp_id)
+    fsub_ids = settings.get("fsub_id", [])
+
+    if not isinstance(fsub_ids, list):
+        fsub_ids = [fsub_ids]
+
+    if ch_id in fsub_ids:
+        fsub_ids.remove(ch_id)
+
+    await save_group_settings(grp_id, "fsub_id", fsub_ids)
+
+    await query.answer("Removed Successfully ✅", show_alert=True)
+
+    await fsub_settings(client, query)
 
 @Client.on_callback_query(filters.regex(r'^changelog'))
 async def change_log(client, query):
