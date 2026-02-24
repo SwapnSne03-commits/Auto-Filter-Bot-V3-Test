@@ -396,55 +396,46 @@ async def capture_req_channel(client, message):
     if not hasattr(client, "REQ_FSUB_TEMP"):
         return
 
-    grp_id = client.REQ_FSUB_TEMP.get(message.from_user.id)
-    if not grp_id:
+    user_id = message.from_user.id
+
+    # 🔴 only work if user is in setting mode
+    if user_id not in client.REQ_FSUB_TEMP:
         return
 
-    channel_id = message.text.strip()
+    grp_id = client.REQ_FSUB_TEMP[user_id]
+    text = message.text.strip()
 
-    # 🔹 Validate ID format
+    if text.lower() == "cancel":
+        del client.REQ_FSUB_TEMP[user_id]
+        return await message.reply("❌ Cancelled")
+
     try:
-        channel_id = int(channel_id)
+        channel_id = int(text)
     except:
-        return await message.reply("❌ Invalid Channel ID Format")
+        return await message.reply("Invalid Channel ID ❌")
 
-    # 🔹 Check bot access
-    try:
-        chat = await client.get_chat(channel_id)
-    except:
-        return await message.reply("❌ Bot can't access this channel")
-
-    # 🔹 Check bot admin rights
-    try:
-        bot_member = await client.get_chat_member(channel_id, (await client.get_me()).id)
-        if bot_member.status not in (
-            enums.ChatMemberStatus.ADMINISTRATOR,
-            enums.ChatMemberStatus.OWNER
-        ):
-            return await message.reply("❌ Bot must be Admin in that channel")
-    except:
-        return await message.reply("❌ Failed to verify bot admin status")
-
-    # 🔹 Get existing list
     settings = await get_settings(int(grp_id))
-    existing = settings.get("req_fsub_id", [])
+    req_fsub_id = settings.get("req_fsub_id")
 
-    if not isinstance(existing, list):
-        existing = [existing] if existing else []
+    # 🔹 convert to list
+    if not req_fsub_id:
+        req_fsub_id = []
+    elif not isinstance(req_fsub_id, list):
+        req_fsub_id = [req_fsub_id]
 
-    # 🔹 Avoid duplicate
-    if channel_id in existing:
+    # 🔹 prevent duplicate
+    if channel_id in req_fsub_id:
+        del client.REQ_FSUB_TEMP[user_id]
         return await message.reply("⚠️ Channel already added")
 
-    existing.append(channel_id)
+    req_fsub_id.append(channel_id)
 
-    await save_group_settings(int(grp_id), "req_fsub_id", existing)
+    await save_group_settings(int(grp_id), "req_fsub_id", req_fsub_id)
 
-    await message.reply(
-        f"✅ Request Join Channel Added Successfully\n\n"
-        f"Channel: <code>{chat.title}</code>",
-        parse_mode=enums.ParseMode.HTML
-    )
+    del client.REQ_FSUB_TEMP[user_id]
+
+    await message.reply("✅ Request Join Channel Added Successfully")
+
 
 @Client.on_callback_query(filters.regex(r'^confirm_remove_req'))
 async def confirm_remove_req(client, query):
