@@ -34,7 +34,22 @@ async def join_reqs(client, message: ChatJoinRequest):
     except Exception as e:
         LOGGER.error(f"Join Req Error: {e}")
 
+@Client.on_message(filters.command("cleanfsub") & filters.private & filters.user(ADMINS))
+async def clean_force_sub_db(client, message):
+
+    deleted = await db.del_join_req()
+
+    await message.reply(
+        f"✅ Force Sub Request DB Cleaned Successfully.\n\n"
+        f"🧹 Total Records Removed: {deleted}"
+    )
+
 @Client.on_message(filters.command("delreq") & filters.private & filters.user(ADMINS))
 async def del_requests(client, message):
-    await db.del_join_req()    
-    await message.reply("<b>⚙ ꜱᴜᴄᴄᴇꜱꜱғᴜʟʟʏ ᴄʜᴀɴɴᴇʟ ʟᴇғᴛ ᴜꜱᴇʀꜱ ᴅᴇʟᴇᴛᴇᴅ</b>")
+
+    deleted = await db.del_join_req()
+
+    await message.reply(
+        f"⚙ Force Sub DB Cleaned Successfully.\n\n"
+        f"🧹 Total Records Removed: {deleted}"
+    )
