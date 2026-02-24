@@ -9,17 +9,24 @@ CHANNEL_CACHE = {}
 CACHE_TTL = 3600
 
 
-async def is_req_subscribed(bot, query, chnl):
-    if await db.find_join_req(query.from_user.id, chnl):
+async def is_req_subscribed(bot, message, chnl):
+
+    user_id = message.from_user.id
+
+    # 🔹 first check DB
+    if await db.find_join_req(user_id, chnl):
         return True
+
+    # 🔹 fallback check telegram membership
     try:
-        user = await bot.get_chat_member(chnl, query.from_user.id)
-        if user.status != enums.ChatMemberStatus.BANNED:
+        member = await bot.get_chat_member(chnl, user_id)
+        if member.status != enums.ChatMemberStatus.BANNED:
             return True
     except UserNotParticipant:
         pass
-    except Exception as e:
-        LOGGER.error(e)
+    except:
+        pass
+
     return False
 
 async def is_subscribed(bot, user_id, channel_id):
