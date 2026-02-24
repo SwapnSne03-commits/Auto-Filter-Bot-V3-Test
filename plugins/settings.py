@@ -33,7 +33,7 @@ async def group_setting_buttons(grp_id):
                 InlineKeyboardButton('ʟᴏɢ ᴄʜᴀɴɴᴇʟ', callback_data=f'log_setgs#{grp_id}',),
                 InlineKeyboardButton('ꜱᴇᴛ ᴄᴀᴘᴛɪᴏɴ', callback_data=f'caption_setgs#{grp_id}',),
             ],[
-                InlineKeyboardButton('ᴄᴜꜱᴛᴏᴍ ꜰꜱᴜʙ', callback_data=f'fsub_setgs#{grp_id}',),
+                InlineKeyboardButton('ꜰꜱᴜʙ ᴍᴇɴᴜ', callback_data=f'fsub_setgs#{grp_id}',),
                 InlineKeyboardButton('ᴅᴇʟᴇᴛᴇ ɢʀᴏᴜᴘ', callback_data=f'delete_group_check#{grp_id}')
             ],[
                 InlineKeyboardButton('⇋ ᴄʟᴏꜱᴇ ꜱᴇᴛᴛɪɴɢꜱ ᴍᴇɴᴜ ⇋', callback_data='close_data')
@@ -72,14 +72,12 @@ async def get_main_settings_text(grp_id, title):
 async def open_settings_group(client, query):
     ident, grp_id = query.data.split("#")
     userid = query.from_user.id if query.from_user else None
-    st = await client.get_chat_member(grp_id, userid)
-    if (
-            st.status != enums.ChatMemberStatus.ADMINISTRATOR
-            and st.status != enums.ChatMemberStatus.OWNER
-            and str(userid) not in ADMINS
-    ):
-        await query.answer("ʏᴏᴜ ᴅᴏɴ'ᴛ ʜᴀᴠᴇ ʀɪɢʜᴛꜱ ᴛᴏ ᴅᴏ ᴛʜɪꜱ !", show_alert=True)
-        return
+    if userid not in ADMINS:
+        return await query.answer(
+            "ʏᴏᴜ ʜᴀᴠᴇ ɴᴏᴛ ᴇɴᴏᴜɢʜ ʀɪɢʜᴛ ᴛᴏ ᴅᴏ ᴛʜɪs..",
+            show_alert=True
+        )
+
     title = query.message.chat.title
     btn = await group_setting_buttons(int(grp_id))
     text = await get_main_settings_text(int(grp_id), title)
@@ -103,20 +101,24 @@ async def open_settings_group(client, query):
 
 @Client.on_callback_query(filters.regex(r'^opnsetpm'))
 async def open_settings_pm(client, query):
+
     ident, grp_id = query.data.split("#")
     userid = query.from_user.id if query.from_user else None
-    st = await client.get_chat_member(grp_id, userid)
-    if (
-            st.status != enums.ChatMemberStatus.ADMINISTRATOR
-            and st.status != enums.ChatMemberStatus.OWNER
-            and str(userid) not in ADMINS
-    ):
-        await query.answer("ʏᴏᴜ ᴅᴏɴ'ᴛ ʜᴀᴠᴇ ꜱᴜꜰꜰɪᴄɪᴀɴᴛ ʀɪɢʜᴛꜱ ᴛᴏ ᴅᴏ ᴛʜɪꜱ !", show_alert=True)
-        return
+
+    if userid not in ADMINS:
+        return await query.answer(
+            "ʏᴏᴜ ʜᴀᴠᴇ ɴᴏᴛ ᴇɴᴏᴜɢʜ ʀɪɢʜᴛ ᴛᴏ ᴅᴏ ᴛʜɪs",
+            show_alert=True
+        )
+
     title = query.message.chat.title
+
     btn2 = [[
-             InlineKeyboardButton("ᴄʜᴇᴄᴋ ᴍʏ ᴅᴍ 🗳️", url=f"telegram.me/{temp.U_NAME}")
-           ]]
+        InlineKeyboardButton(
+            "ᴄʜᴇᴄᴋ ᴍʏ ᴅᴍ 🗳️",
+            url=f"https://t.me/{temp.U_NAME}"
+        )
+    ]]
     reply_markup = InlineKeyboardMarkup(btn2)
     try:
         await query.message.edit_text(
@@ -147,8 +149,11 @@ async def open_settings_pm(client, query):
 async def group_pm_settings(client, query):
     _, grp_id = query.data.split("#")
     user_id = query.from_user.id if query.from_user else None
-    if not await is_check_admin(client, int(grp_id), user_id):
-        return await query.answer("ɴᴇᴇᴅ ᴛᴏ ʙᴇ ᴀᴅᴍɪɴ ᴛᴏ ᴜꜱᴇ ᴛʜɪꜱ ✅.", show_alert=True)
+    if user_id not in ADMINS:
+        return await query.answer(
+            "ᴏɴʟʏ ᴍʏ ᴀᴅᴍɪɴs ᴄᴀɴ ᴜsᴇ ᴛʜɪs..",
+            show_alert=True
+        )
     btn = await group_setting_buttons(int(grp_id))
     silentx = await client.get_chat(int(grp_id))
     text = await get_main_settings_text(int(grp_id), silentx.title)
