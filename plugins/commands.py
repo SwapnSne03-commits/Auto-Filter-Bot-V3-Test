@@ -295,50 +295,52 @@ async def start(client, message):
 
     try:
         settings = await get_settings(int(data.split("_", 2)[1]))
-        fsub_id_list = settings.get('fsub_id', [])
-        fsub_id_list = fsub_id_list + AUTH_CHANNEL if AUTH_CHANNEL else fsub_id_list
-        fsub_id_list = fsub_id_list + AUTH_REQ_CHANNEL if AUTH_REQ_CHANNEL else fsub_id_list
-        if fsub_id_list:
-            fsub_ids = []
-            for chnl in fsub_id_list:
-                if chnl not in fsub_ids:
-                    fsub_ids.append(chnl)
-            tasks = []
-            for chnl in fsub_ids:
-                is_req_channel = AUTH_REQ_CHANNEL and chnl in AUTH_REQ_CHANNEL
-                tasks.append(
-                    check_force_subscription(
-                        client,
-                        message.from_user.id,
-                        chnl,
-                        is_req_channel,
-                        is_subscribed,
-                        is_req_subscribed,
-                        message
-                    )
+        direct_fsubs = settings.get('fsub_id', [])
+        req_fsub_id = settings.get('req_fsub_id')
+        if not isinstance(direct_fsubs, list):
+            direct_fsubs = [direct_fsubs] if direct_fsubs else []
+        fsub_ids = []
+        for ch in direct_fsubs:
+            if ch:
+                fsub_ids.append((ch, False))  # False = direct join
+        if req_fsub_id:
+            fsub_ids.append((req_fsub_id, True))  # True = request join
+        tasks = []
+        for chnl, is_req_channel in fsub_ids:
+            tasks.append(
+                check_force_subscription(
+                    client,
+                    message.from_user.id,
+                    chnl,
+                    is_req_channel,
+                    is_subscribed,
+                    is_req_subscribed,
+                    message
                 )
+            )
 
-            results = await asyncio.gather(*tasks)
-            btn = []
-            i = 1
-            for res in results:
-                if res:
-                    btn.append([
-                        InlineKeyboardButton(f"⛔️ {i}. {res['title']} ⛔️", url=res['url'])
-                    ])
-                    i += 1
+        results = await asyncio.gather(*tasks)
+        btn = []
+        i = 1
+        for res in results:
+            if res:
+                btn.append([
+                    InlineKeyboardButton(f"⛔️ {i}. {res['title']} ⛔️", url=res['url'])
+                ])
+                i += 1
 
-            if btn:
-                if message.command[1] != "subscribe":
-                    btn.append([InlineKeyboardButton("♻️ ᴛʀʏ ᴀɢᴀɪɴ ♻️", url=f"https://t.me/{temp.U_NAME}?start={message.command[1]}")])
-                await client.send_photo(
-                    chat_id=message.from_user.id,
-                    photo=random.choice(FSUB_IMG),
-                    caption=script.FORCESUB_TEXT,
-                    reply_markup=InlineKeyboardMarkup(btn),
-                    parse_mode=enums.ParseMode.HTML,
-                )
-                return
+        if btn:
+            if message.command[1] != "subscribe":
+                btn.append([InlineKeyboardButton("♻️ ᴛʀʏ ᴀɢᴀɪɴ ♻️", url=f"https://t.me/{temp.U_NAME}?start={message.command[1]}")])
+            await client.send_photo(
+                chat_id=message.from_user.id,
+                photo=random.choice(FSUB_IMG),
+                caption=script.FORCESUB_TEXT,
+                reply_markup=InlineKeyboardMarkup(btn),
+                parse_mode=enums.ParseMode.HTML,
+            )
+            return
+
     except Exception as e:
         await log_error(client, f"Got Error In Force Subscription Function.\n\n Error - {e}")
         LOGGER.error(f"Error In Fsub :- {e}")
