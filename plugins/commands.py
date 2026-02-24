@@ -294,16 +294,30 @@ async def start(client, message):
         pre, grp_id, file_id = "", 0, data
 
     try:
-        settings = await get_settings(int(data.split("_", 2)[1]))
+        #settings = await get_settings(int(data.split("_", 2)[1]))
 
-        direct_fsubs = settings.get('fsub_id', [])
-        req_fsubs = settings.get('req_fsub_id', [])
+        settings = await get_settings(int(grp_id))
+
+        # 🔹 Group level
+        direct_fsubs = settings.get('fsub_id') or []
+        req_fsubs = settings.get('req_fsub_id') or []
 
         if not isinstance(direct_fsubs, list):
-            direct_fsubs = [direct_fsubs] if direct_fsubs else []
+            direct_fsubs = [direct_fsubs]
 
         if not isinstance(req_fsubs, list):
-            req_fsubs = [req_fsubs] if req_fsubs else []
+            req_fsubs = [req_fsubs]
+
+        # 🔹 Import Global
+        from info import GLOBAL_FSUB_CHANNELS, GLOBAL_REQ_FSUB_CHANNELS
+
+        # 🔹 Merge Global + Group
+        direct_fsubs += GLOBAL_FSUB_CHANNELS
+        req_fsubs += GLOBAL_REQ_FSUB_CHANNELS
+
+        # 🔹 Remove duplicates (order safe)
+        direct_fsubs = list(dict.fromkeys(direct_fsubs))
+        req_fsubs = list(dict.fromkeys(req_fsubs))
 
         fsub_ids = []
 
@@ -316,7 +330,7 @@ async def start(client, message):
                 fsub_ids.append((ch, True))
 
         if not fsub_ids:
-            return  # 🔥 nothing set → skip force sub
+            return# 🔥 nothing set → skip force sub
 
         tasks = [
             check_force_subscription(
