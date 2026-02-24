@@ -357,7 +357,7 @@ class Database:
     # Premium expired reminder ( This Code Modified By @BOT_OWNER26)
     async def get_expiring_soon(self, label, delta):
         reminder_key = f"reminder_{label}_sent"
-        now = datetime.datetime.utcnow()
+        now = datetime.utcnow()
         target_time = now + delta
         window = timedelta(seconds=30)
 
