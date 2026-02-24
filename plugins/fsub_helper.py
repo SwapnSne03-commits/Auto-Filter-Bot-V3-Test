@@ -13,33 +13,52 @@ async def is_req_subscribed(bot, message, chnl):
 
     user_id = message.from_user.id
 
-    # 🔹 first check DB
-    if await db.find_join_req(user_id, chnl):
-        return True
-
-    # 🔹 fallback check telegram membership
+    # 🔹 1️⃣ Check real membership first (strict)
     try:
         member = await bot.get_chat_member(chnl, user_id)
-        if member.status != enums.ChatMemberStatus.BANNED:
+
+        if member.status in (
+            enums.ChatMemberStatus.MEMBER,
+            enums.ChatMemberStatus.ADMINISTRATOR,
+            enums.ChatMemberStatus.OWNER,
+            enums.ChatMemberStatus.RESTRICTED,
+        ):
             return True
+
     except UserNotParticipant:
         pass
-    except:
-        pass
+    except Exception:
+        return False
+
+    # 🔹 2️⃣ Then check DB bypass
+    if await db.find_join_req(user_id, chnl):
+        return True
 
     return False
 
 async def is_subscribed(bot, user_id, channel_id):
+
     try:
-        user = await bot.get_chat_member(channel_id, user_id)
-    except UserNotParticipant:
-        pass
-    except Exception as e:
-        pass
-    else:
-        if user.status != enums.ChatMemberStatus.BANNED:
+        member = await bot.get_chat_member(channel_id, user_id)
+
+        # 🔹 Only these statuses are considered valid
+        if member.status in (
+            enums.ChatMemberStatus.MEMBER,
+            enums.ChatMemberStatus.ADMINISTRATOR,
+            enums.ChatMemberStatus.OWNER,
+            enums.ChatMemberStatus.RESTRICTED,
+        ):
             return True
-    return False
+
+        return False
+
+    except UserNotParticipant:
+        # 🔹 User not in channel
+        return False
+
+    except Exception:
+        # 🔹 Any unexpected error → treat as NOT subscribed
+        return False
     
 async def get_channel_details(client, chat_id, is_req_channel=False):
     current_time = time.time()
