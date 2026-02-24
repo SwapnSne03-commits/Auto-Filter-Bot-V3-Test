@@ -22,16 +22,34 @@ class Database:
         chnl = str(chnl)
         return bool(await self.db.request[chnl].find_one({'id': id})) 
      
+    
     async def add_join_req(self, id, chnl):
         chnl = str(chnl)
-        await self.db.request[chnl].insert_one({'id': id})
+
+        collection = self.db.request[chnl]
+
+        # 🔹 Ensure TTL index exists
+        await collection.create_index(
+            "created_at",
+            expireAfterSeconds=604800  # 7 days
+        )
+
+        await collection.insert_one({
+            'id': id,
+            'created_at': datetime.utcnow()
+        })
 
     async def del_join_req(self):
-        if AUTH_REQ_CHANNEL:
-            for c in AUTH_REQ_CHANNEL:
-                c = str(c)
-            result = await self.db.request[c].delete_many({})
-            print(result)
+
+        total_deleted = 0
+
+        collections = await self.db.request.list_collection_names()
+
+        for name in collections:
+            result = await self.db.request[name].delete_many({})
+            total_deleted += result.deleted_count
+
+        return total_deleted
 
     def new_user(self, id, name):
         return dict(
