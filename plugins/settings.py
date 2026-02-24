@@ -47,6 +47,11 @@ async def get_main_settings_text(grp_id, title):
     log_channel = settings.get('log')   
     log_text = f"<code>{log_channel}</code>" if log_channel else "ɴᴏᴛ ꜱᴇᴛ"
     fsub_ids = settings.get('fsub_id')
+    req_fsub_id = settings.get('req_fsub_id')
+    if req_fsub_id:
+        req_text = f"<code>{req_fsub_id}</code>"
+    else:
+        req_text = "ɴᴏᴛ ꜱᴇᴛ"
     if fsub_ids:
         if isinstance(fsub_ids, list):
             fsub_text = ", ".join([f"<code>{id}</code>" for id in fsub_ids])
@@ -58,7 +63,8 @@ async def get_main_settings_text(grp_id, title):
         f"<b>ᴄʜᴀɴɢᴇ ʏᴏᴜʀ ꜱᴇᴛᴛɪɴɢꜱ ꜰᴏʀ {title} ᴀꜱ ʏᴏᴜ ᴡɪꜱʜ ⚙\n\n"
         f"✅ ᴠᴇʀɪꜰɪᴄᴀᴛɪᴏɴ : {verify_text}\n"
         f"📝 ʟᴏɢ ᴄʜᴀɴɴᴇʟ : {log_text}\n"
-        f"🚫 ꜰꜱᴜʙ ᴄʜᴀɴɴᴇʟ : {fsub_text}</b>"
+        f"🚫 ꜰꜱᴜʙ ᴄʜᴀɴɴᴇʟ : {fsub_text}\n"
+        f"📨 ʀᴇQ ꜰꜱᴜʙ ᴄʜᴀɴɴᴇʟ : {req_text}</b>"
     )
     return text
 
@@ -228,21 +234,38 @@ async def log_settings(client, query):
 async def fsub_settings(client, query):
     _, grp_id = query.data.split("#")
     user_id = query.from_user.id if query.from_user else None
+
     if not await is_check_admin(client, int(grp_id), user_id):
-        return await query.answer("ɴᴇᴇᴅ ᴛᴏ ʙᴇ ᴀᴅᴍɪɴ ᴛᴏ ᴜꜱᴇ ᴛʜɪꜱ ✅.", show_alert=True)
+        return await query.answer(
+            "ɴᴇᴇᴅ ᴛᴏ ʙᴇ ᴀᴅᴍɪɴ ᴛᴏ ᴜꜱᴇ ᴛʜɪꜱ ✅.",
+            show_alert=True
+        )
 
     settings = await get_settings(int(grp_id))
+
     fsub_ids = settings.get('fsub_id')
+    req_fsub_id = settings.get('req_fsub_id')
+
+    # 🔹 Direct Fsub Text
     if fsub_ids and isinstance(fsub_ids, list):
-         fsub_text = "\n".join([f"<code>{id}</code>" for id in fsub_ids])
+        fsub_text = "\n".join([f"<code>{id}</code>" for id in fsub_ids])
     elif fsub_ids:
-         fsub_text = f"<code>{fsub_ids}</code>"
+        fsub_text = f"<code>{fsub_ids}</code>"
     else:
-         fsub_text = "ɴᴏᴛ ꜱᴇᴛ"
+        fsub_text = "ɴᴏᴛ ꜱᴇᴛ"
+
+    # 🔹 Request Fsub Text
+    if req_fsub_id:
+        req_text = f"<code>{req_fsub_id}</code>"
+    else:
+        req_text = "ɴᴏᴛ ꜱᴇᴛ"
 
     btn = [[
         InlineKeyboardButton('ꜱᴇᴛ ꜰꜱᴜʙ', callback_data=f'set_fsub_ui#{grp_id}'),
-        InlineKeyboardButton('ʀᴇᴍᴏᴠᴇ ꜰꜱᴜʙ', callback_data=f'remove_fsub_ui#{grp_id}'),
+        InlineKeyboardButton('ʀᴇᴍᴏᴠᴇ ꜰꜱᴜʙ', callback_data=f'remove_fsub_ui#{grp_id}')
+    ],[
+        InlineKeyboardButton('ꜱᴇᴛ ʀᴇQ ꜰꜱᴜʙ', callback_data=f'set_req_fsub_ui#{grp_id}'),
+        InlineKeyboardButton('ʀᴇᴍᴏᴠᴇ ʀᴇQ ꜰꜱᴜʙ', callback_data=f'remove_req_fsub_ui#{grp_id}')
     ],[
         InlineKeyboardButton('⇋ ʙᴀᴄᴋ ⇋', callback_data=f'grp_pm#{grp_id}')
     ]]
@@ -251,8 +274,10 @@ async def fsub_settings(client, query):
         "<b>ᴀᴅᴠᴀɴᴄᴇ ꜱᴇᴛᴛɪɴɢꜱ ᴍᴏᴅᴇ 📳\n\n"
         "ʏᴏᴜ ᴄᴀɴ ᴄᴜꜱᴛᴏᴍɪᴢᴇᴅ ꜰꜱᴜʙ ᴄʜᴀɴɴᴇʟ ᴠᴀʟᴜᴇ ꜰʀᴏᴍ ʜᴇʀᴇ ✅\n"
         "ᴄʜᴏᴏꜱᴇ ꜰʀᴏᴍ ʙᴇʟᴏᴡ 👇\n\n"
-        f"🚫 ꜰꜱᴜʙ ᴄʜᴀɴɴᴇʟ : \n{fsub_text}</b>"
+        f"🚫 ꜰꜱᴜʙ ᴄʜᴀɴɴᴇʟ : \n{fsub_text}\n\n"
+        f"📨 ʀᴇQ ꜰꜱᴜʙ ᴄʜᴀɴɴᴇʟ : \n{req_text}</b>"
     )
+
     try:
         await query.message.edit(text, reply_markup=InlineKeyboardMarkup(btn))
     except FloodWait as e:
@@ -260,7 +285,6 @@ async def fsub_settings(client, query):
         await query.message.edit(text, reply_markup=InlineKeyboardMarkup(btn))
     except MessageNotModified:
         pass
-
 @Client.on_callback_query(filters.regex(r'^caption_setgs'))
 async def caption_settings(client, query):
     _, grp_id = query.data.split("#")
@@ -292,6 +316,44 @@ async def caption_settings(client, query):
         await query.message.edit(text, reply_markup=InlineKeyboardMarkup(btn))
     except MessageNotModified:
         pass
+
+@Client.on_callback_query(filters.regex(r'^set_req_fsub_ui'))
+async def set_req_fsub_ui(client, query):
+    _, grp_id = query.data.split("#")
+
+    await query.message.edit(
+        "📌 Send Request Join Channel ID\nExample: -100xxxxxxxxxx"
+    )
+
+    client.temp_req_group = grp_id
+
+@Client.on_message(filters.private & filters.text)
+async def capture_req_channel(client, message):
+
+    if not hasattr(client, "temp_req_group"):
+        return
+
+    grp_id = client.temp_req_group
+    channel_id = message.text.strip()
+
+    try:
+        channel_id = int(channel_id)
+    except:
+        return await message.reply("Invalid Channel ID ❌")
+
+    await save_group_settings(int(grp_id), "req_fsub_id", channel_id)
+
+    del client.temp_req_group
+
+    await message.reply("✅ Request Join Channel Saved Successfully")
+
+@Client.on_callback_query(filters.regex(r'^remove_req_fsub_ui'))
+async def remove_req_fsub_ui(client, query):
+    _, grp_id = query.data.split("#")
+
+    await save_group_settings(int(grp_id), "req_fsub_id", None)
+
+    await query.answer("Removed Successfully ✅", show_alert=True)
 
 @Client.on_callback_query(filters.regex(r'^removelog'))
 async def remove_log(client, query):
