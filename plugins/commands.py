@@ -304,7 +304,12 @@ async def start(client, message):
             if ch:
                 fsub_ids.append((ch, False))  # False = direct join
         if req_fsub_id:
-            fsub_ids.append((req_fsub_id, True))  # True = request join
+            if not isinstance(req_fsub_id, list):
+                req_fsub_id = [req_fsub_id]
+
+            for ch in req_fsub_id:
+                if ch:
+                    fsub_ids.append((ch, True))  # True = request join
         tasks = []
         for chnl, is_req_channel in fsub_ids:
             tasks.append(
