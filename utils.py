@@ -595,14 +595,14 @@ def extract_tag(file_name: str) -> str:
         if match:
             season = int(match.group(1))
             episode = int(match.group(2))
-            return f"S{season:02d}E{episode:02d} •"
+            return f"S{season:02d}E{episode:02d}" #✨ can add any symbol to show beside season/ pilex in search result.
     season_match = re.search(r'\b(?:s|season)\s*0*(\d{1,2})\b', file_name)
     if season_match:
         season = int(season_match.group(1))
-        return f"S{season:02d} •"
+        return f"S{season:02d}" #✨ same symbol things 
     quality_match = re.search(r'\b(2160p|1080p|720p|480p|360p|4k)\b', file_name)
     if quality_match:
-        return f"{quality_match.group(1)} •"
+        return f"{quality_match.group(1)}" #✨ same symbol add things 
     return ""
 
 def extract_request_content(message_text):
