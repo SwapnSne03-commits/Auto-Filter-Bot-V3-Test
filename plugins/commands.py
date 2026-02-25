@@ -1499,7 +1499,7 @@ async def menu_callback_handler(client, query):
     if data == "help_menu":
         buttons = [
             [
-                InlineKeyboardButton("✞︎ Sᴇᴀʀᴄʜ Rᴜʟᴇs ✞︎", callback_data="help_rules"),
+                InlineKeyboardButton("🔍 Sᴇᴀʀᴄʜ Gᴜɪᴅᴇ", callback_data="help_rules"),
                 InlineKeyboardButton("❗ Dɪsᴄʟᴀɪᴍᴇʀ", callback_data="help_readme")
             ],
             [InlineKeyboardButton("Bᴀᴄᴋ", callback_data="home")]
