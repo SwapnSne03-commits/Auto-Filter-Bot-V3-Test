@@ -5,7 +5,6 @@ import math
 import random
 import pytz
 from datetime import datetime, timedelta, date, time
-lock = asyncio.Lock()
 from database.users_chats_db import db
 from database.refer import referdb
 from pyrogram.errors.exceptions.bad_request_400 import MediaEmpty, PhotoInvalidDimensions, WebpageMediaEmpty
@@ -37,6 +36,8 @@ SPELL_CHECK = {}
 SPELL_CACHE = {}
 POSTER_CACHE = {}         # for advantage_spell_chok (movies list)
 CACHE_LIMIT = 200
+
+lock = asyncio.Lock()
 
 async def auto_memory_cleaner():
     while True:
@@ -254,7 +255,7 @@ async def next_page(bot, query):
             btn = [
                 [
                     InlineKeyboardButton(
-                        text=f"{silent_size(file.file_size)}| {extract_tag(file.file_name)} {clean_filename(file.file_name)}", callback_data=f'file#{file.file_id}'
+                        text=f"{silent_size(file.file_size)} ✦ {extract_tag(file.file_name)}≽ {clean_filename(file.file_name)}", callback_data=f'file#{file.file_id}'
                     ),
                 ]
                 for file in files
@@ -630,7 +631,7 @@ async def filter_qualities_cb_handler(client: Client, query: CallbackQuery):
         btn = [
             [
                 InlineKeyboardButton(
-                    text=f"{silent_size(f.file_size)} | {extract_tag(f.file_name)} {clean_filename(f.file_name)}",
+                    text=f"{silent_size(f.file_size)} ✦ {extract_tag(f.file_name)}≽ {clean_filename(f.file_name)}",
                     callback_data=f"file#{f.file_id}"
                 )
             ]
@@ -985,7 +986,7 @@ async def filter_language_cb_handler(client: Client, query: CallbackQuery):
         btn = [
             [
                 InlineKeyboardButton(
-                    text=f"{silent_size(f.file_size)} | {extract_tag(f.file_name)} {clean_filename(f.file_name)}",
+                    text=f"{silent_size(f.file_size)} ✦ {extract_tag(f.file_name)}≽ {clean_filename(f.file_name)}",
                     callback_data=f"file#{f.file_id}"
                 )
             ]
@@ -1329,8 +1330,8 @@ async def filter_season_cb_handler(client: Client, query: CallbackQuery):
         btn = [
             [
                 InlineKeyboardButton(
-                    text=f"{silent_size(f.file_size)} | "
-                         f"{extract_tag(f.file_name)} "
+                    text=f"{silent_size(f.file_size)} ✦ "
+                         f"{extract_tag(f.file_name)}≽ "
                          f"{clean_filename(f.file_name)}",
                     callback_data=f"file#{f.file_id}"
                 )
@@ -2542,7 +2543,7 @@ async def auto_filter(client, msg, spoll=False):
         btn = [
             [
                 InlineKeyboardButton(
-                    text=f"{silent_size(file.file_size)}| {extract_tag(file.file_name)} {clean_filename(file.file_name)}", callback_data=f'file#{file.file_id}'
+                    text=f"{silent_size(file.file_size)} ✦ {extract_tag(file.file_name)}≽ {clean_filename(file.file_name)}", callback_data=f'file#{file.file_id}'
                 ),
             ]
             for file in files
