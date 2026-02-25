@@ -255,7 +255,7 @@ async def next_page(bot, query):
             btn = [
                 [
                     InlineKeyboardButton(
-                        text=f"{silent_size(file.file_size)} ✦ {extract_tag(file.file_name)}≽ {clean_filename(file.file_name)}", callback_data=f'file#{file.file_id}'
+                        text=f"{silent_size(file.file_size)} ✦ {extract_tag(file.file_name)} {clean_filename(file.file_name)}", callback_data=f'file#{file.file_id}'
                     ),
                 ]
                 for file in files
@@ -631,7 +631,7 @@ async def filter_qualities_cb_handler(client: Client, query: CallbackQuery):
         btn = [
             [
                 InlineKeyboardButton(
-                    text=f"{silent_size(f.file_size)} ✦ {extract_tag(f.file_name)}≽ {clean_filename(f.file_name)}",
+                    text=f"{silent_size(f.file_size)} ✦ {extract_tag(f.file_name)} {clean_filename(f.file_name)}",
                     callback_data=f"file#{f.file_id}"
                 )
             ]
@@ -986,7 +986,7 @@ async def filter_language_cb_handler(client: Client, query: CallbackQuery):
         btn = [
             [
                 InlineKeyboardButton(
-                    text=f"{silent_size(f.file_size)} ✦ {extract_tag(f.file_name)}≽ {clean_filename(f.file_name)}",
+                    text=f"{silent_size(f.file_size)} ✦ {extract_tag(f.file_name)} {clean_filename(f.file_name)}",
                     callback_data=f"file#{f.file_id}"
                 )
             ]
@@ -1331,7 +1331,7 @@ async def filter_season_cb_handler(client: Client, query: CallbackQuery):
             [
                 InlineKeyboardButton(
                     text=f"{silent_size(f.file_size)} ✦ "
-                         f"{extract_tag(f.file_name)}≽ "
+                         f"{extract_tag(f.file_name)}"
                          f"{clean_filename(f.file_name)}",
                     callback_data=f"file#{f.file_id}"
                 )
@@ -2507,7 +2507,7 @@ async def auto_filter(client, msg, spoll=False):
                     ai_sts = await m.edit('<b>Fixing Spelling With AI</b>🕵️')
                     is_misspelled = await ai_spell_check(chat_id = message.chat.id,wrong_name=search)
                     if is_misspelled:
-                        await ai_sts.edit(f'<b>🕵️ I Get Correct Spelling -<code> {is_misspelled}</code>\n✅ Now I am Searching With This -<code> {is_misspelled}</b>')
+                        await ai_sts.edit(f'<b>🕵️‍♂️ ɪ ғɪx ᴛʜᴇ sᴘᴇʟʟɪɴɢ ᴡɪᴛʜ - {is_misspelled}</b>\n✅ ɴᴏᴡ ɪ ᴀᴍ sᴇᴀʀᴄʜɪɴɢ ᴛʜɪs - {is_misspelled}</b>')
                         await asyncio.sleep(2)
                         await ai_sts.delete()
                         files, offset, total_results = await get_search_results(message.chat.id, is_misspelled, offset=0, filter=True)
@@ -2543,7 +2543,7 @@ async def auto_filter(client, msg, spoll=False):
         btn = [
             [
                 InlineKeyboardButton(
-                    text=f"{silent_size(file.file_size)} ✦ {extract_tag(file.file_name)}≽ {clean_filename(file.file_name)}", callback_data=f'file#{file.file_id}'
+                    text=f"{silent_size(file.file_size)} ✦ {extract_tag(file.file_name)} {clean_filename(file.file_name)}", callback_data=f'file#{file.file_id}'
                 ),
             ]
             for file in files
@@ -2884,7 +2884,7 @@ async def secure_spell_close_handler(client, query):
         return
 
     if query.from_user.id != owner:
-        return await query.answer("Not for you ❌", show_alert=False)
+        return await query.answer("ɪᴛ ɪs ɴᴏᴛ ғᴏʀ ʏᴏᴜ..", show_alert=False)
 
     try:
         await query.message.delete()
