@@ -595,14 +595,14 @@ def extract_tag(file_name: str) -> str:
         if match:
             season = int(match.group(1))
             episode = int(match.group(2))
-            return f"S{season:02d}E{episode:02d}" #✨ can add any symbol to show beside season/ pilex in search result.
+            return f"S{season:02d}E{episode:02d} ≽" #✨ can add any symbol to show beside season/ pilex in search result.
     season_match = re.search(r'\b(?:s|season)\s*0*(\d{1,2})\b', file_name)
     if season_match:
         season = int(season_match.group(1))
-        return f"S{season:02d}" #✨ same symbol things 
+        return f"S{season:02d} ≽" #✨ same symbol things 
     quality_match = re.search(r'\b(2160p|1080p|720p|480p|360p|4k)\b', file_name)
     if quality_match:
-        return f"{quality_match.group(1)}" #✨ same symbol add things 
+        return f"{quality_match.group(1)} ≽" #✨ same symbol add things 
     return ""
 
 def extract_request_content(message_text):
@@ -921,7 +921,7 @@ async def get_cap(settings, remaining_seconds, files, query, total_results, sear
         if IMDB_CAP:
             cap = IMDB_CAP
             for file_num, file in enumerate(files, start=offset+1):
-                cap += f"\n\n<b>{file_num}. <a href='https://telegram.me/{temp.U_NAME}?start=file_{query.message.chat.id}_{file.file_id}'>{get_size(file.file_size)}≽ {clean_filename(file.file_name)}</a></b>"
+                cap += f"\n\n<b>{file_num}. <a href='https://telegram.me/{temp.U_NAME}?start=file_{query.message.chat.id}_{file.file_id}'>{get_size(file.file_size)} {clean_filename(file.file_name)}</a></b>"
         else:
             imdb = await get_poster(search, file=(files[0]).file_name) if settings["imdb"] else None
             if imdb:
@@ -958,13 +958,13 @@ async def get_cap(settings, remaining_seconds, files, query, total_results, sear
                     **locals()
                 )
                 for file_num, file in enumerate(files, start=offset+1):
-                    cap += f"\n\n<b>{file_num}. <a href='https://telegram.me/{temp.U_NAME}?start=file_{query.message.chat.id}_{file.file_id}'>{get_size(file.file_size)}≽ {clean_filename(file.file_name)}</a></b>"
+                    cap += f"\n\n<b>{file_num}. <a href='https://telegram.me/{temp.U_NAME}?start=file_{query.message.chat.id}_{file.file_id}'>{get_size(file.file_size)} {clean_filename(file.file_name)}</a></b>"
             else:
                 cap =f"<b>📂 ʜᴇʀᴇ ɪ ꜰᴏᴜɴᴅ ꜰᴏʀ ʏᴏᴜʀ sᴇᴀʀᴄʜ <code>{search}</code></b>\n\n"
                 for file_num, file in enumerate(files, start=offset+1):
-                    cap += f"<b>{file_num}. <a href='https://telegram.me/{temp.U_NAME}?start=file_{query.message.chat.id}_{file.file_id}'>{get_size(file.file_size)}≽ {clean_filename(file.file_name)}\n\n</a></b>"
+                    cap += f"<b>{file_num}. <a href='https://telegram.me/{temp.U_NAME}?start=file_{query.message.chat.id}_{file.file_id}'>{get_size(file.file_size)} {clean_filename(file.file_name)}\n\n</a></b>"
     else:
         cap =f"<b>📂 ʜᴇʀᴇ ɪ ꜰᴏᴜɴᴅ ꜰᴏʀ ʏᴏᴜʀ sᴇᴀʀᴄʜ <code>{search}</code></b>\n\n"
         for file_num, file in enumerate(files, start=offset+1):
-            cap += f"<b>{file_num}. <a href='https://telegram.me/{temp.U_NAME}?start=file_{query.message.chat.id}_{file.file_id}'>{get_size(file.file_size)}≽ {clean_filename(file.file_name)}\n\n</a></b>"
+            cap += f"<b>{file_num}. <a href='https://telegram.me/{temp.U_NAME}?start=file_{query.message.chat.id}_{file.file_id}'>{get_size(file.file_size)} {clean_filename(file.file_name)}\n\n</a></b>"
     return cap
