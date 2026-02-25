@@ -91,10 +91,10 @@ def get_main_buttons():
             InlineKeyboardButton("🎭 Mᴏᴠɪᴇ Rᴇǫᴜᴇsᴛ Gʀᴏᴜᴘ", url=GRP_LNK)
         ],
         [
-            InlineKeyboardButton("⚡ Hᴇʟᴘ", callback_data="help_menu"),
+            InlineKeyboardButton("🧭 Hᴇʟᴘ", callback_data="help_menu"),
             InlineKeyboardButton("🕵️‍♂️ Aʙᴏᴜᴛ", callback_data="about_menu")
         ],
-        [   InlineKeyboardButton("🎋 Pʀᴇᴍɪᴜᴍ", callback_data="premium"), 
+        [   #InlineKeyboardButton("🎋 Pʀᴇᴍɪᴜᴍ", callback_data="premium"), 
             InlineKeyboardButton("🔒 Cʟᴏsᴇ Mᴇɴᴜ", callback_data="close")
         ]
     ]
