@@ -1432,11 +1432,6 @@ async def advantage_spoll_choker(bot, query):
     except:
         pass
 
-    try:
-        if user_msg:
-            await user_msg.delete()
-    except:
-        pass
 
     files, offset, total_results = await get_search_results(
         chat_id,
@@ -1465,7 +1460,7 @@ async def advantage_spoll_choker(bot, query):
         # ❗ এখানে edit না করে নতুন message send করাই safe
         contact_admin_button = InlineKeyboardMarkup(
             [[InlineKeyboardButton(
-                "🔰 Cʟɪᴄᴋ Hᴇʀᴇ & Rᴇǫᴜᴇsᴛ Tᴏ Aᴅᴍɪɴ🔰",
+                "ᴄʟɪᴄᴋ ᴛᴏ ʀᴇǫᴜᴇsᴛ",
                 url=SUPPORT_GRP
             )]]
         )
@@ -2399,7 +2394,7 @@ async def auto_filter(client, msg, spoll=False):
             search = re.sub(r'\s+', ' ', search).strip()
             if not re.search(r'[a-zA-Z0-9]', search): #ignore non english request 
                 return
-            m=await message.reply_text(f'<b>Wait {message.from_user.mention} Searching Your Query: <i>{search}...</i></b>', reply_to_message_id=message.id)
+            m=await message.reply_text(f'<b><i>ᴡᴀɪᴛ {message.from_user.mention}, sᴇᴀʀᴄʜɪɴɢ ʏᴏᴜʀ ǫᴜᴇʀʏ: <i>{search}...</i></b>', reply_to_message_id=message.id)
             files, offset, total_results = await get_search_results(message.chat.id ,search, offset=0, filter=True)
             # 🔥 APOSTROPHE FALLBACK (second search only if first fails)
             if not files and "'" in message.text:
@@ -2504,10 +2499,10 @@ async def auto_filter(client, msg, spoll=False):
             # ========================================================
             if not files:
                 if settings["spell_check"]:
-                    ai_sts = await m.edit('<b>Fixing Spelling With AI</b>🕵️')
+                    ai_sts = await m.edit('<b>ғɪxɪɴɢ sᴘᴇʟʟɪɴɢ ᴡɪᴛʜ ᴀɪ</b>🕵️')
                     is_misspelled = await ai_spell_check(chat_id = message.chat.id,wrong_name=search)
                     if is_misspelled:
-                        await ai_sts.edit(f'<b>🕵️‍♂️ ɪ ғɪx ᴛʜᴇ sᴘᴇʟʟɪɴɢ ᴡɪᴛʜ - {is_misspelled}</b>\n✅ ɴᴏᴡ ɪ ᴀᴍ sᴇᴀʀᴄʜɪɴɢ ᴛʜɪs - {is_misspelled}</b>')
+                        await ai_sts.edit(f'<b>ɪ ғɪx ᴛʜᴇ sᴘᴇʟʟɪɴɢ ᴡɪᴛʜ - {is_misspelled}</b>\n<b>ɴᴏᴡ ɪ ᴀᴍ sᴇᴀʀᴄʜɪɴɢ ᴛʜɪs - {is_misspelled}</b>')
                         await asyncio.sleep(2)
                         await ai_sts.delete()
                         files, offset, total_results = await get_search_results(message.chat.id, is_misspelled, offset=0, filter=True)
@@ -2526,7 +2521,7 @@ async def auto_filter(client, msg, spoll=False):
         search, files, offset, total_results = spoll
 
         m = await message.reply_text(
-            f'<b>✅ Wᴀɪᴛ {message.from_user.mention}\nAᴍ Sᴇᴀʀᴄʜɪɴɢ Yᴏᴜʀ Qᴜᴇʀʏ :<i>{search}...</i></b>',
+            f'<b>ᴡᴀɪᴛ {message.from_user.mention}\nsᴇᴀʀᴄʜɪɴɢ ʏᴏᴜʀ ǫᴜᴇʀʏ :<i>{search}...</i></b>',
             reply_to_message_id=message.id
         )
 
@@ -2884,7 +2879,7 @@ async def secure_spell_close_handler(client, query):
         return
 
     if query.from_user.id != owner:
-        return await query.answer("ɪᴛ ɪs ɴᴏᴛ ғᴏʀ ʏᴏᴜ..", show_alert=False)
+        return await query.answer("🚫 ɴᴏᴛ ғᴏʀ ʏᴏᴜ..", show_alert=False)
 
     try:
         await query.message.delete()
