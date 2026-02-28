@@ -39,6 +39,55 @@ CACHE_LIMIT = 200
 
 lock = asyncio.Lock()
 
+def is_meaningful_query(search: str) -> bool:
+
+    tokens = search.split()
+
+    # Ignore patterns
+    ignore_patterns = [
+        r"(19|20)\d{2}",      # year
+        r"s\d{1,2}",          # s01
+        r"season\d{1,2}",     # season1
+        r"e\d{1,2}",          # e01
+        r"ep\d{1,2}",         # ep01
+    ]
+
+    # Common standalone junk words
+    junk_words = {
+        "hindi", "english", "eng", "tamil", "telugu",
+        "malayalam", "bangla", "bengali",
+        "dubbed", "original", "dual", "multi",
+        "480p", "720p", "1080p", "2160p", "4k",
+        "hdrip", "webrip", "webdl", "bluray",
+        "cam", "hdcam", "hq"
+    }
+
+    meaningful = False
+
+    for token in tokens:
+
+        # If token is junk word
+        if token in junk_words:
+            continue
+
+        # If token matches ignore pattern
+        matched = False
+        for pattern in ignore_patterns:
+            if re.fullmatch(pattern, token):
+                matched = True
+                break
+
+        if matched:
+            continue
+
+        # If token has letters → meaningful
+        if re.search(r"[a-zA-Z]", token):
+            meaningful = True
+            break
+
+    return meaningful
+
+
 async def auto_memory_cleaner():
     while True:
         await asyncio.sleep(900)
@@ -2393,6 +2442,8 @@ async def auto_filter(client, msg, spoll=False):
             search = re.sub(r'[^a-zA-Z0-9\s]', '', search)
             search = re.sub(r'\s+', ' ', search).strip()
             if not re.search(r'[a-zA-Z0-9]', search): #ignore non english request 
+                return
+            if not is_meaningful_query(search):
                 return
             m=await message.reply_text(f'<b><i>ᴡᴀɪᴛ {message.from_user.mention}, sᴇᴀʀᴄʜɪɴɢ ʏᴏᴜʀ ǫᴜᴇʀʏ: <i>{search}...</i></b>', reply_to_message_id=message.id)
             files, offset, total_results = await get_search_results(message.chat.id ,search, offset=0, filter=True)
