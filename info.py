@@ -148,7 +148,7 @@ IGNORE_WORDS = [
     "south movie", "south indian", "web-series", "web series", "webseries", "hindi me bhejo",
     "ful", ",", "!", "kro", "jaldi", "audio", "language", "mkv", "mp4", "web", "series",
     "hollywood", "all", "bollywood", "south", "hd", "karo", "upload", "bhejo",
-    "fullepisode", "bengali", "please", "plz", "send", "link", "dabbbed", "dubbed", "season",
+    "fullepisode", "bengali", "please", "plz", "hindi", "2026", "2025", "seasons", "request", "#request", "send", "link", "dabbbed", "dubbed", "season",
 ]
 #Image Host 
 IMGBB_API_KEY = os.environ["IMGBB_API_KEY"]
