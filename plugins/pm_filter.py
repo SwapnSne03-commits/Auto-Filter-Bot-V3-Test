@@ -3027,15 +3027,17 @@ async def advantage_spell_chok(client, message):
     movies = POSTER_CACHE.get(cache_key)
 
     if movies is None:
+        if movies is None:
+            movies = [] 
         try:
             raw = await get_poster(query, bulk=False)
         except Exception:
             raw = None
 
         # 🔥 safest normalization (VERY IMPORTANT)
-        if not raw:
-            movies = []
-
+        #if not raw:
+            #movies = []
+	
         # 🔥 always convert to iterable
         if raw:
             items = raw if isinstance(raw, (list, tuple)) else [raw]
