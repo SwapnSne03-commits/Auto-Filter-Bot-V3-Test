@@ -2509,11 +2509,13 @@ async def auto_filter(client, msg, spoll=False):
                 # 2️⃣ Season → Title
                 if not files and is_series_request:
                     title_only = re.sub(
-                        r"(s\d{1,2}|season\s*\d{1,2}|\b\d{1,2}\b)$",
+                        r"(s\d{1,2}\s*e\d{1,3}|s\d{1,2}e\d{1,3}|s\d{1,2}|season\s*\d{1,2}|\b\d{1,2}\b)",
                         "",
                         search,
                         flags=re.IGNORECASE
                     ).strip()
+
+                    title_only = re.sub(r"\s+", " ", title_only).strip()
 
                     if title_only and title_only != search:
                         files, offset, total_results = await get_search_results(
