@@ -2464,6 +2464,70 @@ async def auto_filter(client, msg, spoll=False):
                         offset=0,
                         filter=True
 		            )
+            # ===================================
+            # PREMIUM SMART FALLBACK ENGINE
+            # ===================================
+
+            fallback_info = None
+            original_query = search
+            fallback_query = None
+
+            if not files:
+
+                is_series_request = bool(
+                    re.search(r"(s\d{1,2}|season\s*\d{1,2}|e\d{1,3})", search, re.IGNORECASE)
+                    or re.search(r"\b\d{1,2}\b$", search)
+                )
+
+                has_year = bool(re.search(r"\b(19|20)\d{2}\b", search))
+
+                # 1️⃣ Episode → Season
+                if is_series_request:
+                    season_only = re.sub(r"e\d{1,3}", "", search, flags=re.IGNORECASE).strip()
+
+                    if season_only != search:
+                        files, offset, total_results = await get_search_results(
+                            message.chat.id, season_only, offset=0, filter=True
+                        )
+
+                        if files:
+                            fallback_query = season_only
+                            fallback_info = "Episode not found. Showing season results."
+
+                # 2️⃣ Season → Title
+                if not files and is_series_request:
+                    title_only = re.sub(
+                        r"(s\d{1,2}|season\s*\d{1,2}|\b\d{1,2}\b)$",
+                        "",
+                        search,
+                        flags=re.IGNORECASE
+                    ).strip()
+
+                    if title_only and title_only != search:
+                        files, offset, total_results = await get_search_results(
+                            message.chat.id, title_only, offset=0, filter=True
+                        )
+
+                        if files:
+                            fallback_query = title_only
+                            fallback_info = "Season not available. Showing all available results."
+
+                # 3️⃣ Wrong Year fallback
+                if not files and has_year:
+                    title_without_year = re.sub(
+                        r"\b(19|20)\d{2}\b",
+                        "",
+                        search
+                    ).strip()
+
+                    if title_without_year and title_without_year != search:
+                        files, offset, total_results = await get_search_results(
+                            message.chat.id, title_without_year, offset=0, filter=True
+                        )
+
+                        if files:
+                            fallback_query = title_without_year
+                            fallback_info = f"No results for that year. Showing results for '{title_without_year}'."
             uid = message.from_user.id if message.from_user else 0
             key = f"{message.chat.id}-{message.id}"
             if not hasattr(temp, "OWNER"):
@@ -2550,22 +2614,44 @@ async def auto_filter(client, msg, spoll=False):
             # ========================================================
             if not files:
                 if settings["spell_check"]:
-                    ai_sts = await m.edit('<b>ғɪxɪɴɢ sᴘᴇʟʟɪɴɢ ᴡɪᴛʜ ᴀɪ</b>🕵️')
-                    is_misspelled = await ai_spell_check(chat_id = message.chat.id,wrong_name=search)
+
+                    ai_sts = await m.edit('<b>ғɪxɪɴɢ sᴘᴇʟʟɪɴɢ ᴡɪᴛʜ ᴀɪ</b> 🕵️')
+
+                    is_misspelled = await ai_spell_check(
+                        chat_id=message.chat.id,
+                        wrong_name=search
+                    )
+
                     if is_misspelled:
-                        await ai_sts.edit(f'<b>ɪ ғɪx ᴛʜᴇ sᴘᴇʟʟɪɴɢ ᴡɪᴛʜ - {is_misspelled}</b>\n<b>ɴᴏᴡ ɪ ᴀᴍ sᴇᴀʀᴄʜɪɴɢ ᴛʜɪs - {is_misspelled}</b>')
+
+                        await ai_sts.edit(
+                            f"<b>ɪ ғɪxᴇᴅ ᴛʜᴇ sᴘᴇʟʟɪɴɢ → {is_misspelled}</b>\n"
+                            f"<b>ɴᴏᴡ sᴇᴀʀᴄʜɪɴɢ...</b>"
+                        )
+
                         await asyncio.sleep(2)
                         await ai_sts.delete()
-                        files, offset, total_results = await get_search_results(message.chat.id, is_misspelled, offset=0, filter=True)
+
+                        # 🔥 search again with corrected spelling
+                        files, offset, total_results = await get_search_results(
+                            message.chat.id,
+                            is_misspelled,
+                            offset=0,
+                            filter=True
+                        )
 
                         if files:
-                            return await auto_filter(client, message, (is_misspelled, files, offset, total_results))
+                            search = is_misspelled
+                            original_query = is_misspelled
+                            fallback_query = None
+                            fallback_info = None
+                            
+                        else:
+                            return await advantage_spell_chok(client, message)
 
+                    else:
+                        await ai_sts.delete()
                         return await advantage_spell_chok(client, message)
-                    await ai_sts.delete()
-                    return await advantage_spell_chok(client, message)
-        else:
-            return
     else:
         message = msg  # 🔥 FIX: msg is already Message
 
@@ -2680,17 +2766,44 @@ async def auto_filter(client, msg, spoll=False):
             url=imdb.get("url", "N/A"),
             **locals()
         )
-        temp.IMDB_CAP[message.from_user.id] = cap
-        if not settings.get('button'):
-            for file_num, file in enumerate(files, start=1):
-                cap += f"\n\n<b>{file_num}. <a href='https://telegram.me/{temp.U_NAME}?start=file_{message.chat.id}_{file.file_id}'>{get_size(file.file_size)} | {clean_filename(file.file_name)}</a></b>"
-    else:
+        display_query = fallback_query if fallback_query else original_query
+
+        header_note = ""
+        if fallback_info:
+            header_note = f"🔎 <i>{fallback_info}</i>\n\n"
+
+        # ---------------- CAPTION BUILD ----------------
+
         if settings.get('button'):
-            cap = f"<b><blockquote>Hᴇʏ, {message.from_user.mention}</blockquote>\nʜᴇʀᴇ ɪ ꜰᴏᴜɴᴅ ꜰᴏʀ ʏᴏᴜʀ sᴇᴀʀᴄʜ - <code>{search}</code>\n\n 🚧 ᴛʜɪꜱ ᴍᴇꜱꜱᴀɢᴇ ᴡɪʟʟ ʙᴇ ᴀᴜᴛᴏ ᴅᴇʟᴇᴛᴇ ᴀғᴛᴇʀ ғᴇᴡ ᴍɪɴᴜᴛᴇs.</b>"
+            cap = (
+                f"<b><blockquote>Hᴇʏ, {message.from_user.mention}</blockquote>\n"
+                f"{header_note}"
+                f"ʜᴇʀᴇ ɪ ꜰᴏᴜɴᴅ ꜰᴏʀ ʏᴏᴜʀ sᴇᴀʀᴄʜ - <code>{display_query}</code>\n\n"
+                f"🚧 ᴛʜɪꜱ ᴍᴇꜱꜱᴀɢᴇ ᴡɪʟʟ ʙᴇ ᴀᴜᴛᴏ ᴅᴇʟᴇᴛᴇ ᴀғᴛᴇʀ ғᴇᴡ ᴍɪɴᴜᴛᴇs.</b>"
+            )
         else:
-            cap = f"<b><blockquote>Hᴇʏ, {message.from_user.mention}</blockquote>\nʜᴇʀᴇ ɪ ꜰᴏᴜɴᴅ ꜰᴏʀ ʏᴏᴜʀ sᴇᴀʀᴄʜ - <code>{search}</code>\n\n🚧 ᴛʜɪꜱ ᴍᴇꜱꜱᴀɢᴇ ᴡɪʟʟ ʙᴇ ᴀᴜᴛᴏ ᴅᴇʟᴇᴛᴇ ᴀғᴛᴇʀ ғᴇᴡ ᴍɪɴᴜᴛᴇs.</b>"            
+            cap = (
+                f"<b><blockquote>Hᴇʏ, {message.from_user.mention}</blockquote>\n"
+                f"{header_note}"
+                f"ʜᴇʀᴇ ɪ ꜰᴏᴜɴᴅ ꜰᴏʀ ʏᴏᴜʀ sᴇᴀʀᴄʜ - <code>{display_query}</code>\n\n"
+                f"🚧 ᴛʜɪꜱ ᴍᴇꜱꜱᴀɢᴇ ᴡɪʟʟ ʙᴇ ᴀᴜᴛᴏ ᴅᴇʟᴇᴛᴇ ᴀғᴛᴇʀ ғᴇᴡ ᴍɪɴᴜᴛᴇs.</b>"
+            )
+
             for file_num, file in enumerate(files, start=1):
-                cap += f"<b>{file_num}. <a href='https://telegram.me/{temp.U_NAME}?start=file_{message.chat.id}_{file.file_id}'>{get_size(file.file_size)} | {clean_filename(file.file_name)}\n\n</a></b>"                
+                cap += (
+                    f"<b>{file_num}. "
+                    f"<a href='https://telegram.me/{temp.U_NAME}?start=file_{message.chat.id}_{file.file_id}'>"
+                    f"{get_size(file.file_size)} | {clean_filename(file.file_name)}\n\n"
+                    f"</a></b>"
+                )
+
+        # store AFTER building complete caption
+        temp.IMDB_CAP[message.from_user.id] = cap
+        #if not settings.get('button'):
+            #for file_num, file in enumerate(files, start=1):
+                #cap += f"\n\n<b>{file_num}. <a href='https://telegram.me/{temp.U_NAME}?start=file_{message.chat.id}_{file.file_id}'>{get_size(file.file_size)} | {clean_filename(file.file_name)}</a></b>"
+
+                   
     try:
         if imdb and (poster_url or imdb.get("poster")):
             try:
