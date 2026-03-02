@@ -2773,6 +2773,7 @@ async def auto_filter(client, msg, spoll=False):
             header_note = f"🔎 <i>{fallback_info}</i>\n\n"
 
         # ---------------- CAPTION BUILD ----------------
+        cap = ""
 
         if settings.get('button'):
             cap = (
