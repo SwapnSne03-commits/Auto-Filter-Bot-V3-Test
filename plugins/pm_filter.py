@@ -25,10 +25,6 @@ from database.topdb import silentdb
 import requests
 import string
 import tracemalloc
-from rapidfuzz import process, fuzz
-
-_SPELL_CACHE = {}
-_CACHE_LIMIT = 300
 
 tracemalloc.start()
 
@@ -2950,92 +2946,52 @@ def _normalize_query(text: str) -> str:
 
 async def ai_spell_check(chat_id, wrong_name):
 
-    if not wrong_name or not isinstance(wrong_name, str):
+    if not wrong_name:
         return None
 
-    query = _normalize_query(wrong_name)
-
-    # 🔥 Skip season/episode queries (handled by fallback engine)
-    if re.search(r"(s\d{1,2}|season\s*\d{1,2}|e\d{1,3})", query, re.I):
+    if re.search(r'\bS\d{1,2}\b|\bSeason\s*\d+', wrong_name, re.I):
         return None
 
-    # Skip too short
-    if len(query) < 3:
-        return None
+    query = wrong_name.strip().lower()
 
-    # 🔹 Cache hit
-    cached = _SPELL_CACHE.get(query)
+    # ✅ cache only success
+    cached = SPELL_CACHE.get(query)
     if cached:
         return cached
 
-    parts = query.split()
-    if not parts:
+    try:
+        search_results = imdb.search_movie(wrong_name)
+        titles = [m.title for m in search_results.titles][:8]
+    except:
         return None
-
-    first_word = parts[0]
-
-    if len(first_word) < 3:
-        return None
-
-    # 🔥 small safe prefix
-    if len(first_word) >= 5:
-        prefix = re.escape(first_word[:5])
-    else:
-        prefix = re.escape(first_word[:4])
-    regex = re.compile(prefix, re.IGNORECASE)
-
-    # Limit small to protect DB
-    cursor = Media.find(
-        {"file_name": regex},
-        {"file_name": 1}
-    ).limit(40)
-
-    files = await cursor.to_list(length=40)
-
-    if not files:
-        return None
-
-    titles = []
-    seen = set()
-
-    for file in files:
-        name = file.get("file_name", "")
-        if not name:
-            continue
-
-        clean = _normalize_query(name)
-
-        if clean and clean not in seen:
-            titles.append(clean)
-            seen.add(clean)
 
     if not titles:
         return None
 
-    # 🔥 Fast fuzzy match
-    best = process.extractOne(
-        query,
-        titles,
-        scorer=fuzz.token_sort_ratio
-    )
-
-    if not best:
+    best_match = smart_match(wrong_name, titles)
+    if not best_match:
         return None
 
-    match, score, _ = best
-
-    # Safe threshold (prevents wrong auto correction)
-    if score < 88:
+    try:
+        result = await get_search_results(chat_id=chat_id, query=best_match)
+    except:
         return None
 
-    # 🔹 cache only successful corrections
-    _SPELL_CACHE[query] = match
+    if not result or len(result) != 3:
+        return None
 
-    if len(_SPELL_CACHE) > _CACHE_LIMIT:
-        _SPELL_CACHE.clear()
+    files, _, _ = result
 
-    return match
+    if not files:
+        return None
 
+    # ✅ only success cache
+    SPELL_CACHE[query] = best_match
+
+    if len(SPELL_CACHE) > CACHE_LIMIT:
+        SPELL_CACHE.clear()
+
+    return best_match
 
 async def advantage_spell_chok(client, message):
 
