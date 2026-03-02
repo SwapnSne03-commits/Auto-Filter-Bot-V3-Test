@@ -25,6 +25,10 @@ from database.topdb import silentdb
 import requests
 import string
 import tracemalloc
+from rapidfuzz import process, fuzz
+
+_SPELL_CACHE = {}
+_CACHE_LIMIT = 300
 
 tracemalloc.start()
 
@@ -2449,22 +2453,54 @@ async def auto_filter(client, msg, spoll=False):
             m=await message.reply_text(f'<b><i>ᴡᴀɪᴛ {message.from_user.mention}, sᴇᴀʀᴄʜɪɴɢ ʏᴏᴜʀ ǫᴜᴇʀʏ: <i>{search}...</i></b>', reply_to_message_id=message.id)
             files, offset, total_results = await get_search_results(message.chat.id ,search, offset=0, filter=True)
             # 🔥 APOSTROPHE FALLBACK (second search only if first fails)
-            if not files and "'" in message.text:
+            # 🔥 ADVANCED SYMBOL NORMALIZATION FALLBACK
+            if not files and re.search(r"[\'\:\.,/]", message.text):
 
-                fallback_search = message.text.lower()
-                fallback_search = fallback_search.replace("-", " ")
-                fallback_search = fallback_search.replace(":", "")
-                fallback_search = fallback_search.replace("'", " ")
-                fallback_search = re.sub(r'[^a-zA-Z0-9\s]', '', fallback_search)
-                fallback_search = re.sub(r'\s+', ' ', fallback_search).strip()
+                raw = message.text.lower()
 
-                if fallback_search and fallback_search != search:
+                # Variant 1 → remove symbols completely
+                variant1 = re.sub(r"[\'\:\.,/]", "", raw)
+
+                # Variant 2 → replace symbols with space
+                variant2 = re.sub(r"[\'\:\.,/]", " ", raw)
+
+                variants = []
+
+                for v in [variant1, variant2]:
+
+                    v = v.replace("-", " ")
+                    v = re.sub(r'[^a-zA-Z0-9\s]', '', v)
+                    v = re.sub(r'\s+', ' ', v).strip()
+
+                    if v and v != search:
+                        variants.append(v)
+
+                for v in variants:
                     files, offset, total_results = await get_search_results(
-                        message.chat.id,
-                        fallback_search,
+                       message.chat.id,
+                        v,
                         offset=0,
                         filter=True
-		            )
+                    )
+
+                    if files:
+                        search = v
+                        break
+
+                #fallback_search = message.text.lower()
+                #fallback_search = fallback_search.replace("-", " ")
+                #fallback_search = fallback_search.replace(":", "")
+                #fallback_search = fallback_search.replace("'", " ")
+                #fallback_search = re.sub(r'[^a-zA-Z0-9\s]', '', fallback_search)
+                #fallback_search = re.sub(r'\s+', ' ', fallback_search).strip()
+
+                #if fallback_search and fallback_search != search:
+                    #files, offset, total_results = await get_search_results(
+                        #message.chat.id,
+                        #fallback_search,
+                        #offset=0,
+                        #filter=True
+		            #)
             # ===================================
             # PREMIUM SMART FALLBACK ENGINE
             # ===================================
@@ -2891,55 +2927,115 @@ async def auto_filter(client, msg, spoll=False):
     except KeyError:
         await save_group_settings(message.chat.id, 'auto_delete', True)
         pass
-		
+
+def _normalize_query(text: str) -> str:
+    text = text.lower().strip()
+
+    # replace separators with space
+    text = re.sub(r"[\-_\.]+", " ", text)
+
+    # proloy02 → proloy 02
+    text = re.sub(r"(\D)(\d)", r"\1 \2", text)
+
+    # 02 → 2
+    text = re.sub(r"\b0+(\d)", r"\1", text)
+
+    # remove special chars
+    text = re.sub(r"[^a-z0-9\s]", " ", text)
+
+    # collapse spaces
+    text = re.sub(r"\s+", " ", text).strip()
+
+    return text
+
 async def ai_spell_check(chat_id, wrong_name):
 
-    if not wrong_name:
+    if not wrong_name or not isinstance(wrong_name, str):
         return None
 
-    if re.search(r'\bS\d{1,2}\b|\bSeason\s*\d+', wrong_name, re.I):
+    query = _normalize_query(wrong_name)
+
+    # 🔥 Skip season/episode queries (handled by fallback engine)
+    if re.search(r"(s\d{1,2}|season\s*\d{1,2}|e\d{1,3})", query, re.I):
         return None
 
-    query = wrong_name.strip().lower()
+    # Skip too short
+    if len(query) < 3:
+        return None
 
-    # ✅ cache only success
-    cached = SPELL_CACHE.get(query)
+    # 🔹 Cache hit
+    cached = _SPELL_CACHE.get(query)
     if cached:
         return cached
 
-    try:
-        search_results = imdb.search_movie(wrong_name)
-        titles = [m.title for m in search_results.titles][:8]
-    except:
+    parts = query.split()
+    if not parts:
         return None
 
-    if not titles:
+    first_word = parts[0]
+
+    if len(first_word) < 3:
         return None
 
-    best_match = smart_match(wrong_name, titles)
-    if not best_match:
-        return None
+    # 🔥 small safe prefix
+    if len(first_word) >= 5:
+        prefix = re.escape(first_word[:5])
+    else:
+        prefix = re.escape(first_word[:4])
+    regex = re.compile(prefix, re.IGNORECASE)
 
-    try:
-        result = await get_search_results(chat_id=chat_id, query=best_match)
-    except:
-        return None
+    # Limit small to protect DB
+    cursor = Media.find(
+        {"file_name": regex},
+        {"file_name": 1}
+    ).limit(40)
 
-    if not result or len(result) != 3:
-        return None
-
-    files, _, _ = result
+    files = await cursor.to_list(length=40)
 
     if not files:
         return None
 
-    # ✅ only success cache
-    SPELL_CACHE[query] = best_match
+    titles = []
+    seen = set()
 
-    if len(SPELL_CACHE) > CACHE_LIMIT:
-        SPELL_CACHE.clear()
+    for file in files:
+        name = file.get("file_name", "")
+        if not name:
+            continue
 
-    return best_match
+        clean = _normalize_query(name)
+
+        if clean and clean not in seen:
+            titles.append(clean)
+            seen.add(clean)
+
+    if not titles:
+        return None
+
+    # 🔥 Fast fuzzy match
+    best = process.extractOne(
+        query,
+        titles,
+        scorer=fuzz.token_sort_ratio
+    )
+
+    if not best:
+        return None
+
+    match, score, _ = best
+
+    # Safe threshold (prevents wrong auto correction)
+    if score < 88:
+        return None
+
+    # 🔹 cache only successful corrections
+    _SPELL_CACHE[query] = match
+
+    if len(_SPELL_CACHE) > _CACHE_LIMIT:
+        _SPELL_CACHE.clear()
+
+    return match
+
 
 async def advantage_spell_chok(client, message):
 
