@@ -1465,12 +1465,19 @@ async def advantage_spoll_choker(bot, query):
             script.ALRT_TXT.format(query.from_user.first_name),
             show_alert=True
         )
-
-    movies = await get_poster(id, id=True)
-    movie = clean_query(movies.get("title", ""))
-
+    try:
+        movies = await get_poster(id, id=True)
+        movie = clean_query(movies.get("title", "")) if movies else None
+    except Exception:
+        movies = None
+        movie = None
+    return await query.answer(
+        f"sᴏʀʀʏ {query.from_user.first_name},\n"
+        f"ᴄᴏᴜʟᴅɴ'ᴛ ғɪɴᴅ ʏᴏᴜʀ ʀᴇǫᴜᴇsᴛ:\n{clean_query(id)}",
+        show_alert=True
+	)
     await query.answer(script.TOP_ALRT_MSG)
-
+    
     chat_id = query.message.chat.id
     spell_msg = query.message          # 🔥 save spelling list message
     user_msg = query.message.reply_to_message
@@ -3022,15 +3029,18 @@ async def advantage_spell_chok(client, message):
     if movies is None:
         try:
             raw = await get_poster(query, bulk=False)
-        except:
-            return
+        except Exception:
+            raw = None
 
         # 🔥 safest normalization (VERY IMPORTANT)
-        movies = []
+        if not raw:
+            movies = []
 
         # 🔥 always convert to iterable
-        items = raw if isinstance(raw, (list, tuple)) else [raw]
-
+        if raw:
+            items = raw if isinstance(raw, (list, tuple)) else [raw]
+        else:
+            items = []
         for m in items:
 
             mid = None
