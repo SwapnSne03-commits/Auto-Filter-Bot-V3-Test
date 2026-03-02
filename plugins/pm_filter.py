@@ -2419,6 +2419,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
 			
         
 async def auto_filter(client, msg, spoll=False):
+    cap = ""
     message = msg   # 🔥 MUST (very important)
 
     if not message or not isinstance(getattr(message, "text", None), str):
@@ -2773,7 +2774,6 @@ async def auto_filter(client, msg, spoll=False):
             header_note = f"🔎 <i>{fallback_info}</i>\n\n"
 
         # ---------------- CAPTION BUILD ----------------
-        cap = ""
 
         if settings.get('button'):
             cap = (
