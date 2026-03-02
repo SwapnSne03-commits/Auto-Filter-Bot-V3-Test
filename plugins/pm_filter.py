@@ -2476,16 +2476,25 @@ async def auto_filter(client, msg, spoll=False):
             if not files:
 
                 is_series_request = bool(
-                    re.search(r"(s\d{1,2}|season\s*\d{1,2}|e\d{1,3})", search, re.IGNORECASE)
-                    or re.search(r"\b\d{1,2}\b$", search)
-                )
+                    re.search(r"s\d{1,2}\s*e\d{1,3}", search, re.IGNORECASE) or
+                    re.search(r"s\d{1,2}e\d{1,3}", search, re.IGNORECASE) or
+                    re.search(r"s\d{1,2}", search, re.IGNORECASE) or
+                    re.search(r"season\s*\d{1,2}", search, re.IGNORECASE) or
+                    re.search(r"\b\d{1,2}\b$", search)
+				)
 
                 has_year = bool(re.search(r"\b(19|20)\d{2}\b", search))
 
                 # 1️⃣ Episode → Season
                 if is_series_request:
-                    season_only = re.sub(r"e\d{1,3}", "", search, flags=re.IGNORECASE).strip()
-
+                    season_only = re.sub(
+                        r"(s\d{1,2}\s*e\d{1,3}|s\d{1,2}e\d{1,3}|e\d{1,3})",
+                        lambda m: re.search(r"s\d{1,2}", m.group(0), re.IGNORECASE).group(0)
+                        if re.search(r"s\d{1,2}", m.group(0), re.IGNORECASE)
+                        else "",
+                        search,
+                        flags=re.IGNORECASE
+                    ).strip()
                     if season_only != search:
                         files, offset, total_results = await get_search_results(
                             message.chat.id, season_only, offset=0, filter=True
@@ -2493,6 +2502,8 @@ async def auto_filter(client, msg, spoll=False):
 
                         if files:
                             fallback_query = season_only
+                            original_query = season_only
+                            search = season_only
                             fallback_info = "Episode not found. Showing season results."
 
                 # 2️⃣ Season → Title
@@ -2511,6 +2522,8 @@ async def auto_filter(client, msg, spoll=False):
 
                         if files:
                             fallback_query = title_only
+                            original_query = title_only
+                            search = title_only
                             fallback_info = "Season not available. Showing all available results."
 
                 # 3️⃣ Wrong Year fallback
