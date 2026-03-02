@@ -2880,10 +2880,22 @@ async def advantage_spell_chok(client, message):
     # 🔥 no result → fallback
     # ===============================
     if not movies:
+
+        reply = await message.reply_text(
+            f"<b>😕 sᴏʀʀʏ {message.from_user.mention},\n"
+            f"ɪ ᴄᴏᴜʟᴅɴ'ᴛ ғɪɴᴅ ᴀɴʏᴛʜɪɴɢ ᴡɪᴛʜ ʏᴏᴜʀ sᴘᴇʟʟɪɴɢ.\n"
+            f"ᴘʟᴇᴀsᴇ ᴄʜᴇᴄᴋ ʏᴏᴜʀ sᴘᴇʟʟɪɴɢ ᴀɴᴅ ᴛʀʏ ᴀɢᴀɪɴ.</b>",
+            reply_to_message_id=message.id
+        )
+
+        await asyncio.sleep(15)
+
         try:
+            await reply.delete()
             await message.delete()
         except:
             pass
+
         return
     # ===============================
     # 🔥 build buttons safely
