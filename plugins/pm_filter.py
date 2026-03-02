@@ -2528,6 +2528,8 @@ async def auto_filter(client, msg, spoll=False):
 
                         if files:
                             fallback_query = title_without_year
+                            original_query = title_without_year   # 🔥 ADD THIS
+                            search = title_without_year       
                             fallback_info = f"No results for that year. Showing results for '{title_without_year}'."
             uid = message.from_user.id if message.from_user else 0
             key = f"{message.chat.id}-{message.id}"
@@ -2734,9 +2736,17 @@ async def auto_filter(client, msg, spoll=False):
 
             if tmdb_data:
                 poster_url = await get_best_visual(tmdb_data)
+    if not files:
+        return
+    display_query = fallback_query if fallback_query else original_query
+
+    header_note = ""
+    if fallback_info:
+        header_note = f"🔎 <i>{fallback_info}</i>\n\n"
+    cap = ""
     if imdb:
-        cap = TEMPLATE.format(
-            qurey=search,
+        cap = header_note + TEMPLATE.format(
+            qurey=display_query,
             #qurey=search,
             title=imdb.get("title", "N/A"),
             votes=imdb.get("votes") or imdb.get("vote_count") or "N/A",
@@ -2767,14 +2777,9 @@ async def auto_filter(client, msg, spoll=False):
             url=imdb.get("url", "N/A"),
             **locals()
         )
-        display_query = fallback_query if fallback_query else original_query
-
-        header_note = ""
-        if fallback_info:
-            header_note = f"🔎 <i>{fallback_info}</i>\n\n"
 
         # ---------------- CAPTION BUILD ----------------
-
+    else:
         if settings.get('button'):
             cap = (
                 f"<b><blockquote>Hᴇʏ, {message.from_user.mention}</blockquote>\n"
