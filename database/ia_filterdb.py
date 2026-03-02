@@ -152,23 +152,58 @@ async def get_search_results(chat_id, query, file_type=None, max_results=10, off
         parts = query.split()
         new_parts = []
 
-        for part in parts:
+        for i, part in enumerate(parts):
 
-            # যদি s05 / s2 টাইপ হয়
-            season_match = re.fullmatch(r"s(\d{1,2})", part.lower())
+            part_lower = part.lower()
+
+            season_match = re.fullmatch(r"s(\d{1,2})", part_lower)
+            season_word_match = re.fullmatch(r"season(\d{1,2})", part_lower)
+
+            number_match = (
+                re.fullmatch(r"\d{1,2}", part_lower)
+                and i == len(parts) - 1
+            )
 
             if season_match:
                 season_num = season_match.group(1)
 
-                # s05 / s5 / s05e01 / s05 e02 match করবে
-                pattern = r"s0?" + re.escape(season_num) + r"(?:\b|e\d+\b|\s*e\d+\b)"
+                pattern = (
+                    r"(?:s0?" + re.escape(season_num) +
+                    r"|season\s*0?" + re.escape(season_num) +
+                    r")(?:\b|e\d+\b|\s*e\d+\b)"
+                )
                 new_parts.append(pattern)
 
+            elif season_word_match:
+                season_num = season_word_match.group(1)
+
+                pattern = (
+                    r"(?:s0?" + re.escape(season_num) +
+                    r"|season\s*0?" + re.escape(season_num) +
+                    r")(?:\b|e\d+\b|\s*e\d+\b)"
+                )
+                new_parts.append(pattern)
+
+            elif number_match:
+
+                season_num = part_lower
+
+                season_pattern = (
+                    r"(?:s0?" + re.escape(season_num) +
+                    r"|season\s*0?" + re.escape(season_num) +
+                    r")(?:\b|e\d+\b|\s*e\d+\b)"
+                )
+
+                normal_pattern = r"(\b|[\.\+\-_])" + re.escape(part) + r"(\b|[\.\+\-_])"
+
+                new_parts.append(f"(?:{season_pattern}|{normal_pattern})")
+
             else:
-                new_parts.append(r"(\b|[\.\+\-_])" + re.escape(part) + r"(\b|[\.\+\-_])")
+                new_parts.append(
+                    r"(\b|[\.\+\-_])" + re.escape(part) + r"(\b|[\.\+\-_])"
+                )
 
         raw_pattern = r".*[\s\.\+\-_()\[\]]".join(new_parts)
-
     try:
         regex = re.compile(raw_pattern, flags=re.IGNORECASE)
     except:
