@@ -3179,22 +3179,47 @@ async def advantage_spell_chok(client, message):
             raw = []
 
         # 🔥 AUTO CHECK এখানেই করবো
+        # 🔥 AUTO CHECK এখানেই করবো
         if raw:
-            first_title = raw[0].get("title")
 
-            if first_title and first_title.lower().strip() != query.lower().strip():
+            first_item = raw[0]
 
-                files, offset, total_results = await get_search_results(
-                    message.chat.id,
-                    first_title,
-                    offset=0,
-                    filter=True
+            first_title = first_item.get("title") or first_item.get("name")
+
+            if first_title:
+
+                # 🔥 similarity check (safety guard)
+                score = fuzz.token_sort_ratio(
+                    query.lower().strip(),
+                    first_title.lower().strip()
                 )
 
-                if files:
-                    k = (first_title, files, offset, total_results)
-                    return await auto_filter(client, message, k)
+                if score >= 70 and first_title.lower().strip() != query.lower().strip():
 
+                    # 1️⃣ exact search
+                    files, offset, total_results = await get_search_results(
+                        message.chat.id,
+                        first_title,
+                        offset=0,
+                        filter=True
+                    )
+
+                    # 2️⃣ loose match (remove year)
+                    if not files:
+                        base = re.sub(r"\b(19|20)\d{2}\b", "", first_title).strip()
+
+                        files, offset, total_results = await get_search_results(
+                            message.chat.id,
+                            base,
+                            offset=0,
+                            filter=True
+                        )
+
+                    # 3️⃣ auto trigger if found
+                    if files:
+                        k = (first_title, files, offset, total_results)
+                        return await auto_filter(client, message, k)
+				
         for item in raw:
 
             tmdb_id = item.get("tmdb_id")
