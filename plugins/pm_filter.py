@@ -25,6 +25,58 @@ from database.topdb import silentdb
 import requests
 import string
 import tracemalloc
+import aiohttp
+
+TMDB_API_KEY = "08345b489d678f754581a74b7343b4c0"
+
+async def tmdb_bulk_search(query):
+
+    if not query or len(query) < 3:
+        return []
+
+    params = {
+        "api_key": TMDB_API_KEY,
+        "query": query,
+        "include_adult": "false"
+    }
+
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(
+                "https://api.themoviedb.org/3/search/multi",
+                params=params,
+                timeout=6
+            ) as resp:
+
+                if resp.status != 200:
+                    return []
+
+                data = await resp.json()
+
+    except:
+        return []
+
+    results = data.get("results", [])
+    movies = []
+
+    for item in results[:8]:
+
+        if item.get("media_type") not in ("movie", "tv"):
+            continue
+
+        title = item.get("title") or item.get("name")
+        tmdb_id = item.get("id")
+
+        if not title or not tmdb_id:
+            continue
+
+        movies.append({
+            "title": title,
+            "tmdb_id": tmdb_id
+        })
+
+    return movies
+
 
 tracemalloc.start()
 
@@ -1460,34 +1512,72 @@ async def advantage_spoll_choker(bot, query):
 
     _, id, user = query.data.split('#')
 
+    # 🔒 user validation
     if int(user) != 0 and query.from_user.id != int(user):
         return await query.answer(
             script.ALRT_TXT.format(query.from_user.first_name),
             show_alert=True
         )
+
+    # 🔥 ensure tmdb id format
+    if not id.startswith("tmdb_"):
+        return await query.answer("Invalid ID ❌", show_alert=True)
+
+    tmdb_id = id.replace("tmdb_", "")
+
+    # 🔥 fetch title from TMDB
     try:
-        movies = await get_poster(id, id=True)
-        movie = clean_query(movies.get("title", "")) if movies else None
+        async with aiohttp.ClientSession() as session:
+
+            # try movie endpoint first
+            async with session.get(
+                f"https://api.themoviedb.org/3/movie/{tmdb_id}",
+                params={"api_key": TMDB_API_KEY},
+                timeout=6
+            ) as resp:
+
+                if resp.status == 200:
+                    data = await resp.json()
+                else:
+                    # try tv endpoint
+                    async with session.get(
+                        f"https://api.themoviedb.org/3/tv/{tmdb_id}",
+                        params={"api_key": TMDB_API_KEY},
+                        timeout=6
+                    ) as tv_resp:
+
+                        if tv_resp.status != 200:
+                            return await query.answer(
+                                f"Sorry {query.from_user.first_name},\nMovie not found ❌",
+                                show_alert=True
+                            )
+
+                        data = await tv_resp.json()
+
     except Exception:
-        movies = None
-        movie = None
-    return await query.answer(
-        f"sᴏʀʀʏ {query.from_user.first_name},\n"
-        f"ᴄᴏᴜʟᴅɴ'ᴛ ғɪɴᴅ ʏᴏᴜʀ ʀᴇǫᴜᴇsᴛ:\n{clean_query(id)}",
-        show_alert=True
-	)
+        return await query.answer("TMDB Error ❌", show_alert=True)
+
+    movie = data.get("title") or data.get("name")
+
+    if not movie:
+        return await query.answer(
+            f"Sorry {query.from_user.first_name},\nMovie info unavailable ❌",
+            show_alert=True
+        )
+
+    movie = clean_query(movie)
+
     await query.answer(script.TOP_ALRT_MSG)
-    
+
     chat_id = query.message.chat.id
-    spell_msg = query.message          # 🔥 save spelling list message
+    spell_msg = query.message
     user_msg = query.message.reply_to_message
 
-    # 🔥 delete spelling list
+    # 🔥 delete suggestion list
     try:
         await spell_msg.delete()
     except:
         pass
-
 
     files, offset, total_results = await get_search_results(
         chat_id,
@@ -1497,6 +1587,7 @@ async def advantage_spoll_choker(bot, query):
     )
 
     if files:
+
         if not user_msg:
             return await query.answer("Request expired ❌", show_alert=True)
 
@@ -1504,19 +1595,19 @@ async def advantage_spoll_choker(bot, query):
         await auto_filter(bot, user_msg, k)
 
     else:
-        reqstr1 = query.from_user.id if query.from_user else 0
-        reqstr = await bot.get_users(reqstr1)
+
+        req_id = query.from_user.id if query.from_user else 0
+        req_user = await bot.get_users(req_id)
 
         if NO_RESULTS_MSG:
             await bot.send_message(
                 chat_id=BIN_CHANNEL,
-                text=script.NORSLTS.format(reqstr.id, reqstr.mention, movie)
+                text=script.NORSLTS.format(req_user.id, req_user.mention, movie)
             )
 
-        # ❗ এখানে edit না করে নতুন message send করাই safe
         contact_admin_button = InlineKeyboardMarkup(
             [[InlineKeyboardButton(
-                "ᴄʟɪᴄᴋ ᴛᴏ ʀᴇǫᴜᴇsᴛ",
+                "Click To Request",
                 url=SUPPORT_GRP
             )]]
         )
@@ -1528,7 +1619,11 @@ async def advantage_spoll_choker(bot, query):
         )
 
         await asyncio.sleep(10)
-        await msg.delete()
+
+        try:
+            await msg.delete()
+        except:
+            pass
                 
 @Client.on_callback_query()
 async def cb_handler(client: Client, query: CallbackQuery):
@@ -2953,35 +3048,82 @@ def _normalize_query(text: str) -> str:
 
 async def ai_spell_check(chat_id, wrong_name):
 
-    if not wrong_name:
+    if not wrong_name or not isinstance(wrong_name, str):
         return None
 
-    if re.search(r'\bS\d{1,2}\b|\bSeason\s*\d+', wrong_name, re.I):
+    # 🔥 Season / Episode request এ spelling check নয়
+    if re.search(r'\bS\d{1,2}\b|\bSeason\s*\d+|\bE\d{1,3}\b', wrong_name, re.I):
         return None
 
     query = wrong_name.strip().lower()
+
+    if len(query) < 3:
+        return None
 
     # ✅ cache only success
     cached = SPELL_CACHE.get(query)
     if cached:
         return cached
 
+    params = {
+        "api_key": TMDB_API_KEY,
+        "query": query,
+        "include_adult": "false"
+    }
+
     try:
-        search_results = imdb.search_movie(wrong_name)
-        titles = [m.title for m in search_results.titles][:8]
-    except:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(
+                "https://api.themoviedb.org/3/search/multi",
+                params=params,
+                timeout=6
+            ) as resp:
+
+                if resp.status != 200:
+                    return None
+
+                data = await resp.json()
+
+    except Exception:
         return None
 
-    if not titles:
+    results = data.get("results")
+    if not results:
         return None
 
-    best_match = smart_match(wrong_name, titles)
+    # 🔥 প্রথম valid movie/tv result নাও
+    best_match = None
+
+    for item in results[:5]:
+
+        media_type = item.get("media_type")
+
+        if media_type not in ("movie", "tv"):
+            continue
+
+        title = item.get("title") or item.get("name")
+        if not title:
+            continue
+
+        # exact match হলে correction লাগবে না
+        if title.lower().strip() == query:
+            return None
+
+        best_match = title
+        break
+
     if not best_match:
         return None
 
+    # 🔥 এখন check করবো ডাটাবেজে ফাইল আছে কিনা
     try:
-        result = await get_search_results(chat_id=chat_id, query=best_match)
-    except:
+        result = await get_search_results(
+            chat_id=chat_id,
+            query=best_match,
+            offset=0,
+            filter=True
+        )
+    except Exception:
         return None
 
     if not result or len(result) != 3:
@@ -2992,7 +3134,7 @@ async def ai_spell_check(chat_id, wrong_name):
     if not files:
         return None
 
-    # ✅ only success cache
+    # ✅ success cache
     SPELL_CACHE[query] = best_match
 
     if len(SPELL_CACHE) > CACHE_LIMIT:
@@ -3000,9 +3142,10 @@ async def ai_spell_check(chat_id, wrong_name):
 
     return best_match
 
+
 async def advantage_spell_chok(client, message):
 
-    # 🔒 absolute safety
+    # 🔒 safety
     if not message.text or not isinstance(message.text, str):
         return
 
@@ -3027,43 +3170,25 @@ async def advantage_spell_chok(client, message):
     movies = POSTER_CACHE.get(cache_key)
 
     if movies is None:
-        if movies is None:
-            movies = [] 
+
+        movies = []
+
         try:
-            raw = await get_poster(query, bulk=False)
+            raw = await tmdb_bulk_search(query)
         except Exception:
-            raw = None
+            raw = []
 
-        # 🔥 safest normalization (VERY IMPORTANT)
-        #if not raw:
-            #movies = []
-	
-        # 🔥 always convert to iterable
-        if raw:
-            items = raw if isinstance(raw, (list, tuple)) else [raw]
-        else:
-            items = []
-        for m in items:
+        for item in raw:
 
-            mid = None
-            title = None
+            tmdb_id = item.get("tmdb_id")
+            title = item.get("title")
 
-            # dict style
-            if isinstance(m, dict):
-                mid = m.get("id") or m.get("imdb_id")
-                title = m.get("title")
-
-            # object style
-            else:
-                mid = getattr(m, "imdb_id", None) or getattr(m, "id", None)
-                title = getattr(m, "title", None)
-
-            if not mid or not title:
+            if not tmdb_id or not title:
                 continue
 
             movies.append(type("Movie", (), {
-                "imdb_id": str(mid),
-                "title": str(title)
+                "imdb_id": f"tmdb_{tmdb_id}",   # IMPORTANT
+                "title": title
             }))
 
         movies = movies[:6]
@@ -3075,14 +3200,14 @@ async def advantage_spell_chok(client, message):
             POSTER_CACHE.clear()
 
     # ===============================
-    # 🔥 no result → fallback
+    # 🔥 NO RESULT
     # ===============================
     if not movies:
 
         reply = await message.reply_text(
-            f"<b>😕 sᴏʀʀʏ {message.from_user.mention},\n"
-            f"ɪ ᴄᴏᴜʟᴅɴ'ᴛ ғɪɴᴅ ᴀɴʏᴛʜɪɴɢ ᴡɪᴛʜ ʏᴏᴜʀ sᴘᴇʟʟɪɴɢ.\n"
-            f"ᴘʟᴇᴀsᴇ ᴄʜᴇᴄᴋ ʏᴏᴜʀ sᴘᴇʟʟɪɴɢ ᴀɴᴅ ᴛʀʏ ᴀɢᴀɪɴ.</b>",
+            f"<b>😕 Sorry {message.from_user.mention},\n"
+            f"I couldn't find anything with your spelling.\n"
+            f"Please check your spelling and try again.</b>",
             reply_to_message_id=message.id
         )
 
@@ -3095,17 +3220,20 @@ async def advantage_spell_chok(client, message):
             pass
 
         return
+
     # ===============================
-    # 🔥 build buttons safely
+    # 🔥 BUILD BUTTONS
     # ===============================
     buttons = [
         [InlineKeyboardButton(m.title, callback_data=f"spol#{m.imdb_id}#{user_id}")]
         for m in movies
     ]
+
     if not buttons:
         return
+
     buttons.append([
-        InlineKeyboardButton("ᴄʟᴏsᴇ ʟɪsᴛ", callback_data=f"spellclose_secure_x9#{user_id}")
+        InlineKeyboardButton("Close List", callback_data=f"spellclose_secure_x9#{user_id}")
     ])
 
     msg = await message.reply_text(
@@ -3114,8 +3242,9 @@ async def advantage_spell_chok(client, message):
         reply_to_message_id=message.id
     )
 
-    # ✅ auto delete after 25s (non blocking)
+    # auto delete after 25 seconds
     asyncio.create_task(auto_delete_spell(msg, message))
+
 
 async def auto_delete_spell(bot_msg, user_msg, delay=25):
     await asyncio.sleep(delay)
