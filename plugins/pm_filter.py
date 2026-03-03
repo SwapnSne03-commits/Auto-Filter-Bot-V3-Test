@@ -3178,6 +3178,23 @@ async def advantage_spell_chok(client, message):
         except Exception:
             raw = []
 
+        # 🔥 AUTO CHECK এখানেই করবো
+        if raw:
+            first_title = raw[0].get("title")
+
+            if first_title and first_title.lower().strip() != query.lower().strip():
+
+                files, offset, total_results = await get_search_results(
+                    message.chat.id,
+                    first_title,
+                    offset=0,
+                    filter=True
+                )
+
+                if files:
+                    k = (first_title, files, offset, total_results)
+                    return await auto_filter(client, message, k)
+
         for item in raw:
 
             tmdb_id = item.get("tmdb_id")
